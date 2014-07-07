@@ -1,0 +1,103 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>com.nervepoint</groupId>
+	<artifactId>identity4j</artifactId>
+	<version>1.0.1-SNAPSHOT</version>
+	<name>Identity4J</name>
+	<description>A suite of Java Identity and Authentication Connectors.</description>
+	<url>http://www.nervepoint.com</url>
+	<packaging>pom</packaging>
+
+	<parent>
+		<groupId>org.sonatype.oss</groupId>
+		<artifactId>oss-parent</artifactId>
+		<version>7</version>
+	</parent>
+
+	<licenses>
+		<license>
+			<name>GNU Lesser General Public License</name>
+			<url>http://www.gnu.org/licenses/lgpl.html</url>
+			<distribution>repo</distribution>
+		</license>
+	</licenses>
+	<scm>
+		<url>https://sourceforge.net/p/identity4j/code/HEAD/tree/</url>
+		<connection>http://svn.code.sf.net/p/identity4j/code</connection>
+	</scm>
+	<developers>
+		<developer>
+			<id>lee</id>
+			<name>Lee David Painter</name>
+			<email>lee@nervepoint.com</email>
+		</developer>
+	</developers>
+
+	<modules>
+		<module>identity4j-utils</module>
+		<module>identity4j-vfs</module>
+		<module>identity4j-connector</module>
+		<module>identity4j-ldap-directory-spring</module>
+		<module>identity4j-active-directory-spring</module>
+		<module>identity4j-flatfile</module>
+		<module>identity4j-unix</module>
+		<module>identity4j-htpasswd</module>
+		<module>identity4j-jdbc</module>
+		<module>identity4j-mysql</module>
+		<module>identity4j-google</module>
+		<module>identity4j-office365</module>
+		<module>identity4j-salesforce</module>
+                <module>identity4j-zendesk</module>
+                <module>identity4j-mysql-users-connector</module>
+                <module>identity4j-ldap-directory-jndi</module>
+                <module>identity4j-active-directory-jndi</module>
+	</modules>
+
+	<dependencies>
+		<!-- Tests -->
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.7</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>log4j</groupId>
+			<artifactId>log4j</artifactId>
+			<version>1.2.16</version>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+
+	<profiles>
+		<profile>
+			<id>release-sign-artifacts</id>
+			<activation>
+				<property>
+					<name>performRelease</name>
+					<value>true</value>
+				</property>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-gpg-plugin</artifactId>
+						<version>1.1</version>
+						<executions>
+							<execution>
+								<id>sign-artifacts</id>
+								<phase>verify</phase>
+								<goals>
+									<goal>sign</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
+
+</project>
