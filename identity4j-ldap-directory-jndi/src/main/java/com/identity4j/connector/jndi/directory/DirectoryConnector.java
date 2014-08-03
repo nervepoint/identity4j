@@ -365,23 +365,6 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 		return message;
 	}
 
-	
-
-	@Override
-	public Role createRole(Role role) throws ConnectorException {
-		throw new UnsupportedOperationException("Role maintenance is not yet supported");
-	}
-
-	@Override
-	public void deleteRole(String principleName) throws ConnectorException {
-		throw new UnsupportedOperationException("Role maintenance is not yet supported");
-	}
-
-	@Override
-	public void updateRole(Role role) throws ConnectorException {
-		throw new UnsupportedOperationException("Role maintenance is not yet supported");
-	}
-
 	@Override
 	public Iterator<BrowseNode> getBrowseableNodes(BrowseNode parent) {
 		final SearchControls ctrls = new SearchControls();
@@ -446,4 +429,5 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 		//return null;
 
 	}
+
 }
