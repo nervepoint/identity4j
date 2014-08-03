@@ -226,6 +226,25 @@ public abstract class AbstractConnector implements Connector, ValidationContext 
 		throw new UnsupportedOperationException("Delete identity is not supported");
 	}
 
+	/**
+	 * Default implementation. Need to override this to delete a identity
+	 * 
+	 * @param roleName role to delete
+	 * @throws ConnectorException
+	 */
+	public void deleteRole(String principalName) throws ConnectorException {
+		throw new UnsupportedOperationException("Delete role is not supported");
+	}
+	
+	public Role createRole(Role role) throws ConnectorException {
+		throw new UnsupportedOperationException("Create role is not supported");
+	}
+
+	@Override
+	public void updateRole(Role role) throws ConnectorException {
+		throw new UnsupportedOperationException("Update role is not supported");
+	}
+	
 	public void lockIdentity(Identity identity) throws ConnectorException {
 		throw new UnsupportedOperationException("Lock account is not supported");
 	}
