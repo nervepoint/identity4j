@@ -58,35 +58,35 @@ import com.identity4j.util.passwords.PasswordCharacteristics;
 
 public class ActiveDirectoryConnector extends DirectoryConnector {
 	
-	private static final Iterator<String> STRING_ITERATOR = CollectionUtil.emptyIterator(String.class);
+	public static final Iterator<String> STRING_ITERATOR = CollectionUtil.emptyIterator(String.class);
 
 	final static Log LOG = LogFactory.getLog(ActiveDirectoryConnector.class);
 	
-	private static final String SAM_ACCOUNT_NAME_ATTRIBUTE = "sAMAccountName";
-	private static final String USER_PRINCIPAL_NAME_ATTRIBUTE = "userPrincipalName";
-	private static final String OBJECT_GUID_ATTRIBUTE = "objectGUID";
-	private static final String USER_ACCOUNT_CONTROL_ATTRIBUTE = "userAccountControl";
-	private static final String DISTINGUISHED_NAME_ATTRIBUTE = "distinguishedName";
-	private static final String ACCOUNT_EXPIRES_ATTRIBUTE = "accountExpires";
-	private static final String LOCKOUT_TIME_ATTRIBUTE = "lockoutTime";
-	private static final String LOCKOUT_DURATION_ATTRIBUTE = "lockoutDuration";
-	private static final String LAST_LOGON_ATTRIBUTE = "lastLogon";
-	private static final String LAST_LOGON_TIMESTAMP_ATTRIBUTE = "lastLogontimeStamp";
-	private static final String PRIMARY_GROUP_ID_ATTRIBUTE = "primaryGroupId";
-	private static final String PWD_LAST_SET_ATTRIBUTE = "pwdLastSet";
-	static final String PWD_HISTORY_LENGTH = "pwdHistoryLength";
-	static final String MINIMUM_PASSWORD_AGE_ATTRIBUTE = "minPwdAge";
-	static final String MAXIMUM_PASSWORD_AGE_ATTRIBUTE = "maxPwdAge";
-	private static final String COMMON_NAME_ATTRIBUTE = "cn";
-	private static final String MEMBER_OF_ATTRIBUTE = "memberOf";
-	private static final String MEMBER_ATTRIBUTE = "member";
-	private static final String MAIL_ATTRIBUTE = "mail";
-	private static final String MOBILE_PHONE_NUMBER_ATTRIBUTE = "mobile";
-	private static final String PHONE_NUMBER_ATTRIBUTE = "telephoneNumber";
-	private static final String OTHER_PHONE_NUMBER_ATTRIBUTE = "otherTelephone";
-	private static final String OBJECT_SID_ATTRIBUTE = "objectSID";
-	private static final String PWD_PROPERTIES_ATTRIBUTE = "pwdProperties";
-	private static final String OU_ATTRIBUTE = "ou";
+	public static final String SAM_ACCOUNT_NAME_ATTRIBUTE = "sAMAccountName";
+	public static final String USER_PRINCIPAL_NAME_ATTRIBUTE = "userPrincipalName";
+	public static final String OBJECT_GUID_ATTRIBUTE = "objectGUID";
+	public static final String USER_ACCOUNT_CONTROL_ATTRIBUTE = "userAccountControl";
+	public static final String DISTINGUISHED_NAME_ATTRIBUTE = "distinguishedName";
+	public static final String ACCOUNT_EXPIRES_ATTRIBUTE = "accountExpires";
+	public static final String LOCKOUT_TIME_ATTRIBUTE = "lockoutTime";
+	public static final String LOCKOUT_DURATION_ATTRIBUTE = "lockoutDuration";
+	public static final String LAST_LOGON_ATTRIBUTE = "lastLogon";
+	public static final String LAST_LOGON_TIMESTAMP_ATTRIBUTE = "lastLogontimeStamp";
+	public static final String PRIMARY_GROUP_ID_ATTRIBUTE = "primaryGroupId";
+	public static final String PWD_LAST_SET_ATTRIBUTE = "pwdLastSet";
+	public static final String PWD_HISTORY_LENGTH = "pwdHistoryLength";
+	public static final String MINIMUM_PASSWORD_AGE_ATTRIBUTE = "minPwdAge";
+	public static final String MAXIMUM_PASSWORD_AGE_ATTRIBUTE = "maxPwdAge";
+	public static final String COMMON_NAME_ATTRIBUTE = "cn";
+	public static final String MEMBER_OF_ATTRIBUTE = "memberOf";
+	public static final String MEMBER_ATTRIBUTE = "member";
+	public static final String MAIL_ATTRIBUTE = "mail";
+	public static final String MOBILE_PHONE_NUMBER_ATTRIBUTE = "mobile";
+	public static final String PHONE_NUMBER_ATTRIBUTE = "telephoneNumber";
+	public static final String OTHER_PHONE_NUMBER_ATTRIBUTE = "otherTelephone";
+	public static final String OBJECT_SID_ATTRIBUTE = "objectSID";
+	public static final String PWD_PROPERTIES_ATTRIBUTE = "pwdProperties";
+	public static final String OU_ATTRIBUTE = "ou";
 	
 	@Override
 	public Set<ConnectorCapability> getCapabilities() {
@@ -140,11 +140,11 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			.asList(new String[] { OBJECT_SID_ATTRIBUTE, OBJECT_GUID_ATTRIBUTE,
 					COMMON_NAME_ATTRIBUTE, DISTINGUISHED_NAME_ATTRIBUTE });
 
-	private static final int CHANGE_PASSWORD_AT_NEXT_LOGON_FLAG = 0;
-	private static final int CHANGE_PASSWORD_AT_NEXT_LOGON_CANCEL_FLAG = -1;
+	public static final int CHANGE_PASSWORD_AT_NEXT_LOGON_FLAG = 0;
+	public static final int CHANGE_PASSWORD_AT_NEXT_LOGON_CANCEL_FLAG = -1;
 
 	// Bit mask values for pwdProperties
-	private static final int DOMAIN_PASSWORD_COMPLEX = 0x01;
+	public static final int DOMAIN_PASSWORD_COMPLEX = 0x01;
 
 	//private static Map<String, String> childDomainControllers = new HashMap<String, String>();
 
@@ -157,11 +157,11 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 	final String LDAP_SERVER_POLICY_HINTS_OID = "1.2.840.113556.1.4.2066";
 	
 	// TODO not yet used
-	// private static final int DOMAIN_PASSWORD_NO_ANON_CHANGE = 0x02;
-	// private static final int DOMAIN_PASSWORD_NO_CLEAR_CHANGE = 0x04;
-	// private static final int DOMAIN_LOCKOUT_ADMINS = 0x08;
-	// private static final int DOMAIN_PASSWORD_STORE_CLEARTEXT = 0x10;
-	// private static final int DOMAIN_REFUSE_PASSWORD_CHANGE = 0x20;
+	// public static final int DOMAIN_PASSWORD_NO_ANON_CHANGE = 0x02;
+	// public static final int DOMAIN_PASSWORD_NO_CLEAR_CHANGE = 0x04;
+	// public static final int DOMAIN_LOCKOUT_ADMINS = 0x08;
+	// public static final int DOMAIN_PASSWORD_STORE_CLEARTEXT = 0x10;
+	// public static final int DOMAIN_REFUSE_PASSWORD_CHANGE = 0x20;
 
 	@Override
 	public PasswordCharacteristics getPasswordCharacteristics() {
@@ -767,8 +767,6 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 				public Identity apply(SearchResult result) throws NamingException {
 					Attributes attributes = result.getAttributes();
 					
-					
-					
 					String guid = UUID.nameUUIDFromBytes((byte[])getAttribute(attributes.get(OBJECT_GUID_ATTRIBUTE))).toString();
 					Name udn = new LdapName(result.getNameInNamespace());
 					String domain = getDomain(udn);
@@ -797,22 +795,11 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 					directoryIdentity.setAddress(Media.email,(String) getAttribute(attributes.get(MAIL_ATTRIBUTE)));
 					directoryIdentity.setFullName((String) getAttribute(attributes.get(COMMON_NAME_ATTRIBUTE)));
 					directoryIdentity.setOtherName(otherName);
-					// String phoneNumber =
-					// result.getStringAttribute(PHONE_NUMBER_ATTRIBUTE);
-					// if (!StringUtil.isNullOrEmpty(phoneNumber)) {
-					// directoryIdentity.setContactDetails(ContactDetailsType.phone,
-					// phoneNumber);
-					// }
+
 					String phoneNumber = (String) getAttribute(attributes.get(MOBILE_PHONE_NUMBER_ATTRIBUTE));
 					if (!StringUtil.isNullOrEmpty(phoneNumber)) {
 						directoryIdentity.setAddress(Media.mobile, phoneNumber);
 					}
-					// phoneNumber =
-					// result.getStringAttribute(OTHER_PHONE_NUMBER_ATTRIBUTE);
-					// if (!StringUtil.isNullOrEmpty(phoneNumber)) {
-					// directoryIdentity.setContactDetails(ContactDetailsType.otherPhone,
-					// phoneNumber);
-					// }
 
 					// Last sign on
 					String lastLogonTimestamp = (String) getAttribute(attributes.get(LAST_LOGON_TIMESTAMP_ATTRIBUTE));
@@ -847,7 +834,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 						passwordStatus.setUnlocked(getAgedDate(minimumPasswordAge,
 								passwordLastSet));
 					}
-					if (!isPasswordNeverExpire(result)) {
+					if (!isPasswordNeverExpire(result) && passwordLastSet!=null) {
 						passwordStatus.setExpire(getAgedDate(maximumPasswordAge,
 								passwordLastSet));
 					}
@@ -906,9 +893,6 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 										- (lockoutDuration / 1000))));
 					}
 
-					// TODO add primary group
-					// boolean memberOfSupported =
-					// result.getStringAttributes(MEMBER_OF_ATTRIBUTE) != null;
 					if (config.isEnableRoles()) {
 						boolean memberOfSupported = true;
 						
@@ -1244,7 +1228,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			Attributes attributes) throws NamingException, InvalidNameException {
 		String commonName = StringUtil.nonNull((String) getAttribute(attributes.get(COMMON_NAME_ATTRIBUTE)));
 		if (commonName.length() != 0) {
-			String guid = new String((byte[])getAttribute(attributes.get(OBJECT_GUID_ATTRIBUTE)));
+			String guid = UUID.nameUUIDFromBytes((byte[])getAttribute(attributes.get(OBJECT_GUID_ATTRIBUTE))).toString();
 			byte[] sid = (byte[])getAttribute(attributes.get(OBJECT_GUID_ATTRIBUTE));
 			return new ActiveDirectoryGroup(guid, commonName, new LdapName(dn),sid);
 		}

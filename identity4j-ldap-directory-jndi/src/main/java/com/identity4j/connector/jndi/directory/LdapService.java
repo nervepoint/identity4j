@@ -3,10 +3,8 @@ package com.identity4j.connector.jndi.directory;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Iterator;
-import java.util.List;
 import java.util.NoSuchElementException;
 
 import javax.naming.Context;
@@ -140,35 +138,46 @@ public class LdapService {
 		this.configuration = configuration;
 	}
 	
-	public <T> Iterator<T> search(final String filter,final ResultMapper<T> resultMapper)throws NamingException,IOException{
+	public <T> Iterator<T> search(String filter, ResultMapper<T> resultMapper)throws NamingException,IOException{
+		return search(configuration.getBaseDn(), filter, resultMapper);
+	}
+	
+	public <T> Iterator<T> search(final Name baseDN, final String filter,final ResultMapper<T> resultMapper)throws NamingException,IOException{
 		return _(new Block<Iterator<T>>() {
 
-			public Iterator<T> apply(LdapContext context) throws NamingException {
-				NamingEnumeration<SearchResult> results = context.search(configuration.getBaseDn(), 
-						filter, getSearchControls());
-				
-				return new SearchResultIterator<T>(results, resultMapper);
-//				List<T> res = new ArrayList<T>();
-//	            SearchResult searchResult = null;
-//	            while(results.hasMoreElements()) {
-//	                 searchResult = (SearchResult) results.nextElement();
-//	                 res.add(resultMapper.apply(searchResult));
-//	            }
-//	            return res.iterator();
+			public Iterator<T> apply(LdapContext context) throws IOException, NamingException {
+				return new SearchResultIterator<T>(baseDN, context, filter, resultMapper);
 			}
 		});
 	}
 	
 	class SearchResultIterator<T> implements Iterator<T> {
 
-		NamingEnumeration<SearchResult> results;
+		NamingEnumeration<SearchResult> results = null;
 		ResultMapper<T> resultMapper;
 		T nextElement;
+		byte[] cookie = null;
+		LdapContext context;
+		Name baseDN;
+		String filter;
 		
-		SearchResultIterator(NamingEnumeration<SearchResult> results, ResultMapper<T> resultMapper) {
-			this.results = results;
+		SearchResultIterator(Name baseDN, LdapContext context, String filter, ResultMapper<T> resultMapper) throws NamingException, IOException {
 			this.resultMapper = resultMapper;
+			this.baseDN = baseDN;
+			this.context = context;
+			this.filter = filter;
+			buildResults();
 			nextElement = getNextElement();
+		}
+		
+		private void buildResults() throws NamingException, IOException {
+			if(cookie!=null) {
+				context.setRequestControls(new Control[]{new PagedResultsControl(configuration.getMaxPageSize(), cookie, Control.CRITICAL) });
+			} else {
+				context.setRequestControls(new Control[]{new PagedResultsControl(configuration.getMaxPageSize(), Control.CRITICAL) });
+			}
+			results = context.search(baseDN, filter, getSearchControls());
+
 		}
 		
 		T getNextElement() {
@@ -176,13 +185,42 @@ public class LdapService {
 				try {
 					return resultMapper.apply(results.next());
 				} catch (NamingException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-					return getNextElement();
+					LOG.error("Failed to get results", e);
+					throw new IllegalStateException(e);
 				}
 			}
-			return null;
+			
+			try {
+
+				// Record page cookie for next set of results
+				Control[] controls = context.getResponseControls();
+				if (controls != null) {
+					for (int i = 0; i < controls.length; i++) {
+					    if (controls[i] instanceof PagedResultsResponseControl) {
+							PagedResultsResponseControl pagedResultsResponseControl =
+				                         	 (PagedResultsResponseControl)controls[i];
+							cookie = pagedResultsResponseControl.getCookie();
+					    }
+					}
+				}
+				
+				
+				if(cookie==null) {
+					close(context);
+					return null;
+				}
+				
+				buildResults();
+				return getNextElement();
+			} catch (NamingException e) {
+				LOG.error("Failed to get results", e);
+				throw new IllegalStateException(e);
+			} catch (IOException e) {
+				LOG.error("Failed to get results", e);
+				throw new IllegalStateException(e);
+			}
 		}
+		
 		
 		@Override
 		public boolean hasNext() {
@@ -247,68 +285,7 @@ public class LdapService {
 			}
 		});
 	}
-	
-	public <T> Iterator<T> search(final String filter,final int pageSize,final ResultMapper<T> resultMapper)throws NamingException,IOException{
-		return search(configuration.getBaseDn(),filter, pageSize, resultMapper);
-	}
-	
-	public <T> Iterator<T> search(final Name baseDn,final String filter,final int pageSize,final ResultMapper<T> resultMapper)throws NamingException,IOException{
-		return _(new Block<Iterator<T>>() {
 
-			public Iterator<T> apply(LdapContext context) throws NamingException, IOException {
-				//LdapContext ldapContext = (LdapContext) context;  
-				// Activate paged results
-				byte[] cookie = null;
-				context.setRequestControls(new Control[]{new PagedResultsControl(pageSize, Control.NONCRITICAL) });
-				int total;
-				List<T> res = new ArrayList<T>();
-				//cookie == null end of one paged search on one dn
-				//loop over below do for multiple dns
-				do {
-			    	/* perform the search */
-					NamingEnumeration<SearchResult> results =
-		            		context.search(baseDn, 
-		            				filter,
-		            				getSearchControls());
-
-		            /* for each entry print out name + all attrs and values */
-		            while (results != null && results.hasMore()) {
-						SearchResult searchResult = results.next();
-						res.add(resultMapper.apply(searchResult));
-					}
-
-				    // Examine the paged results control response
-				    Control[] controls = context.getResponseControls();
-				    if (controls != null) {
-						for (int i = 0; i < controls.length; i++) {
-						    if (controls[i] instanceof PagedResultsResponseControl) {
-								PagedResultsResponseControl pagedResultsResponseControl =
-					                         	 (PagedResultsResponseControl)controls[i];
-								total = pagedResultsResponseControl.getResultSize();
-								if (total != 0) {
-									LOG.info("EOP (total : " + total + ") *****************\n");
-								} else {
-									LOG.info("EOP (total: unknown) ***************\n");
-								}
-								/**
-								 * END OF PAGE
-								 */
-								cookie = pagedResultsResponseControl.getCookie();
-						    }
-						}
-				    } else {
-				    	LOG.info("No controls were sent from the server");
-				    }
-			            // Re-activate paged results
-				    context.setRequestControls(new Control[]{
-					new PagedResultsControl(pageSize, cookie, Control.CRITICAL) });
-
-				} while (cookie != null);
-				return res.iterator();
-			}
-		});
-	}
-	
 	public Attributes lookupContext(final Name dn) throws NamingException,IOException{
 		return _(new Block<Attributes>() {
 
@@ -339,14 +316,8 @@ public class LdapService {
 	
 	private <T> T _(Block<T> block) throws NamingException, IOException{
 		LdapContext ctx = null;
-		try{
-			ctx = getConnection();
-			
-			return block.apply(ctx);
-			
-		}finally{
-			close(ctx);
-		}
+		ctx = getConnection();
+		return block.apply(ctx);
 	}
 	
 	public interface ResultMapper<T>{

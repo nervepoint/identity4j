@@ -164,7 +164,7 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 
 	protected Iterator<Identity> getIdentities(String filter) {
 		try {
-			return ldapService.search(filter, directoryConfiguration.getMaxPageSize(), new ResultMapper<Identity>() {
+			return ldapService.search(filter, new ResultMapper<Identity>() {
 
 				public Identity apply(SearchResult result) throws NamingException {
 					return mapIdentity(result);
@@ -214,7 +214,7 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 	
 	protected Iterator<Role> getRoles(String filter) {
 		try {
-			return ldapService.search(filter, directoryConfiguration.getMaxPageSize(), new ResultMapper<Role>() {
+			return ldapService.search(filter, new ResultMapper<Role>() {
 
 				public Role apply(SearchResult result) throws NamingException {
 					return mapRole(result);
@@ -372,7 +372,7 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 		ctrls.setReturningObjFlag(true);
 		
 		try {
-			 Iterator<List<BrowseNode>> nodes = ldapService.search(new LdapName(parent.toString()),"(objectclass=*)", directoryConfiguration.getMaxPageSize(), new ResultMapper<List<BrowseNode>>() {
+			 Iterator<List<BrowseNode>> nodes = ldapService.search(new LdapName(parent.toString()),"(objectclass=*)", new ResultMapper<List<BrowseNode>>() {
 
 				@SuppressWarnings("serial")
 				public List<BrowseNode> apply(SearchResult result) throws NamingException {
