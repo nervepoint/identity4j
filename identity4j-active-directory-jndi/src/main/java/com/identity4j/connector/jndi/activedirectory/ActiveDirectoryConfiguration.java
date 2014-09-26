@@ -180,22 +180,24 @@ public class ActiveDirectoryConfiguration extends DirectoryConfiguration {
 				case 389:
 				case 3268:
 					builder.append(LDAP_PROTOCOL).append(controllerHost)
-							.append(" ");
+							.append(":").append(port);
 					break;
 				case 636:
 				case 3269:
 					builder.append(LDAPS_PROTOCOL).append(controllerHost)
-							.append(" ");
+							.append(":").append(port);
 					break;
 				default:
 					builder.append(ssl ? LDAPS_PROTOCOL : LDAP_PROTOCOL)
-							.append(controllerHost).append(" ");
+							.append(controllerHost).append(":").append(port);
 				}
 			} else {
 				builder.append(ssl ? LDAPS_PROTOCOL : LDAP_PROTOCOL).append(
 						controllerHost);
 				if (useGlobalCatalogPort) {
 					builder.append(":" + (ssl ? 3269 : 3268));
+				} else {
+					builder.append(":").append(ssl ? 636 : 389);
 				}
 
 				builder.append(" ");

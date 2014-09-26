@@ -15,6 +15,7 @@ import javax.naming.Name;
 import javax.naming.NamingException;
 import javax.naming.ldap.LdapName;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -139,7 +140,12 @@ public class DirectoryConfiguration extends AbstractConnectorConfiguration {
 	 */
 	public final String[] getControllerHosts() {
 		List<String> l = new ArrayList<String>(Arrays.asList(configurationParameters.getStringArrayOrFail(DIRECTORY_HOSTNAME)));
-		l.addAll(Arrays.asList(configurationParameters.getStringArrayOrFail(DIRECTORY_BACKUP_HOSTNAMES)));
+		String[] tmp = configurationParameters.getStringArrayOrFail(DIRECTORY_BACKUP_HOSTNAMES);
+		for(String t : tmp) {
+			if(StringUtils.isNotBlank(t)) {
+				l.add(t);
+			}
+		}
 		return l.toArray(new String[0]);
 	}
 	
@@ -504,18 +510,18 @@ public class DirectoryConfiguration extends AbstractConnectorConfiguration {
 				switch (port) {
 				case 389:
 				case 3268:
-					builder.append(LDAP_PROTOCOL).append(controllerHost).append(" ");
+					builder.append(LDAP_PROTOCOL).append(controllerHost).append(":").append(port);
 					break;
 				case 636:
 				case 3269:
-					builder.append(LDAPS_PROTOCOL).append(controllerHost).append(" ");
+					builder.append(LDAPS_PROTOCOL).append(controllerHost).append(":").append(port);
 					break;
 				default:
 					LOG.warn("Unexpected LDAP port in controller host " + controllerHost);
-					builder.append(ssl ? LDAPS_PROTOCOL : LDAP_PROTOCOL).append(controllerHost).append(" ");
+					builder.append(ssl ? LDAPS_PROTOCOL : LDAP_PROTOCOL).append(controllerHost).append(":").append(port);
 				}
 			} else {
-				builder.append(ssl ? LDAPS_PROTOCOL : LDAP_PROTOCOL).append(controllerHost).append(" ");
+				builder.append(ssl ? LDAPS_PROTOCOL : LDAP_PROTOCOL).append(controllerHost).append(":").append(ssl ? 636 : 389);
 			}
 
 		}
