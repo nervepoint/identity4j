@@ -23,6 +23,7 @@ import javax.naming.directory.SearchResult;
 import javax.naming.ldap.Control;
 import javax.naming.ldap.InitialLdapContext;
 import javax.naming.ldap.LdapContext;
+import javax.naming.ldap.LdapName;
 import javax.naming.ldap.PagedResultsControl;
 import javax.naming.ldap.PagedResultsResponseControl;
 
@@ -136,6 +137,17 @@ public class LdapService {
 
 	public void init(DirectoryConfiguration configuration){
 		this.configuration = configuration;
+	}
+	
+	public void rename(final LdapName currentDN, final LdapName newDN) throws NamingException, IOException {
+		_(new Block<Void>() {
+
+			@Override
+			public Void apply(LdapContext context) throws NamingException,IOException {
+				context.rename(currentDN, newDN);
+				return null;
+			}
+		});
 	}
 	
 	public <T> Iterator<T> search(String filter, ResultMapper<T> resultMapper)throws NamingException,IOException{

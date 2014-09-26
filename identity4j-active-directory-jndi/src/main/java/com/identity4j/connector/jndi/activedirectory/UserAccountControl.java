@@ -164,12 +164,11 @@ public final class UserAccountControl {
     }
 
     public static boolean isPasswordChangePermitted(int userAccountControl) {
-        // this was supposed to check cannotChangePassword as well, but it
-        // appears that Active
-        // directory sets this in a completely different way which can't be
-        // access from JNDI
-        // boolean cannotChangePassword = isValueSet(userAccountControl,
-        // PASSWD_CANT_CHANGE);
+//         this was supposed to check cannotChangePassword as well, but it
+//         appears that Active
+//         directory sets this in a completely different way which can't be
+//         access from JNDI
+//         boolean cannotChangePassword = isValueSet(userAccountControl, PASSWD_CANT_CHANGE);
 //        return !cannotChangePassword;
     	return true;
     }

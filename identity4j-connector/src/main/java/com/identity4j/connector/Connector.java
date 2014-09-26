@@ -194,7 +194,6 @@ public interface Connector {
 	 * @throws ConnectorException
 	 */
 	Identity createIdentity(Identity identity, char[] password) throws ConnectorException;
-
 	/**
 	 * Update an identity's details.
 	 * 
