@@ -315,12 +315,10 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			toAdd.removeAll(Arrays.asList(oldIdentity.getRoles()));
 			
 			for(Role r : toRemove) {
-				LOG.info("REMOVEME: revoking " + r.getPrincipalName());
 				revokeRole(usersDn, r);
 			}
 			
 			for(Role r : toAdd) {
-				LOG.info("REMOVEME: assigning " + r.getPrincipalName());
 				assignRole(usersDn, r);
 			}
 			
@@ -461,7 +459,6 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			enableIdentity(directoryIdentity);
 
 			for(Role r : identity.getRoles()) {
-				LOG.info("REMOVEME: assigning " + r.getPrincipalName());
 				assignRole(usersDn, r);
 			}
 			
