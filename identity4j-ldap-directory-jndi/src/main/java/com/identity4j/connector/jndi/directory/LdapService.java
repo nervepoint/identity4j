@@ -84,6 +84,9 @@ public class LdapService {
 			DirectoryExceptionParser dep = new DirectoryExceptionParser(nme);
 			if ("773".equals(dep.getData())) {
 				throw new PasswordChangeRequiredException();
+			} else if("775".equals(dep.getData())) {
+				LOG.error(account +  " attempted to login but account reports as locked");
+				throw new IOException("Account is locked");
 			}
 			return false;
 		}
