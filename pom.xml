@@ -48,10 +48,10 @@
 		<module>identity4j-google</module>
 		<module>identity4j-office365</module>
 		<module>identity4j-salesforce</module>
-                <module>identity4j-zendesk</module>
-                <module>identity4j-mysql-users-connector</module>
-                <module>identity4j-ldap-directory-jndi</module>
-                <module>identity4j-active-directory-jndi</module>
+        <module>identity4j-zendesk</module>
+        <module>identity4j-mysql-users-connector</module>
+        <module>identity4j-ldap-directory-jndi</module>
+        <module>identity4j-active-directory-jndi</module>
 	</modules>
 
 	<dependencies>

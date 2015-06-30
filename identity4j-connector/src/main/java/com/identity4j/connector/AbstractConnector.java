@@ -263,7 +263,7 @@ public abstract class AbstractConnector implements Connector, ValidationContext 
 		throw new UnsupportedOperationException("Unlock account is not supported");
 	}
 
-	public void open(ConnectorConfigurationParameters parameters) {
+	public void open(ConnectorConfigurationParameters parameters) throws ConnectorException {
 		this.parameters = parameters;
 		onOpen(parameters);
 		if (!isOpen()) {
@@ -273,7 +273,7 @@ public abstract class AbstractConnector implements Connector, ValidationContext 
 
 	protected abstract void onOpen(ConnectorConfigurationParameters parameters) throws ConnectorException;
 
-	public void reopen() {
+	public void reopen() throws ConnectorException {
 		close();
 		open(parameters);
 	}

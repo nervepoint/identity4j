@@ -757,22 +757,52 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 					"Attempt to create account with username that already exists.");
 		} else if (reason.equals("0000001F")) {
 			throw new ConnectorException(
-					"Could not perform the requested operation. Please configure the server to connect to your Active Directory securely over SSL. http://bit.ly/16wQTMi");
+					"Could not perform the requested operation. Please configure the server to connect to your Active Directory securely over SSL.");
 		} else if (reason.equals("80090308") && "773".equals(dep.getData())) {
 			throw new PasswordChangeRequiredException(
 					"Cannot change password when changePasswordPasswordAtNextLogin is set, must use setPassword");
-		}
+		} else if (reason.equals("80090308") && "525".equals(dep.getData())) {
+			throw new ConnectorException(
+					"The user cannot be found.");
+		} else if (reason.equals("80090308") && "52e".equals(dep.getData())) {
+			throw new ConnectorException(
+					"Invalid credentials");
+		} else if (reason.equals("80090308") && "530".equals(dep.getData())) {
+			throw new ConnectorException(
+					"Not permitted to logon at this time");
+		} else if (reason.equals("80090308") && "531".equals(dep.getData())) {
+			throw new ConnectorException(
+					"Not permitted to logon at this workstation");
+		} else if (reason.equals("80090308") && "532".equals(dep.getData())) {
+			throw new ConnectorException(
+					"The password has expired");
+		} else if (reason.equals("80090308") && "533".equals(dep.getData())) {
+			throw new ConnectorException(
+					"Account disabled");
+		} else if (reason.equals("80090308") && "534".equals(dep.getData())) {
+			throw new ConnectorException(
+					"The user has not been granted the requested logon type at this machine");
+		} else if (reason.equals("80090308") && "701".equals(dep.getData())) {
+			throw new ConnectorException(
+					"Account expired");
+		} else if (reason.equals("80090308") && "775".equals(dep.getData())) {
+			throw new ConnectorException(
+					"User account is locked");
+		} 
 		LOG.error(nme.getMessage() + ". Reason code give was " + reason, nme);
+		
+		super.processNamingException(nme);
+		
 		return reason;
 
 	}
 
-	protected void checkNamingException(String errorText, NamingException nme)
+	protected void checkNamingException(NamingException nme)
 			throws ConnectorException {
 		processNamingException(nme);
 		DirectoryExceptionParser dep = new DirectoryExceptionParser(nme);
 		String reason = dep.getReason();
-		LOG.error(errorText + ". Reason code give was " + reason, nme);
+		LOG.error("Processed naming exception. Reason code give was " + reason, nme);
 		throw new ConnectorException(
 				"Failed to perform operation. Reason code " + reason
 						+ ". Please see the logs for more detail.");
@@ -788,8 +818,10 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 					.toString(), newUnicodePassword);
 		} catch (NamingException e) {
 			LOG.error("Problem in set password for identity", e);
+			processNamingException(e);
 		} catch (IOException e) {
 			LOG.error("Problem in set password for identity", e);
+			throw new ConnectorException(e);
 		}
 
 	}
@@ -823,9 +855,6 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			return ldapService.search(filter, new ResultMapper<Identity>() {
 
 				private boolean isAttributeMapped(Attribute attribute) {
-//					return DEFAULT_USER_ATTRIBUTES.contains(attribute.getID())
-//							|| identityAttributesToRetrieve.contains(attribute
-//									.getID());
 					return true;
 				}
 
@@ -1264,8 +1293,6 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			return UserAccountControl
 					.isPasswordChangePermitted(userAccountControl);
 		} catch (NumberFormatException nfe) {
-			// LOG.error("User account control setting invalid = '" +
-			// attributeValue + "', assuming password change supported");
 			return true;
 		}
 	}

@@ -80,6 +80,8 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 			ldapService.init(directoryConfiguration);
 			ldapService.openConnection();
 			return true;
+		} catch(ConnectorException ex) { 
+			throw ex;
 		} catch (Exception nme) {
 			LOG.error("Problen in open connection check.", nme);
 			return false;
@@ -300,24 +302,26 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 			Name baseDn = directoryConfiguration.getBaseDn();
 			LOG.info("Looking up " + baseDn);
 			
-		}catch(NamingException nme){
-			DirectoryExceptionParser dep = new DirectoryExceptionParser(nme);
-			String message = dep.getMessage();
-			int code = dep.getCode();
-			String reason = dep.getReason();
-			if (code == 1 && reason.equals("000020D6")) {
-				throw new ConnectorException("Connected OK, but the initial directory could not be read. Is your Base DN correct?");
-			} else {
-				LOG.error(
-					"Connected OK, but an error occurred retrieving information from the directory server (operationsErrror). "
-						+ message, nme);
-				throw new ConnectorException("Failed to connect. " + message + ". Please see the logs for more detail.");
-			}
+		} catch(NamingException nme){
+			processNamingException(nme);
 		} catch (Exception e) {
 			LOG.error("Problem in opening connector.", e);
+			throw new ConnectorException(e);
 		}
 	}
 
+	protected String processNamingException(NamingException nme) {
+		DirectoryExceptionParser dep = new DirectoryExceptionParser(nme);
+		String message = dep.getMessage();
+		int code = dep.getCode();
+		String reason = dep.getReason();
+		{
+			LOG.error(
+				"Connected OK, but an error occurred retrieving information from the directory server (operationsErrror). "
+					+ message, nme);
+			throw new ConnectorException("Failed to connect. " + message + ". Please see the logs for more detail.");
+		}
+	}
 	
 	protected String getReason(NamingException nme) {
 		/*

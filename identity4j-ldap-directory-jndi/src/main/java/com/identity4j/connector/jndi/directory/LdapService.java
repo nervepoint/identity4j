@@ -357,8 +357,8 @@ public class LdapService {
 				try {
 					InetAddress addr = InetAddress.getByName(host);
 					if (addr.getHostName().equals(host)) {
-						throw new IllegalStateException("LDAP controller host address " + controllerHost
-							+ " is not resolvable by a reverse DNS lookup. Please check your DNS configuration.");
+						throw new ConnectorException("IP " + controllerHost	+ " is not resolvable by a reverse DNS. Check your DNS configuration. "
+							+ "If this error persists try adding an entry for " + controllerHost + " to your system HOSTS file.");
 					}
 				} catch (UnknownHostException e) {
 				}
