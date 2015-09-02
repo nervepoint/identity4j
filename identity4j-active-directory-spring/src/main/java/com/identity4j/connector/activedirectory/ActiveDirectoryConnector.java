@@ -1166,7 +1166,6 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			}
 		}
 		andFilter.and(orFilter);
-		System.out.println(andFilter.encode());
 		return andFilter.encode();
 	}
 

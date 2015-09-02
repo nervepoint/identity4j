@@ -101,12 +101,13 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 
 	@Override
 	protected final boolean areCredentialsValid(Identity identity, char[] password) throws ConnectorException {
+
+		DirectoryIdentity directoryIdentity = (DirectoryIdentity) identity;
 		try {
-			DirectoryIdentity directoryIdentity = (DirectoryIdentity) identity;
 			return ldapService.authenticate(directoryIdentity.getDn().toString(), new String(password));
-		} catch (Exception ae) {
+		} catch (IOException e) {
 			return false;
-		} 
+		}
 	}
 
 	
@@ -313,14 +314,11 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 	protected String processNamingException(NamingException nme) {
 		DirectoryExceptionParser dep = new DirectoryExceptionParser(nme);
 		String message = dep.getMessage();
-		int code = dep.getCode();
-		String reason = dep.getReason();
-		{
-			LOG.error(
-				"Connected OK, but an error occurred retrieving information from the directory server (operationsErrror). "
-					+ message, nme);
-			throw new ConnectorException("Failed to connect. " + message + ". Please see the logs for more detail.");
-		}
+		LOG.error(
+			"Connected OK, but an error occurred retrieving information from the directory server (operationsErrror). "
+				+ message, nme);
+		throw new ConnectorException("Failed to connect. " + message + ". Please see the logs for more detail.");
+
 	}
 	
 	protected String getReason(NamingException nme) {
