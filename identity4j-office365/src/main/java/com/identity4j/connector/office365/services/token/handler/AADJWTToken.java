@@ -36,6 +36,17 @@ public class AADJWTToken {
 	@JsonProperty("resource")
 	private String resource;
 
+	@JsonProperty("scope")
+	private String scope;
+
+	public String getScope() {
+		return scope;
+	}
+
+	public void setScope(String scope) {
+		this.scope = scope;
+	}
+
 	public String getTokenType() {
 		return tokenType;
 	}
@@ -116,7 +127,7 @@ public class AADJWTToken {
 		return "AADJWTToken [tokenType=" + tokenType + ", accessToken="
 				+ accessToken + ", notBefore=" + notBefore + ", expiresOn="
 				+ expiresOn + ", expiresIn=" + expiresIn + ", resource="
-				+ resource + "]";
+				+ resource + ", scope=" + scope + "]";
 	}
 	
 	
