@@ -1,7 +1,6 @@
 /* HEADER */
 package com.identity4j.connector.principal;
 
-
 /**
  * Implementation of a {@link Role}.
  */
@@ -25,4 +24,5 @@ public class RoleImpl extends AbstractPrincipal implements Role {
         Role role = (Role) obj;
         return getGuid().equals(role.getGuid());
     }
+
 }

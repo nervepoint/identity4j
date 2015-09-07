@@ -94,7 +94,7 @@ public class LdapService {
     }
     
     public void setPassword(final String account,final char[] newPassword) throws NamingException,IOException{
-		_(new Block<Void>() {
+    	processBlock(new Block<Void>() {
 
 			public Void apply(LdapContext context) throws NamingException {
 		            ModificationItem[] mods = new ModificationItem[1];
@@ -109,7 +109,7 @@ public class LdapService {
     }
     
     public void setPassword(final String account,final byte[] encodedPassword) throws NamingException,IOException{
-		_(new Block<Void>() {
+    	processBlock(new Block<Void>() {
 
 			public Void apply(LdapContext context) throws NamingException {
 		            ModificationItem[] mods = new ModificationItem[1];
@@ -143,7 +143,7 @@ public class LdapService {
 	}
 	
 	public void rename(final LdapName currentDN, final LdapName newDN) throws NamingException, IOException {
-		_(new Block<Void>() {
+		processBlock(new Block<Void>() {
 
 			@Override
 			public Void apply(LdapContext context) throws NamingException,IOException {
@@ -158,7 +158,7 @@ public class LdapService {
 	}
 	
 	public <T> Iterator<T> search(final Name baseDN, final String filter,final ResultMapper<T> resultMapper)throws NamingException,IOException{
-		return _(new Block<Iterator<T>>() {
+		return processBlock(new Block<Iterator<T>>() {
 
 			public Iterator<T> apply(LdapContext context) throws IOException, NamingException {
 				return new SearchResultIterator<T>(baseDN, context, filter, resultMapper);
@@ -263,7 +263,7 @@ public class LdapService {
 	}
 	
 	public void unbind(final Name name) throws NamingException, IOException{
-		_(new Block<Void>() {
+		processBlock(new Block<Void>() {
 
 			@Override
 			public Void apply(LdapContext context) throws NamingException,IOException {
@@ -275,7 +275,7 @@ public class LdapService {
 	
 	
 	public void update(final Name name,final ModificationItem...mods) throws NamingException, IOException{
-		_(new Block<Void>() {
+		processBlock(new Block<Void>() {
 
 			@Override
 			public Void apply(LdapContext context) throws NamingException,IOException {
@@ -287,7 +287,7 @@ public class LdapService {
 	
 	
 	public void bind(final Name name,final Attribute...attrs) throws NamingException, IOException{
-		_(new Block<Void>() {
+		processBlock(new Block<Void>() {
 
 			@Override
 			public Void apply(LdapContext context) throws NamingException,IOException {
@@ -302,7 +302,7 @@ public class LdapService {
 	}
 
 	public Attributes lookupContext(final Name dn) throws NamingException,IOException{
-		return _(new Block<Attributes>() {
+		return processBlock(new Block<Attributes>() {
 
 			public Attributes apply(LdapContext context) throws NamingException {
 				return ((LdapContext) context.lookup(dn)).getAttributes("");
@@ -329,7 +329,7 @@ public class LdapService {
 		return searchControls;
 	}
 	
-	private <T> T _(Block<T> block) throws NamingException, IOException{
+	private <T> T processBlock(Block<T> block) throws NamingException, IOException{
 		LdapContext ctx = null;
 		ctx = getConnection();
 		return block.apply(ctx);

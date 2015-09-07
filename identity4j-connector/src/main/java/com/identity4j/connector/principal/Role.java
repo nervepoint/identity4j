@@ -6,4 +6,5 @@ package com.identity4j.connector.principal;
  * its own right.
  */
 public interface Role extends Comparable<Role>, Principal {
+
 }

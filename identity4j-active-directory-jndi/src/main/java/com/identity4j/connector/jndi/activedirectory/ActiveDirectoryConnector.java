@@ -31,6 +31,7 @@ import javax.naming.ldap.BasicControl;
 import javax.naming.ldap.LdapName;
 import javax.naming.ldap.Rdn;
 
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -50,6 +51,7 @@ import com.identity4j.connector.principal.AccountStatusType;
 import com.identity4j.connector.principal.Identity;
 import com.identity4j.connector.principal.PasswordStatus;
 import com.identity4j.connector.principal.PasswordStatusType;
+import com.identity4j.connector.principal.Principal;
 import com.identity4j.connector.principal.Role;
 import com.identity4j.util.CollectionUtil;
 import com.identity4j.util.StringUtil;
@@ -89,6 +91,10 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 	public static final String PWD_PROPERTIES_ATTRIBUTE = "pwdProperties";
 	public static final String OU_ATTRIBUTE = "ou";
 
+	public static final String GLOBAL = "-2147483646";
+	public static final String DOMAIN_LOCAL = "-2147483644";
+	public static final String UNIVERSAL = "-2147483640";
+	
 	@Override
 	public Set<ConnectorCapability> getCapabilities() {
 		if (!capabilities.contains(ConnectorCapability.hasPasswordPolicy)) {
@@ -237,6 +243,116 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 				modificationItems.toArray(new ModificationItem[0]));
 	}
 	
+	protected void processAttributes(
+			List<ModificationItem> modificationItems, 
+			Principal previousState, 
+			Principal newState) {
+		
+		for (Map.Entry<String, String[]> entry : newState.getAttributes()
+				.entrySet()) {
+			if (!isExcludeForUpdate(entry.getKey())) {
+				if (!previousState.getAttributes()
+						.containsKey(entry.getKey())) {
+					// New
+					if (entry.getValue().length > 0
+							&& entry.getValue()[0].length() > 0) {
+
+						String[] value = entry.getValue();
+						if (value.length > 0 && !StringUtils.isEmpty(value[0])) {
+							Attribute attr = new BasicAttribute(entry.getKey());
+							for(String val : value) {
+								attr.add(val);
+							}
+							modificationItems.add(new ModificationItem(
+									DirContext.ADD_ATTRIBUTE, attr));
+						}
+					}
+				} else {
+					String[] oldValue = previousState.getAttributes().get(entry.getKey());
+					String[] newValue = newState.getAttributes().get(entry.getKey());
+					if (!ArrayUtils.isEquals(oldValue, newValue)) {
+
+						String[] value = entry.getValue();
+						if (value.length > 0 && !StringUtils.isEmpty(value[0])) {
+							Attribute attr = new BasicAttribute(entry.getKey());
+							for(String val : value) {
+								attr.add(val);
+							}
+							modificationItems.add(new ModificationItem(
+									DirContext.REPLACE_ATTRIBUTE, attr));
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	@Override
+	public void updateRole(final Role role) throws ConnectorException {
+		
+		try {
+			List<ModificationItem> modificationItems = new ArrayList<ModificationItem>();
+			Role oldRole = getRoleByName(role.getPrincipalName());
+
+			// OU may have been provided
+			String roleOu = role.getAttribute(DISTINGUISHED_NAME_ATTRIBUTE);
+			LdapName roleDn = new LdapName(roleOu);
+			String principalName = role.getPrincipalName();
+
+			processAttributes(modificationItems, oldRole, role);
+
+			if (Util.differs(
+					oldRole.getAttribute(SAM_ACCOUNT_NAME_ATTRIBUTE),
+					principalName)) {
+				Attribute attribute = new BasicAttribute(
+						SAM_ACCOUNT_NAME_ATTRIBUTE, principalName);
+				modificationItems.add(new ModificationItem(
+						DirContext.REPLACE_ATTRIBUTE, attribute));
+			}
+
+
+			ldapService.update(roleDn,
+					modificationItems.toArray(new ModificationItem[0]));
+
+			
+			// Update roles
+//			List<Role> toRemove = new ArrayList<Role>(Arrays.asList(oldIdentity.getRoles()));
+//			List<Role> toAdd = new ArrayList<Role>(Arrays.asList(identity.getRoles()));
+//			toRemove.removeAll(Arrays.asList(identity.getRoles()));
+//			toAdd.removeAll(Arrays.asList(oldIdentity.getRoles()));
+//			
+//			for(Role r : toRemove) {
+//				revokeRole(usersDn, r);
+//			}
+//			
+//			for(Role r : toAdd) {
+//				assignRole(usersDn, r);
+//			}
+			
+			if (Util.differs(
+					oldRole.getAttribute(COMMON_NAME_ATTRIBUTE),
+					role.getAttribute(COMMON_NAME_ATTRIBUTE))) {
+				LdapName newDN = new LdapName(roleDn.toString());
+				newDN.remove(newDN.size() - 1);
+				newDN.add(newDN.size(),
+						"CN=" + role.getAttribute(COMMON_NAME_ATTRIBUTE));
+				ldapService.rename(roleDn, newDN);
+			} else if (Util.differs(oldRole.getAttribute(OU_ATTRIBUTE),
+					role.getAttribute(OU_ATTRIBUTE))) {
+				LdapName newDN = new LdapName("CN="
+						+ role.getAttribute(COMMON_NAME_ATTRIBUTE) + ","
+						+ role.getAttribute(OU_ATTRIBUTE));
+				ldapService.rename(roleDn, newDN);
+			}
+
+		} catch (NamingException e) {
+			LOG.error("Problem in update role", e);
+		} catch (IOException e) {
+			LOG.error("Problem in update role", e);
+		}
+	}
+	
+	
 	@Override
 	public void updateIdentity(final Identity identity)
 			throws ConnectorException {
@@ -254,35 +370,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			LdapName usersDn = new LdapName(identityOU);
 			String principalName = identity.getPrincipalName();
 
-			for (Map.Entry<String, String[]> entry : identity.getAttributes()
-					.entrySet()) {
-				if (!isExcludeForUpdate(entry.getKey())) {
-					if (!oldIdentity.getAttributes()
-							.containsKey(entry.getKey())) {
-						// New
-						if (entry.getValue().length > 0
-								&& entry.getValue()[0].length() > 0) {
-
-							Attribute attribute = new BasicAttribute(
-									entry.getKey(), identity.getAttribute(entry
-											.getKey()));
-							modificationItems.add(new ModificationItem(
-									DirContext.ADD_ATTRIBUTE, attribute));
-						}
-					} else {
-						String oldValue = oldIdentity.getAttribute(entry
-								.getKey());
-						String newValue = identity.getAttribute(entry.getKey());
-						if (Util.differs(oldValue, newValue)) {
-
-							Attribute attribute = new BasicAttribute(
-									entry.getKey(), newValue);
-							modificationItems.add(new ModificationItem(
-									DirContext.REPLACE_ATTRIBUTE, attribute));
-						}
-					}
-				}
-			}
+			processAttributes(modificationItems, oldIdentity, identity);
 
 			String principalNameWithDomain = principalName + "@"
 					+ config.getDomain();
@@ -354,6 +442,96 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 		return ATTRIBUTES_TO_EXCLUDE_FROM_UPDATE.contains(attributeName);
 	}
 
+	public Role createRole(Role role) throws ConnectorException {
+		
+		try {
+			final ActiveDirectoryConfiguration config = getActiveDirectoryConfiguration();
+
+			// OU may have been provided
+			String roleOU = role.getAttribute(OU_ATTRIBUTE);
+			LdapName roleDN;
+			if (StringUtil.isNullOrEmpty(roleOU)) {
+				roleDN = new LdapName(getRootDn().toString());
+				if (StringUtil.isNullOrEmpty(config.getOU())) {
+					roleDN.add(new Rdn("CN=Users"));
+				} else {
+					roleDN.add(new Rdn(config.getOU()));
+				}
+			} else {
+				roleDN = new LdapName(roleOU);
+			}
+			
+			role.setAttribute(OU_ATTRIBUTE, "");
+
+			LdapName roleDn = new LdapName(roleDN.toString());
+			String principalName = role.getPrincipalName();
+
+			roleDn.add("CN=" + role.getPrincipalName());
+
+			Name baseDn = getConfiguration().getBaseDn();
+			if (!roleDn.toString().endsWith(baseDn.toString())) {
+				throw new ConnectorException("The User DN (" + roleDn
+						+ ") must be a child of the Base DN (" + baseDn
+						+ " configured for the Active Directory connector.");
+			}
+
+			/*
+			 * Set up the attributes for the primary details. Some of these may
+			 * already have been in the generic attributes
+			 */
+			List<Attribute> attributes = new ArrayList<Attribute>();
+
+			// First copy in the generic attributes
+			for (Map.Entry<String, String[]> entry : role.getAttributes()
+					.entrySet()) {
+				String[] value = entry.getValue();
+				if (value.length > 0 && !StringUtils.isEmpty(value[0])) {
+					Attribute attr = new BasicAttribute(entry.getKey());
+					for(String val : value) {
+						attr.add(val);
+					}
+					attributes.add(attr);
+				}
+			}
+
+			String[] objectClasses = new String[] { "top", "group" };
+			BasicAttribute objectClassAttributeValues = new BasicAttribute(
+					OBJECT_CLASS_ATTRIBUTE);
+			for (String objectClass : objectClasses) {
+				objectClassAttributeValues.add(objectClass);
+			}
+			attributes.add(objectClassAttributeValues);
+			
+			String sAMAccountName = role.getPrincipalName();
+			
+			if(StringUtils.isEmpty(sAMAccountName)) {
+				sAMAccountName = principalName;
+				if(sAMAccountName.contains("@")) {
+					sAMAccountName = sAMAccountName.substring(0, sAMAccountName.indexOf("@"));
+				}
+			}
+			
+			attributes.add(new BasicAttribute(SAM_ACCOUNT_NAME_ATTRIBUTE,
+					sAMAccountName));
+
+			ldapService.bind(roleDn, attributes.toArray(new Attribute[0]));
+			
+			return getRoleByName(role.getPrincipalName());
+
+		} catch (InvalidNameException e) {
+			LOG.error("Problem in create group", e);
+			throw new ConnectorException("Failed to create group; " + e.getMessage(), e);
+		} catch (NamingException e) {
+			LOG.error("Problem in create group", e);
+			throw new ConnectorException("Failed to create group; " + e.getMessage(), e);
+		} catch (IOException e) {
+			LOG.error("Problem in create group", e);
+			throw new ConnectorException("Failed to create group; " + e.getMessage(), e);
+		}
+		
+		
+	}
+	
 	@Override
 	public Identity createIdentity(final Identity identity, char[] password)
 			throws ConnectorException {
@@ -396,10 +574,11 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			for (Map.Entry<String, String[]> entry : identity.getAttributes()
 					.entrySet()) {
 				String[] value = entry.getValue();
-				// TODO not entirely sure about this
 				if (value.length > 0 && !StringUtils.isEmpty(value[0])) {
-					LOG.info("Setting attribute " + entry.getKey() + " " + value[0]);
-					attributes.add(new BasicAttribute(entry.getKey(), value[0]));
+					Attribute attr = new BasicAttribute(entry.getKey());
+					for(String val : value) {
+						attr.add(val);
+					}
 				}
 			}
 
@@ -826,6 +1005,28 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 
 	}
 
+	private String[] getElements(Attribute attribute)
+			throws NamingException {
+		Collection<String> values = new ArrayList<String>();
+		for (int index = 0; index < attribute.size(); index++) {
+			// TODO how to decide how non-string attributes are
+			// converted
+			final Object object = attribute.get(index);
+			if (object instanceof byte[]) {
+				values.add(StringUtil
+						.convertByteToString((byte[]) object));
+			} else if (object instanceof String
+					|| object instanceof Number
+					|| object instanceof Boolean) {
+				values.add(object.toString());
+			} else {
+				LOG.warn("Unknown attribute class, assuming String.");
+				values.add(object.toString());
+			}
+		}
+		return values.toArray(new String[values.size()]);
+	}
+	
 	@Override
 	protected Iterator<Identity> getIdentities(String filter) {
 
@@ -856,28 +1057,6 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 
 				private boolean isAttributeMapped(Attribute attribute) {
 					return true;
-				}
-
-				private String[] getElements(Attribute attribute)
-						throws NamingException {
-					Collection<String> values = new ArrayList<String>();
-					for (int index = 0; index < attribute.size(); index++) {
-						// TODO how to decide how non-string attributes are
-						// converted
-						final Object object = attribute.get(index);
-						if (object instanceof byte[]) {
-							values.add(StringUtil
-									.convertByteToString((byte[]) object));
-						} else if (object instanceof String
-								|| object instanceof Number
-								|| object instanceof Boolean) {
-							values.add(object.toString());
-						} else {
-							LOG.warn("Unknown attribute class, assuming String.");
-							values.add(object.toString());
-						}
-					}
-					return values.toArray(new String[values.size()]);
 				}
 
 				@Override
@@ -1381,8 +1560,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 		Date lastPasswordChange = identity.getPasswordStatus().getLastChange();
 		if (lastPasswordChange != null
 				&& !Util.isDatePast(lastPasswordChange, getMinimumPasswordAge())) {
-			// TODO throw exception
-			// throw new PasswordChangeTooSoonException(calendar.getTime());
+			throw new PasswordChangeTooSoonException(lastPasswordChange);
 		}
 	}
 
@@ -1404,10 +1582,31 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 							(byte[]) getAttribute(attributes
 									.get(OBJECT_GUID_ATTRIBUTE))).toString();
 			byte[] sid = (byte[]) getAttribute(attributes
-					.get(OBJECT_GUID_ATTRIBUTE));
-			return new ActiveDirectoryGroup(guid, commonName, new LdapName(dn),
+					.get(OBJECT_SID_ATTRIBUTE));
+		
+			ActiveDirectoryGroup group = new ActiveDirectoryGroup(guid, 
+					commonName, 
+					new LdapName(dn),
 					sid);
+			
+			NamingEnumeration<? extends Attribute> en = attributes.getAll();
+			while(en.hasMoreElements()) {
+				Attribute attribute = en.nextElement();
+				group.setAttribute(attribute.getID(),
+						getElements(attribute));
+			}
+			
+			
+			LdapName ou = new LdapName((String) getAttribute(attributes
+					.get(DISTINGUISHED_NAME_ATTRIBUTE)));
+			ou.remove(ou.size() - 1);
+			group.setAttribute(OU_ATTRIBUTE, ou.toString());
+			
+			
+			return group;
 		}
+		
+		
 		return null;
 	}
 
