@@ -137,7 +137,8 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 	}
 
 	public Iterator<DirectoryOU> getOrganizationalUnits() throws NamingException, IOException {
-		return ldapService.search(ldapService.buildObjectClassFilter("organizationalUnit", "ou", WILDCARD_SEARCH), new ResultMapper<DirectoryOU>() {
+		return ldapService.search(ldapService.buildObjectClassFilter(
+				"organizationalUnit", "ou", WILDCARD_SEARCH), new ResultMapper<DirectoryOU>() {
 
 			@Override
 			public DirectoryOU apply(SearchResult result) throws NamingException {
