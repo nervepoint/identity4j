@@ -54,15 +54,34 @@ public class UserService extends AbstractRestAPIService{
 	}
 	
 	/**
-	 * This method retrieves all users present in the data store.
+	 * This method retrieves all users present in the data store. . If there is more data to return, 
+	 * {@link Users#getNextLink()} will be non-null.
 	 * 
 	 * @return users list
 	 */
 	public Users all() {
-
-		HttpResponse response = httpRequestHandler.handleRequestGet(constructURI("/users", null),HEADER_HTTP_HOOK);
-		return JsonMapperService.getInstance().getObject(Users.class, response.getData().toString());
-		
+		return all(null);
+	}
+	
+	/**
+	 * This method retrieves all users present in the data store, continuing a previous pages
+	 * request. <code>null</code> may be used, in which case this query is started afresh
+	 * (functionally the same as {@link #all()}. If there is more data to return, 
+	 * {@link Users#getNextLink()} will be non-null.
+	 * 
+	 * @return users list
+	 */
+	public Users all(String nextLink) {
+		StringBuilder q = new StringBuilder();
+		q.append("$top=");
+		q.append(office365Configuration.getRequestSizeLimit());
+		if(nextLink != null) {
+			q.append("&$skiptoken=");
+			q.append(nextLink.substring(nextLink.indexOf("$skiptoken=") + 11));
+		}
+		HttpResponse response = httpRequestHandler.handleRequestGet(constructURI("/users", q.toString()),HEADER_HTTP_HOOK);
+		String string = response.getData().toString();
+		return JsonMapperService.getInstance().getObject(Users.class, string);
 	}
 	
 	/**

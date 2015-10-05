@@ -18,6 +18,13 @@ public class Users {
 
 	@JsonProperty("value")
 	private List<User> users;
+	
+	@JsonProperty("odata.nextLink")
+	private String nextLink;
+	
+	public String getNextLink() {
+		return nextLink;
+	}
 
 	public List<User> getUsers() {
 		return users;

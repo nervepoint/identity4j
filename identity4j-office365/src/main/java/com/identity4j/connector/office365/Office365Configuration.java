@@ -32,7 +32,10 @@ public class Office365Configuration extends AbstractConnectorConfiguration{
 	public static final String OFFICE365_APP_PRINCIPAL_ID = "office365AppPrincipalId";
 	public static final String OFFICE365_APP_PRINCIPAL_OBJECT_ID = "office365AppPrincipalObjectId";
 	public static final String OFFICE365_SYMMETRIC_KEY = "office365SymmetricKey";
-	
+	/**
+	 * Other
+	 */
+	public static final String OFFICE365_REQUEST_SIZE_LIMIT = "office365RequestSizeLimit";
 	
 	/**
 	 * Property for role having delete rights
@@ -165,4 +168,10 @@ public class Office365Configuration extends AbstractConnectorConfiguration{
 		return null;
 	}
 
+	/**
+	 * @return the symmetricKey
+	 */
+	public  int getRequestSizeLimit() {
+		return configurationParameters.getIntegerOrDefault(OFFICE365_REQUEST_SIZE_LIMIT, 500);
+	}	
 }

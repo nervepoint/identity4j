@@ -7,6 +7,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Set;
 
 import org.apache.commons.logging.Log;
@@ -238,12 +239,67 @@ public class Office365Connector extends AbstractConnector {
 	 */
 	@Override
 	public Iterator<Identity> allIdentities() throws ConnectorException {
-		Users users = directory.users().all();
-		List<Identity> identities = new ArrayList<Identity>();
-		for (User user : users.getUsers()) {
-			identities.add(Office365ModelConvertor.convertOffice365UserToOfficeIdentity(user));
-		}
-		return identities.iterator();
+		return new Iterator<Identity>() {
+			
+			private Users users;
+			private String nextLink;
+			private Iterator<User> inner;
+			private User current;
+			private boolean eof;
+
+			@Override
+			public boolean hasNext() {
+				checkNext();
+				return current != null;
+			}
+
+			@Override
+			public Identity next() {
+				checkNext();
+				if(current == null) 
+					throw new NoSuchElementException();
+				try {
+					return Office365ModelConvertor.convertOffice365UserToOfficeIdentity(current);
+				}
+				finally {
+					current = null;
+				}
+			}
+			
+			private void checkNext() {
+				if(current != null)
+					// Already have an unconsumed user
+					return;
+				
+				while(!eof) {
+					if(users == null) {
+						// Get the next batch
+						users = directory.users().all(nextLink);
+						nextLink = users.getNextLink();
+						eof = nextLink == null;
+						inner = users.getUsers().iterator();
+					}
+					
+					if(inner.hasNext()) {
+						// We now have a user
+						break;
+					}
+					
+					// Finished inner iterator, 
+					users = null;
+					inner = null;
+					
+					if(nextLink == null) {
+						// No more 
+						break;
+					}
+				}
+				
+				if(inner != null && inner.hasNext())
+					current = inner.next();
+			}
+			
+		};
 	}
 	
 	/**
