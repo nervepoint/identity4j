@@ -280,6 +280,10 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 							}
 							modificationItems.add(new ModificationItem(
 									DirContext.REPLACE_ATTRIBUTE, attr));
+						} else {
+							Attribute attr = new BasicAttribute(entry.getKey());
+							modificationItems.add(new ModificationItem(
+									DirContext.REMOVE_ATTRIBUTE, attr));
 						}
 					}
 				}
@@ -432,8 +436,10 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 
 		} catch (NamingException e) {
 			LOG.error("Problem in update identity", e);
+			throw new ConnectorException(e);
 		} catch (IOException e) {
 			LOG.error("Problem in update identity", e);
+			throw new ConnectorException(e);
 		}
 
 	}
