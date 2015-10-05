@@ -59,14 +59,13 @@ public class Office365ConnectorTest extends AbstractRestWebServiceConnectorTest{
 	}
 	
 	@Test(expected = NoSuchElementException.class)
-	public final void allIdentities() {
+	public final void itShouldReadAllIdentities() {
 		Assume.assumeTrue(connector.getCapabilities().contains(
 				ConnectorCapability.identities));
 		Iterator<Identity> allIdentities = connector.allIdentities();
 		assertNotNull(allIdentities);
 		while (allIdentities.hasNext()) {
-			// allIdentities.next();
-			System.out.println(allIdentities.next());
+			 allIdentities.next();
 		}
 		allIdentities.next();
 	}
