@@ -254,6 +254,11 @@ public class Office365Connector extends AbstractConnector {
 			}
 
 			@Override
+			public void remove() {
+				throw new UnsupportedOperationException();
+			}
+
+			@Override
 			public Identity next() {
 				checkNext();
 				if(current == null) 
