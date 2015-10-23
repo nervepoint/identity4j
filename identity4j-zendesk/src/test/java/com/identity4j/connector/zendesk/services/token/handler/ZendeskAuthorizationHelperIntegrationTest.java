@@ -13,18 +13,18 @@ import org.junit.Test;
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.util.MultiMap;
 
-public class ZendeskAuthorizationHelperTest {
+public class ZendeskAuthorizationHelperIntegrationTest {
 
 private static MultiMap configurationParameters;
 	
 	static {
-		PropertyConfigurator.configure(ZendeskAuthorizationHelperTest.class.getResource("/test-log4j.properties"));
+		PropertyConfigurator.configure(ZendeskAuthorizationHelperIntegrationTest.class.getResource("/test-log4j.properties"));
 		configurationParameters = loadConfigurationParameters("/zendesk-connector.properties");
 	}
 	
 	private static MultiMap loadConfigurationParameters(String propertiesFile) {
 		try {
-			InputStream resourceAsStream = ZendeskAuthorizationHelperTest.class.getResourceAsStream(
+			InputStream resourceAsStream = ZendeskAuthorizationHelperIntegrationTest.class.getResourceAsStream(
 					propertiesFile);
 			if (resourceAsStream == null) {
 				throw new FileNotFoundException("Properties resource "

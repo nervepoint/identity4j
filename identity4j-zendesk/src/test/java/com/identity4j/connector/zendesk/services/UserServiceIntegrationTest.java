@@ -17,23 +17,23 @@ import com.identity4j.connector.zendesk.entity.User;
 import com.identity4j.connector.zendesk.entity.Users;
 import com.identity4j.connector.zendesk.services.token.handler.Token;
 import com.identity4j.connector.zendesk.services.token.handler.ZendeskAuthorizationHelper;
-import com.identity4j.connector.zendesk.services.token.handler.ZendeskAuthorizationHelperTest;
+import com.identity4j.connector.zendesk.services.token.handler.ZendeskAuthorizationHelperIntegrationTest;
 import com.identity4j.util.MultiMap;
 import com.identity4j.util.http.request.HttpRequestHandler;
 
-public class UserServiceTest {
+public class UserServiceIntegrationTest {
 
 	private static MultiMap configurationParameters;
 	private static UserService userService = null;
 	
 	static {
-		PropertyConfigurator.configure(ZendeskAuthorizationHelperTest.class.getResource("/test-log4j.properties"));
+		PropertyConfigurator.configure(ZendeskAuthorizationHelperIntegrationTest.class.getResource("/test-log4j.properties"));
 		configurationParameters = loadConfigurationParameters("/zendesk-connector.properties");
 	}
 	
 	private static MultiMap loadConfigurationParameters(String propertiesFile) {
 		try {
-			InputStream resourceAsStream = ZendeskAuthorizationHelperTest.class.getResourceAsStream(
+			InputStream resourceAsStream = ZendeskAuthorizationHelperIntegrationTest.class.getResourceAsStream(
 					propertiesFile);
 			if (resourceAsStream == null) {
 				throw new FileNotFoundException("Properties resource "

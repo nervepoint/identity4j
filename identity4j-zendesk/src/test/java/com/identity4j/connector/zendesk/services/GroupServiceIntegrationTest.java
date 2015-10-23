@@ -21,19 +21,19 @@ import com.identity4j.connector.zendesk.services.token.handler.ZendeskAuthorizat
 import com.identity4j.util.MultiMap;
 import com.identity4j.util.http.request.HttpRequestHandler;
 
-public class GroupServiceTest {
+public class GroupServiceIntegrationTest {
 
 	private static MultiMap configurationParameters;
 	private static GroupService groupService = null;
 	
 	static {
-		PropertyConfigurator.configure(GroupServiceTest.class.getResource("/test-log4j.properties"));
+		PropertyConfigurator.configure(GroupServiceIntegrationTest.class.getResource("/test-log4j.properties"));
 		configurationParameters = loadConfigurationParameters("/zendesk-connector.properties");
 	}
 	
 	private static MultiMap loadConfigurationParameters(String propertiesFile) {
 		try {
-			InputStream resourceAsStream = GroupServiceTest.class.getResourceAsStream(
+			InputStream resourceAsStream = GroupServiceIntegrationTest.class.getResourceAsStream(
 					propertiesFile);
 			if (resourceAsStream == null) {
 				throw new FileNotFoundException("Properties resource "

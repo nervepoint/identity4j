@@ -13,18 +13,18 @@ import org.junit.Test;
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.util.MultiMap;
 
-public class SalesforceAuthorizationHelperTest {
+public class SalesforceAuthorizationHelperIntegrationTest {
 
 private static MultiMap configurationParameters;
 	
 	static {
-		PropertyConfigurator.configure(SalesforceAuthorizationHelperTest.class.getResource("/test-log4j.properties"));
+		PropertyConfigurator.configure(SalesforceAuthorizationHelperIntegrationTest.class.getResource("/test-log4j.properties"));
 		configurationParameters = loadConfigurationParameters("/salesforce-connector.properties");
 	}
 	
 	private static MultiMap loadConfigurationParameters(String propertiesFile) {
 		try {
-			InputStream resourceAsStream = SalesforceAuthorizationHelperTest.class.getResourceAsStream(
+			InputStream resourceAsStream = SalesforceAuthorizationHelperIntegrationTest.class.getResourceAsStream(
 					propertiesFile);
 			if (resourceAsStream == null) {
 				throw new FileNotFoundException("Properties resource "

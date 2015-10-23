@@ -13,7 +13,7 @@ import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.office365.Office365ConnectorTest;
 import com.identity4j.util.MultiMap;
 
-public class DirectoryDataServiceAuthorizationHelperTest {
+public class DirectoryDataServiceAuthorizationHelperIntegrationTest {
 	private static MultiMap configurationParameters;
 	
 	static {
