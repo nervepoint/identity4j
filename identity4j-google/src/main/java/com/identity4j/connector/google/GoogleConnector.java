@@ -19,8 +19,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.google.api.client.auth.oauth2.TokenResponseException;
-import com.google.api.client.googleapis.auth.clientlogin.ClientLogin;
-import com.google.api.client.googleapis.auth.clientlogin.ClientLoginResponseException;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
@@ -42,12 +40,11 @@ import com.identity4j.connector.AbstractConnector;
 import com.identity4j.connector.ConnectorCapability;
 import com.identity4j.connector.ConnectorConfigurationParameters;
 import com.identity4j.connector.PrincipalType;
+import com.identity4j.connector.WebAuthenticationAPI;
 import com.identity4j.connector.exception.ConnectorException;
-import com.identity4j.connector.exception.PasswordChangeRequiredException;
 import com.identity4j.connector.exception.PrincipalAlreadyExistsException;
 import com.identity4j.connector.exception.PrincipalNotFoundException;
 import com.identity4j.connector.principal.Identity;
-import com.identity4j.connector.principal.PasswordStatusType;
 import com.identity4j.connector.principal.Role;
 import com.identity4j.util.CollectionUtil;
 import com.identity4j.util.passwords.PasswordCharacteristics;
@@ -99,7 +96,7 @@ public class GoogleConnector extends AbstractConnector {
 			ConnectorCapability.createRole,
 			ConnectorCapability.deleteRole,
 			ConnectorCapability.updateRole,
-			ConnectorCapability.authentication,
+			ConnectorCapability.webAuthentication,
 			ConnectorCapability.identities,
 			ConnectorCapability.accountDisable
 	}));
@@ -421,46 +418,18 @@ public class GoogleConnector extends AbstractConnector {
 		};
 		
 	}
+
+
+	@Override
+	public WebAuthenticationAPI<?> startAuthentication() throws ConnectorException {
+		return new GoogleOAuth();
+	}
 	
-	/**
-	 * <p>
-	 * Checks credential provided are valid or not.
-	 * This method uses legacy google authentication mechanism.
-	 * <br/>
-	 * Please refer <a href="https://code.google.com/p/google-api-java-client/wiki/ClientLogin">Client Login</a>
-	 * </p>
-	 * 
-	 * @throws PasswordChangeRequiredException if password change on next login is applicable,
-	 * 		   client should change password before attempting credential check.
-	 * @throws ConnectorException for api, connection related errors.
-	 * 
-	 * @return true if credentials are correct else false
-	 */
 	@Override
 	protected boolean areCredentialsValid(Identity identity, char[] password)
-			throws ConnectorException {
-		if(log.isWarnEnabled()) {
-			log.warn("Checking credentials for google identity " + identity.getPrincipalName());
-		}
-		isPasswordChangeRequiredOnNextLogon(identity);
-		try{
-			ClientLogin authenticator = new ClientLogin();
-		    authenticator.authTokenType = "apps";
-		    authenticator.username = identity.getPrincipalName();
-		    authenticator.password = new String(password);
-		    authenticator.accountType ="HOSTED_OR_GOOGLE";
-		    authenticator.transport = GoogleNetHttpTransport.newTrustedTransport();
-		    authenticator.authenticate();
-		    return true;
-		}catch(ClientLoginResponseException e){
-			log.error("Problem in credential check " + e.getMessage(), e);
-			return false;
-		}catch(Exception e){
-			log.error("Problem in credential check " + e.getMessage(), e);
-			throw new ConnectorException(e.getMessage(), e);
-		}
+			throws ConnectorException{
+		throw new UnsupportedOperationException("Standard credential validation is not supported, web authentication must be used.");
 	}
-
 	
 	/**
 	 * Disables/Suspends an account in google data store.
@@ -746,30 +715,6 @@ public class GoogleConnector extends AbstractConnector {
 		}catch(IOException e){
 			log.error("Problem in get role by name " + e.getMessage(), e);
 			throw new ConnectorException(e.getMessage(), e);
-		}
-	}
-	
-	/**
-	 * Helper method to check password change is required on next login or not
-	 * 
-	 * @param identity
-	 * 
-	 * @throws PasswordChangeRequiredException if password change on next login is applicable,
-	 * 		   client should change password before attempting credential check.
-	 * @throws ConnectorException for api, connection related errors.
-	 */
-	private void isPasswordChangeRequiredOnNextLogon(Identity identity) {
-		if(log.isWarnEnabled()) {
-			log.warn("Checking password status for google identity " + identity.getPrincipalName());
-		}
-		Identity identityFromSource = null;
-		try{
-			identityFromSource = getIdentityByName(identity.getPrincipalName());
-		}catch(Exception e){
-			throw new ConnectorException(e.getMessage(), e);
-		}
-		if(identityFromSource.getPasswordStatus() != null && PasswordStatusType.changeRequired.equals(identityFromSource.getPasswordStatus().getType())){
-			throw new PasswordChangeRequiredException("Password change required on next logon for " + identity.getPrincipalName());	
 		}
 	}
 	

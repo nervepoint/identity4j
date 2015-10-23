@@ -62,11 +62,6 @@ public class Office365Configuration extends AbstractConnectorConfiguration{
      * Error occured during generating access tokens.
      */
     public static final String ErrorGeneratingToken = "Could Not Generate Access Token";
-    
-    /**
-     * Error occured during retrieving user details.
-     */
-    public static final String ErrorRetrievingUserDetails = "Could not retrieve user details";
 	
     /**
      * The Error Message that would be shown to the User if ErrorConnectingRestService error is encountered.

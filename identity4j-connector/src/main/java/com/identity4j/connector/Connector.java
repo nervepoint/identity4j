@@ -50,6 +50,17 @@ public interface Connector {
 			ConnectorException;
 
 	/**
+	 * Start authenticating a user using an authentication API.
+	 * 
+	 * @param username
+	 * @param password
+	 * @return <tt>true</tt> is returned on success and <tt>false</tt> on
+	 *         failure.
+	 * @throws ConnectorException
+	 */
+	WebAuthenticationAPI<? extends ConnectorConfigurationParameters> startAuthentication() throws ConnectorException;
+
+	/**
 	 * Check the given credentials but do not actually logon.
 	 * 
 	 * @param username

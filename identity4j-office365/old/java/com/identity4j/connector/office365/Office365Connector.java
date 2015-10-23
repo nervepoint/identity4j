@@ -16,7 +16,6 @@ import org.apache.commons.logging.LogFactory;
 import com.identity4j.connector.AbstractConnector;
 import com.identity4j.connector.ConnectorCapability;
 import com.identity4j.connector.ConnectorConfigurationParameters;
-import com.identity4j.connector.WebAuthenticationAPI;
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.exception.PrincipalAlreadyExistsException;
 import com.identity4j.connector.exception.PrincipalNotFoundException;
@@ -70,7 +69,7 @@ public class Office365Connector extends AbstractConnector {
 			ConnectorCapability.createRole,
 			ConnectorCapability.deleteRole,
 			ConnectorCapability.updateRole,
-			ConnectorCapability.webAuthentication,
+			ConnectorCapability.authentication,
 			ConnectorCapability.identities,
 			ConnectorCapability.accountDisable
 	}));
@@ -78,11 +77,6 @@ public class Office365Connector extends AbstractConnector {
 	@Override
 	public Set<ConnectorCapability> getCapabilities() {
 		return capabilities;
-	}
-
-	@Override
-	public WebAuthenticationAPI<?> startAuthentication() throws ConnectorException {
-		return new Office365OAuth();
 	}
 
 	/**
@@ -455,10 +449,23 @@ public class Office365Connector extends AbstractConnector {
 		identity.getAccountStatus().setDisabled(false);
 	}
 	
+	/**
+	 * <p>
+	 * Checks credential provided are valid or not.
+	 * This method uses browser simulation using HTML Unit library to simulate oAuth authorization process, as it happens in a browser.
+	 * <br />
+	 * <strong>Note:</strong> This method depends on sign in html page returned for active directory, hence has external dependency
+	 * on how html page is returned, any change in returned html might break the method.
+	 * </p>
+	 * 
+	 * @throws ConnectorException for api, connection related errors.
+	 * 
+	 * @return true if credentials are correct else false
+	 */
 	@Override
 	protected boolean areCredentialsValid(Identity identity, char[] password)
 			throws ConnectorException{
-		throw new UnsupportedOperationException("Standard credential validation is not supported, web authentication must be used.");
+		return directory.users().areCredentialsValid(identity, password);
 	}
 	
 	
@@ -511,7 +518,7 @@ public class Office365Connector extends AbstractConnector {
 			throws ConnectorException {
 		configuration = (Office365Configuration) parameters;
 		
-		directory = new Directory();
+		directory = Directory.getInstance();
 		
 		log.info("Directory instance created.");
 		try {
@@ -590,6 +597,7 @@ public class Office365Connector extends AbstractConnector {
 	 */
 	private void addRoleToUser(String guidRole, String guidUser) {
 		directory.groups().addUserToGroup(guidUser,guidRole);
+		
 	}
 	
 	/**

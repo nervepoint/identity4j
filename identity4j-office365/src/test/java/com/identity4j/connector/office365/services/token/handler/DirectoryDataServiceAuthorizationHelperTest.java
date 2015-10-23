@@ -43,7 +43,7 @@ public class DirectoryDataServiceAuthorizationHelperTest {
 	public void itShouldFetchAccessTokenForValidCredentialsAndTenantName() throws IOException{
 		//given valid credentials for a tenant
 		//when token request is made
-		AADJWTToken token = DirectoryDataServiceAuthorizationHelper.getOAuthAccessTokenFromACS(
+		ADToken token = DirectoryDataServiceAuthorizationHelper.getOAuthAccessTokenFromACS(
 				configurationParameters.getString("office365TenantDomainName"),
 				configurationParameters.getString("office365GraphPrincipalId"), 
 				configurationParameters.getString("office365StsUrl"), 
@@ -79,33 +79,5 @@ public class DirectoryDataServiceAuthorizationHelperTest {
 				configurationParameters.getString("office365AppPrincipalId"), 
 				configurationParameters.getString("office365SymmetricKey"));
 		//then it should throw connector exception
-	}
-	
-	@Test
-	public void itShouldAuthenticateValidCredentials() throws Exception{
-		//given valid credentials for a tenant
-		//when authentication request is made
-		boolean token = DirectoryDataServiceAuthorizationHelper.authenticate(
-				configurationParameters.getString("office365OAuthUrl"),
-				configurationParameters.getString("office365OAuthUrlRedirectUri"),
-				configurationParameters.getString("office365AppPrincipalId"), 
-				configurationParameters.getString("office365GraphPrincipalId"), 
-				"test.user@leenervepoint.onmicrosoft.com","testing123#");
-		//then it should return true
-		Assert.assertTrue("Credentials are fine", token);
-	}
-	
-	@Test
-	public void itShouldNotAuthenticateInValidCredentials() throws Exception{
-		//given in valid credentials for a tenant
-		//when authentication request is made
-		boolean token = DirectoryDataServiceAuthorizationHelper.authenticate(
-				configurationParameters.getString("office365OAuthUrl"),
-				configurationParameters.getString("office365OAuthUrlRedirectUri"),
-				configurationParameters.getString("office365AppPrincipalId"), 
-				configurationParameters.getString("office365GraphPrincipalId"), 
-				"test.user@leenervepoint.onmicrosoft.com","testing");
-		//then it should return false
-		Assert.assertFalse("Credentials are fine", token);
 	}
 }

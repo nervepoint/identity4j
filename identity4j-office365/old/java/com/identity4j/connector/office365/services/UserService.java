@@ -14,7 +14,8 @@ import com.identity4j.connector.office365.entity.Group;
 import com.identity4j.connector.office365.entity.Role;
 import com.identity4j.connector.office365.entity.User;
 import com.identity4j.connector.office365.entity.Users;
-import com.identity4j.connector.office365.services.token.handler.ADToken;
+import com.identity4j.connector.office365.services.token.handler.DirectoryDataServiceAuthorizationHelper;
+import com.identity4j.connector.principal.Identity;
 import com.identity4j.util.http.request.HttpRequestHandler;
 import com.identity4j.util.http.response.HttpResponse;
 import com.identity4j.util.json.JsonMapperService;
@@ -27,8 +28,8 @@ import com.identity4j.util.json.JsonMapperService;
  */
 public class UserService extends AbstractRestAPIService{
 	
-	public UserService(ADToken token, HttpRequestHandler httpRequestHandler,Office365Configuration office365Configuration) {
-		super(token, httpRequestHandler, office365Configuration);
+	UserService(HttpRequestHandler httpRequestHandler,Office365Configuration office365Configuration) {
+		super(httpRequestHandler, office365Configuration);
 	}
 
 	/**
@@ -162,6 +163,22 @@ public class UserService extends AbstractRestAPIService{
 		}
 		
 	}
+	
+	/**
+	 * Checks credentials of user.
+	 * 
+	 * @param identity
+	 * @param password
+	 * @return
+	 */
+	public boolean areCredentialsValid(Identity identity, char[] password){
+		return DirectoryDataServiceAuthorizationHelper.authenticate(office365Configuration.getOAuthUrl(),
+				office365Configuration.getOAuthUrlRedirectUri(),
+				office365Configuration.getAppPrincipalId(), 
+				office365Configuration.getGraphPrincipalId(), identity.getPrincipalName(),
+				new String(password));
+	}
+	
 	
 	/**
 	 * This method retrieves an instance of GroupsAndRoles corresponding to provided object id.

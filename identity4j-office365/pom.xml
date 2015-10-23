@@ -20,11 +20,6 @@
 			<version>${project.version}</version>
 		</dependency>
 		<dependency>
-			<groupId>net.sourceforge.htmlunit</groupId>
-			<artifactId>htmlunit</artifactId>
-			<version>2.13</version>
-		</dependency>
-		<dependency>
 			<groupId>com.nervepoint</groupId>
 			<artifactId>identity4j-connector</artifactId>
 			<version>${project.version}</version>

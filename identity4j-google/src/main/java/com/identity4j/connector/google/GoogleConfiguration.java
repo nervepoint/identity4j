@@ -10,7 +10,9 @@ import com.identity4j.util.MultiMap;
  *
  */
 public class GoogleConfiguration extends AbstractConnectorConfiguration{
-	
+
+	public static final String GOOGLE_OAUTH_CLIENT_ID = "googleOAuthClientID";
+	public static final String GOOGLE_OAUTH_CLIENT_SECRET = "googleOAuthClientSecret";
 	public static final String GOOGLE_USERNAME = "googleUsername";
 	public static final String GOOGLE_SERVICE_ACCOUNT_ID = "googleServiceAccountId";
 	public static final String GOOGLE_PRIVATE_KEY_ENCODED = "googlePrivateKeyEncoded";

@@ -9,7 +9,6 @@ import com.identity4j.connector.exception.PrincipalNotFoundException;
 import com.identity4j.connector.office365.Office365Configuration;
 import com.identity4j.connector.office365.entity.Group;
 import com.identity4j.connector.office365.entity.Groups;
-import com.identity4j.connector.office365.services.token.handler.ADToken;
 import com.identity4j.util.http.request.HttpRequestHandler;
 import com.identity4j.util.http.response.HttpResponse;
 import com.identity4j.util.json.JsonMapperService;
@@ -22,8 +21,8 @@ import com.identity4j.util.json.JsonMapperService;
  */
 public class GroupService extends AbstractRestAPIService{
 	
-	GroupService(ADToken token, HttpRequestHandler httpRequestHandler,Office365Configuration office365Configuration) {
-		super(token, httpRequestHandler, office365Configuration);
+	GroupService(HttpRequestHandler httpRequestHandler,Office365Configuration office365Configuration) {
+		super(httpRequestHandler, office365Configuration);
 	}
 
 	/**

@@ -3,7 +3,7 @@ package com.identity4j.connector.office365.services.token.handler;
 import java.util.Calendar;
 import java.util.TimeZone;
 
-import org.codehaus.jackson.annotate.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * Represents Azure Active Directory JSON Web Token.
@@ -38,14 +38,6 @@ public class AADJWTToken {
 
 	@JsonProperty("scope")
 	private String scope;
-
-	public String getScope() {
-		return scope;
-	}
-
-	public void setScope(String scope) {
-		this.scope = scope;
-	}
 
 	public String getTokenType() {
 		return tokenType;
@@ -127,7 +119,7 @@ public class AADJWTToken {
 		return "AADJWTToken [tokenType=" + tokenType + ", accessToken="
 				+ accessToken + ", notBefore=" + notBefore + ", expiresOn="
 				+ expiresOn + ", expiresIn=" + expiresIn + ", resource="
-				+ resource + ", scope=" + scope + "]";
+				+ resource + "]";
 	}
 	
 	

@@ -8,7 +8,6 @@ import org.apache.http.client.methods.HttpRequestBase;
 
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.office365.Office365Configuration;
-import com.identity4j.connector.office365.services.token.handler.ADToken;
 import com.identity4j.util.http.request.HttpRequestHandler;
 import com.identity4j.util.http.request.HttpRequestHandler.HTTPHook;
 import com.identity4j.util.http.response.HttpResponse;
@@ -25,8 +24,6 @@ public abstract class AbstractRestAPIService {
 
 	protected HttpRequestHandler httpRequestHandler;
 	protected Office365Configuration office365Configuration;
-	protected ADToken token;
-	
 	protected final HTTPHook HEADER_HTTP_HOOK = new HTTPHook() {
 		@Override
 		public void apply(HttpRequestBase httpRequestBase) {
@@ -35,9 +32,8 @@ public abstract class AbstractRestAPIService {
 		}
 	};
 	
-	AbstractRestAPIService(ADToken token, HttpRequestHandler httpRequestHandler,Office365Configuration serviceConfiguration){
+	AbstractRestAPIService(HttpRequestHandler httpRequestHandler,Office365Configuration serviceConfiguration){
 		this.httpRequestHandler = httpRequestHandler;
-		this.token = token;
 		this.office365Configuration = serviceConfiguration;
 	}
 	
@@ -46,14 +42,14 @@ public abstract class AbstractRestAPIService {
 	 * @param request
 	 */
 	protected void setAuthHeaders(HttpRequestBase request) {
-		if(token.willExpireIn(2)){
+		if(TokenHolder.getInstance().getAadjwtToken().willExpireIn(2)){
 			try {
-				TokenHolder.refreshToken(token, office365Configuration);
+				TokenHolder.getInstance().initToken(office365Configuration);
 			} catch (IOException e) {
 				throw new ConnectorException("Problem in getting new token.",e);
 			}
 		}
-		request.setHeader(Office365Configuration.AUTHORIZATION_HEADER,	token.getBearerAccessToken());
+		request.setHeader(Office365Configuration.AUTHORIZATION_HEADER,TokenHolder.getInstance().getAadjwtToken().getBearerAccessToken());
 	}
 
 	/**
