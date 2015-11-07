@@ -11,6 +11,7 @@ import javax.naming.Context;
 import javax.naming.Name;
 import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
+import javax.naming.PartialResultException;
 import javax.naming.directory.Attribute;
 import javax.naming.directory.Attributes;
 import javax.naming.directory.BasicAttribute;
@@ -199,6 +200,14 @@ public class LdapService {
 			if(results.hasMoreElements()) {
 				try {
 					return resultMapper.apply(results.next());
+				} catch(PartialResultException e) { 
+					if(configuration.isFollowReferrals()) {
+						LOG.error("Following referrals is on but partial result was received", e);
+					} else {
+						if(LOG.isDebugEnabled()) {
+							LOG.debug("Partial resluts ignored: " + e.getExplanation());
+						}
+					}
 				} catch (NamingException e) {
 					LOG.error("Failed to get results", e);
 					throw new IllegalStateException(e);
