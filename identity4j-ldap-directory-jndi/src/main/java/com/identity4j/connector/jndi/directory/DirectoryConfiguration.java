@@ -77,8 +77,14 @@ public class DirectoryConfiguration extends AbstractConnectorConfiguration {
 	public static final String DIRECTORY_ENABLE_ROLES = "directory.enableRoles";
 	
 	/**
+	 * Follow referrals?
+	 */
+	public static final String DIRECTORY_FOLLOW_REFERRALS = "directory.followReferrals";
+	
+	/**
      */
 	public static final char PORT_SEPARATOR = ':';
+	
 	/**
      */
 	public static final String COMMON_NAME = "CN=";
@@ -258,7 +264,7 @@ public class DirectoryConfiguration extends AbstractConnectorConfiguration {
 	 * @return follow referrals
 	 */
 	public final boolean isFollowReferrals() {
-		return configurationParameters.getBooleanOrDefault("directory.followReferrals", Boolean.FALSE);
+		return configurationParameters.getBooleanOrDefault(DIRECTORY_FOLLOW_REFERRALS, Boolean.FALSE);
 	}
 
 	/**
