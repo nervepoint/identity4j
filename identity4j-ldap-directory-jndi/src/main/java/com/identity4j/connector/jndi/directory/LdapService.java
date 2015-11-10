@@ -197,7 +197,7 @@ public class LdapService {
 		}
 		
 		T getNextElement() {
-			if(results.hasMoreElements()) {
+			while(results.hasMoreElements()) {
 				try {
 					return resultMapper.apply(results.next());
 				} catch(PartialResultException e) { 
