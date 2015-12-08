@@ -1,0 +1,17 @@
+{
+	"joeb" : 
+	{
+		"fullName" : "Job Bloggs",
+		"guid" : "123456"
+	},
+	"testuser" : 
+	{
+		"fullName" : "Test user 1",
+		"guid" : "654321"
+	},
+	"testuser2" : 
+	{
+		"fullName" : "Test user 2",
+		"guid" : "111111"
+	}
+}

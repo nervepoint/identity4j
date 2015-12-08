@@ -13,6 +13,7 @@ public class DefaultPasswordCharacteristics implements PasswordCharacteristics {
 	private static final long serialVersionUID = 1L;
 	private boolean dictionaryWordsAllowed = false;
 	private int maximumSize = 255;
+	private int historySize = 0;
 	private int minimumSize = 8;
 	private int minimumLowerCase = 0;
 	private int minimumUpperCase = 0;
@@ -38,9 +39,18 @@ public class DefaultPasswordCharacteristics implements PasswordCharacteristics {
 		requiresMatches = p.getRequiredMatches();
 		veryStrongFactor = p.getVeryStrongFactor();
 		containUsername = p.isContainUsername();
+		historySize = p.getHistorySize();
 		symbols = p.getSymbols();
 		attributes.putAll(p.getAttributes());
 	}
+
+	public int getHistorySize() {
+        return historySize;
+    }
+
+    public void setHistorySize(int historySize) {
+        this.historySize = historySize;
+    }
 
 	public Map<String, String> getAttributes() {
 		return attributes;

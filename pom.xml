@@ -49,6 +49,9 @@
 		<module>identity4j-google</module>
 		<module>identity4j-office365</module>
 		<module>identity4j-salesforce</module>
+		<module>identity4j-script</module>
+		<module>identity4j-script-ssh</module>
+		<module>identity4j-script-http</module>
 		<module>identity4j-zendesk</module>
 		<module>identity4j-mysql-users-connector</module>
 		<module>identity4j-ldap-directory-jndi</module>

@@ -27,6 +27,8 @@ public interface PasswordCharacteristics extends Serializable {
     int getMinimumDigits();
 
     int getMinimumSymbols();
+    
+    int getHistorySize();
 
     /**
      * Get the list of characters that are considered <i>symbols</i>. If this password

@@ -1,19 +1,23 @@
 package com.identity4j.util.expect;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 public class Expect {
 
-	protected ExpectMatcher matcher = null;
-	protected InputStream in;
+	protected List<ExpectMatcher> matchers = new ArrayList<ExpectMatcher>();
+	protected BufferedInputStream in;
 	private OutputStream out;
 	private String eol;
-
+	private boolean open = true;
+	
 	static Log log = LogFactory.getLog(Expect.class);
 
 	public Expect() {
@@ -33,16 +37,22 @@ public class Expect {
 	}
 
 	public Expect(ExpectMatcher matcher, InputStream in, OutputStream out, String eol) {
-		this.matcher = matcher == null ? new DefaultExpectMatcher() : matcher;
-		this.in = in;
+		
+		if(matcher!=null) {
+			matchers.add(matcher);
+		}
+		if(!(matcher instanceof DefaultExpectMatcher)) {
+			matchers.add(new DefaultExpectMatcher());
+		}
+		this.in = new BufferedInputStream(in);
 		this.out = out;
 		this.eol = eol;
 	}
 
-	public void setMatcher(ExpectMatcher matcher) {
-		this.matcher = matcher;
+	protected boolean isOpen() {
+		return open;
 	}
-
+	
 	public void interrupt() throws IOException {
 		type(new String(new char[] { 3 }));
 	}
@@ -176,9 +186,61 @@ public class Expect {
 	public synchronized boolean expect(String pattern, boolean consumeRemainingLine, long timeout, long maxLines)
 			throws ExpectTimeoutException, IOException {
 		String chat = chat(pattern, consumeRemainingLine, timeout, maxLines, false);
-		return chat != null;
+		boolean matched = chat != null;
+		return matched;
 	}
 
+	public synchronized boolean maybeExpectNextLine(String pattern, boolean consumeRemainingLine, long timeout)
+			throws ExpectTimeoutException, IOException {
+		return maybeExpect(pattern, consumeRemainingLine, timeout, 1);
+	}
+
+
+	public synchronized boolean maybeExpectNextLine(String pattern, boolean consumeRemainingLine)
+			throws ExpectTimeoutException, IOException {
+		return maybeExpect(pattern, consumeRemainingLine, 0, 1);
+	}
+
+	public synchronized boolean maybeExpectNextLine(String pattern)
+			throws ExpectTimeoutException, IOException {
+		return maybeExpect(pattern, false, 0, 1);
+	}
+
+	public synchronized boolean maybeExpect(String pattern, boolean consumeRemainingLine, long timeout)
+			throws ExpectTimeoutException, IOException {
+		return maybeExpect(pattern, consumeRemainingLine, timeout, 0);
+	}
+
+	public synchronized boolean maybeExpect(String pattern, long timeout)
+			throws ExpectTimeoutException, IOException {
+		return maybeExpect(pattern, false, timeout, 0);
+	}
+	
+	public synchronized boolean maybeExpect(String pattern, boolean consumeRemainingLine)
+			throws ExpectTimeoutException, IOException {
+		return maybeExpect(pattern, consumeRemainingLine, 0, 0);
+	}
+
+	public synchronized boolean maybeExpect(String pattern)
+			throws ExpectTimeoutException, IOException {
+		return maybeExpect(pattern, false, 0, 0);
+	}
+
+	public synchronized boolean maybeExpect(String pattern, boolean consumeRemainingLine, long timeout, long maxLines)
+			throws ExpectTimeoutException, IOException {
+		in.mark(1024);
+		try {
+			String chat = chat(pattern, consumeRemainingLine, timeout, maxLines, false);
+			boolean matched = chat != null;
+			if(!matched) {
+				in.reset();
+			}
+			return matched;
+		} catch (ExpectTimeoutException e) {
+			in.reset();
+			throw e;
+		}
+	}
 	/**
 	 * Consume the output of the command until the pattern matches. This version
 	 * of expect will not consume the whole line and will return with the output
@@ -199,15 +261,21 @@ public class Expect {
 		StringBuffer line = new StringBuffer();
 		long time = System.currentTimeMillis();
 		long lines = 0;
-
+		
 		while (System.currentTimeMillis() - time < timeout || timeout == 0) {
 
 			if (maxLines > 0 && lines >= maxLines)
 				return null;
 
-			int ch = read();
+			int ch = read(timeout);
 			if (ch == -1) {
-				return null;
+				open = false;
+				
+				if(line.length() > 0 && matches(line.toString(), pattern)) {
+					return line.toString();
+				} else {
+					return null;
+				}
 			}
 			else if(ch == Integer.MIN_VALUE) {
 				// Timeout
@@ -221,7 +289,7 @@ public class Expect {
 			if (log.isDebugEnabled()) {
 				log.debug("Checking if '" + line + "' is '" + pattern + "'");
 			}
-			if (matcher.matches(line.toString(), pattern)) {
+			if (matches(line.toString(), pattern)) {
 				if (log.isDebugEnabled()) {
 					log.debug("Matched: [" + pattern + "] " + line.toString());
 				}
@@ -250,9 +318,37 @@ public class Expect {
 		throw new ExpectTimeoutException();
 	}
 
-	protected int read() throws IOException {
-		int ch = in.read();
-		return ch;
+	protected boolean matches(String line, String pattern) {
+		for(ExpectMatcher m :
+			matchers) {
+			if(m.matches(line, pattern)) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	protected int read(long timeout) throws IOException, ExpectTimeoutException {
+		
+		long startTime = System.currentTimeMillis();
+		
+		if(timeout > 0) {
+			while(isOpen() && in.available()==0 && System.currentTimeMillis() - startTime < timeout) {
+				try {
+					Thread.sleep(10);
+				} catch (InterruptedException e) {
+				}
+			}
+			if(in.available()==-1) {
+				return -1;
+			}
+			if(in.available()==0) {
+				throw new ExpectTimeoutException();
+			}
+		}
+		
+		return in.read();
+		
 	}
 
 	public synchronized String readLine() throws IOException, ExpectTimeoutException {
@@ -267,9 +363,10 @@ public class Expect {
 		long time = System.currentTimeMillis();
 
 		do {
-			ch = in.read();
+			ch = read(timeout);
 			if (ch == -1 || ch == '\n') {
 				if (line.length() == 0 && ch == -1) {
+					open = false;
 					return null;
 				}
 				return line.toString();
@@ -293,7 +390,7 @@ public class Expect {
 	}
 
 	public final void setIn(InputStream in) {
-		this.in = in;
+		this.in = new BufferedInputStream(in);
 	}
 
 	public final OutputStream getOut() {
@@ -310,10 +407,6 @@ public class Expect {
 
 	public final void setEol(String eol) {
 		this.eol = eol;
-	}
-
-	public final ExpectMatcher getMatcher() {
-		return matcher;
 	}
 
 	/**
