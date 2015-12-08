@@ -23,7 +23,7 @@ public abstract class AbstractConnector implements Connector, ValidationContext 
 	}
 
 	@Override
-	public WebAuthenticationAPI<?> startAuthentication() throws ConnectorException {
+	public WebAuthenticationAPI startAuthentication() throws ConnectorException {
 		throw new UnsupportedOperationException("This connector does not support integrated web authentication.");
 	}
 

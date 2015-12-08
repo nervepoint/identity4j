@@ -22,24 +22,25 @@
 			<version>5.1.26</version>
 		</dependency>
 		<dependency>
-			<groupId>com.nervepoint</groupId>
-			<artifactId>identity4j-utils</artifactId>
-			<version>${project.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>com.nervepoint</groupId>
-			<artifactId>identity4j-connector</artifactId>
-			<version>${project.version}</version>
-		</dependency>
-
-		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 			<version>4.7</version>
 			<scope>test</scope>
 		</dependency>
-
-
+		<dependency>
+			<groupId>com.nervepoint</groupId>
+			<artifactId>identity4j-connector</artifactId>
+			<version>${project.version}</version>
+			<type>test-jar</type>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.nervepoint</groupId>
+			<artifactId>identity4j-utils</artifactId>
+			<version>${project.version}</version>
+			<type>test-jar</type>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 
 	<build>

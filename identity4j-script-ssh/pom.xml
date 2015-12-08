@@ -2,7 +2,7 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<artifactId>identity4j-script-ssh</artifactId>
-	<name>Identity4J Scripted Connectors</name>
+	<name>Identity4J Scripted SSH Connector</name>
 	<parent>
 		<groupId>com.nervepoint</groupId>
 		<artifactId>identity4j</artifactId>
@@ -43,14 +43,6 @@
 
 
 		<!-- Testing -->
-
-		<dependency>
-			<groupId>com.nervepoint</groupId>
-			<artifactId>identity4j-script</artifactId>
-			<version>${project.version}</version>
-			<type>test-jar</type>
-			<scope>test</scope>
-		</dependency>
 
 		<dependency>
 			<groupId>com.nervepoint</groupId>
