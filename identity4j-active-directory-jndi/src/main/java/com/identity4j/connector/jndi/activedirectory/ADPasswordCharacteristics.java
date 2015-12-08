@@ -90,4 +90,9 @@ public class ADPasswordCharacteristics implements PasswordCharacteristics, Seria
 		return attributes;
 	}
 
+	@Override
+	public int getHistorySize() {
+		return Integer.parseInt(attributes.get("activeDirectory." + ActiveDirectoryConnector.PWD_HISTORY_LENGTH));
+	}
+
 }
