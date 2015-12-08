@@ -45,6 +45,7 @@ public class HttpClientWrapper {
 		return null;
 	}
 
+	@SuppressWarnings("unchecked")
 	public HttpClientResponseWrapper post(String uri, Object parms) throws URIException {
 		final PostMethod method = new PostMethod(HttpUtil.concatenateUriParts(config.getUrl(), uri));
 		LOG.info(String.format("HTTP POST %s", method.getURI().toString()));
@@ -55,12 +56,6 @@ public class HttpClientWrapper {
 				}
 			}
 		}
-		// if (parms != null) {
-		// for (Map.Entry<Object, Object> en : parms.entrySet()) {
-		// method.addParameter(String.valueOf(en.getKey()),
-		// String.valueOf(en.getValue()));
-		// }
-		// }
 		HttpClientResponseWrapper response = new HttpClientResponseWrapper() {
 			@Override
 			public void release() {
