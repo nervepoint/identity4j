@@ -20,7 +20,12 @@
 			<artifactId>identity4j-flatfile</artifactId>
 			<version>${project.version}</version>
 		</dependency>
-
+		<dependency>
+			<groupId>com.nervepoint</groupId>
+			<artifactId>identity4j-utils</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		
 		<!-- Tests -->
 		<dependency>
 			<groupId>junit</groupId>
@@ -34,27 +39,7 @@
 			<version>1.2.16</version>
 			<scope>test</scope>
 		</dependency>
-		<dependency>
-			<groupId>com.nervepoint</groupId>
-			<artifactId>identity4j-connector</artifactId>
-			<version>${project.version}</version>
-			<type>test-jar</type>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>com.nervepoint</groupId>
-			<artifactId>identity4j-flatfile</artifactId>
-			<version>${project.version}</version>
-			<type>test-jar</type>
-			<scope>test</scope>
-		</dependency>
-				<dependency>
-			<groupId>com.nervepoint</groupId>
-			<artifactId>identity4j-utils</artifactId>
-			<version>${project.version}</version>
-			<type>test-jar</type>
-			<scope>test</scope>
-		</dependency>
+
 	</dependencies>
 
 	<build>
