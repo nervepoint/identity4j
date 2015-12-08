@@ -96,4 +96,9 @@ public class Office365PasswordCharacteristics implements PasswordCharacteristics
 		return new HashMap<String,String>();
 	}
 
+	@Override
+	public int getHistorySize() {
+		return 0;
+	}
+
 }
