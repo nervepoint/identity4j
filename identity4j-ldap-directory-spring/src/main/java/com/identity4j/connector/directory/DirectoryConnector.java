@@ -144,7 +144,7 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 	}
 
 	@Override
-	protected void setPassword(Identity identity, char[] password, boolean forcePasswordChangeAtLogon) throws ConnectorException {
+	protected void setPassword(Identity identity, char[] password, boolean forcePasswordChangeAtLogon, PasswordResetType type) throws ConnectorException {
 		DirectoryIdentity directoryIdentity = (DirectoryIdentity) identity;
 		buildLdapTemplate();
 		setPassword(ldapTemplate, directoryIdentity, password, forcePasswordChangeAtLogon);

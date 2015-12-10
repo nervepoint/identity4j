@@ -67,6 +67,8 @@ public class UnixConnector extends FlatFileConnector {
 		DefaultEncoderManager.getInstance().addEncoder(new UnixMD5Encoder());
 		DefaultEncoderManager.getInstance().addEncoder(new UnixDESEncoder());
 		DefaultEncoderManager.getInstance().addEncoder(new UnixBlowfishEncoder());
+        DefaultEncoderManager.getInstance().addEncoder(new UnixSHA256Encoder());
+        DefaultEncoderManager.getInstance().addEncoder(new UnixSHA512Encoder());
 	}
 
 	private final static Log LOG = LogFactory.getLog(UnixConnector.class);
@@ -81,7 +83,7 @@ public class UnixConnector extends FlatFileConnector {
 	private LocalFixedWidthFlatFile lastLogFlatFile;
 
 	public UnixConnector() {
-		super(UnixDESEncoder.ID, UnixMD5Encoder.ID, UnixBlowfishEncoder.ID);
+		super(UnixDESEncoder.ID, UnixMD5Encoder.ID, UnixBlowfishEncoder.ID, UnixSHA256Encoder.ID, UnixSHA512Encoder.ID);
 	}
 
 	@Override
@@ -126,14 +128,16 @@ public class UnixConnector extends FlatFileConnector {
 		return role;
 	}
 
-	@Override
-	protected void setPassword(Identity identity, char[] password, boolean forcePasswordChangeAtLogon) throws ConnectorException {
-		if (forcePasswordChangeAtLogon) {
-			throw new UnsupportedOperationException("Unix connectors do not support force password change at logon");
-		}
-		setPassword(getPasswordFile(), 1, 0, identity, password);
-	}
-
+    protected boolean isStoredPasswordValid(char[] password, char[] storedPassword, Encoder encoderForStoredPassword,
+                                          final String charset) throws UnsupportedEncodingException {
+        if(storedPassword.length > 0 && storedPassword[0] == '!' && ( password == null || password.length == 0)) {
+            // Disabled
+            return false;
+        }
+        return encoderForStoredPassword.match(new String(storedPassword).getBytes(charset),
+            new String(password).getBytes(charset), null, charset);
+    }
+	
 	@Override
 	public void lockIdentity(Identity identity) throws ConnectorException {
 		List<String> row = getPasswordFile().getRowByKeyField(getConfiguration().getKeyFieldIndex(), identity.getPrincipalName());
@@ -189,7 +193,7 @@ public class UnixConnector extends FlatFileConnector {
 
 	@Override
 	protected void onSetPassword(AbstractFlatFile passwordFile, int passwordFieldIndex, int keyFieldIndex, Identity identity,
-			char[] password) {
+			char[] password, PasswordResetType type) {
 		List<String> row = passwordFile.getRowByKeyField(keyFieldIndex, identity.getPrincipalName());
 		if (passwordsInShadow) {
 			final long now = System.currentTimeMillis();
@@ -432,7 +436,7 @@ public class UnixConnector extends FlatFileConnector {
 				}
 
 			} else {
-				setPassword(passwordFile, 1, 0, identity, password);
+				setPassword(passwordFile, 1, 0, identity, password, PasswordResetType.USER);
 			}
 		} else {
 		}
@@ -619,7 +623,7 @@ public class UnixConnector extends FlatFileConnector {
 	}
 
 	private void loadLastLog() throws IOException {
-		Process process = Runtime.getRuntime().exec("lastlog");
+		Process process = new ProcessBuilder("lastlog").redirectErrorStream(true).start();
 
 		// TODO handle error stream
 		try {

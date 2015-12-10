@@ -24,6 +24,25 @@ import com.identity4j.util.passwords.PasswordCharacteristics;
  * {@link #supportsAccountCreation()} and {@link #supportsPasswordChange()}.
  */
 public interface Connector {
+    
+    /**
+     * Used as a hint to {@link Connector#setPassword(Principal, char[], boolean, PasswordResetType)} and
+     * {@link Connector#setPassword(String, String, char[], boolean, PasswordResetType)} to tell the 
+     * connector what sort of reset it is. For example, Active Directory could use this to determine if
+     * to attempt to enforce password on resets
+     *
+     */
+    public enum PasswordResetType {
+        /**
+         * The reset is administrative. For example, should ignore password history
+         */
+        ADMINISTRATIVE, 
+        /**
+         * The reset is on behalf of a user, and additional restrictions should apply where
+         * possible. E.g Active Directory might try to apply password history. 
+         */
+        USER
+    }
 
 	Set<ConnectorCapability> getCapabilities();
 	
@@ -96,6 +115,20 @@ public interface Connector {
 	 * @throws ConnectorException
 	 */
 	void setPassword(String username, String guid, char[] password, boolean forcePasswordChangeAtLogon)
+			throws InvalidLoginCredentialsException, PrincipalNotFoundException, ConnectorException;
+
+	/**
+	 * Set a {@link Identity}s password. This is used by an administrator.
+	 * 
+	 * @param guid
+	 * @param password
+	 * @param forcePasswordChangeAtLogon
+	 * @param resetType
+	 * @throws InvalidLoginCredentialsException
+	 * @throws PrincipalNotFoundException
+	 * @throws ConnectorException
+	 */
+	void setPassword(String username, String guid, char[] password, boolean forcePasswordChangeAtLogon, PasswordResetType resetType)
 			throws InvalidLoginCredentialsException, PrincipalNotFoundException, ConnectorException;
 
 	/**

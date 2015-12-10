@@ -116,7 +116,7 @@ public class SHACrypt {
         byte[] altResult = new byte[size == 512 ? 86 : 43];
         byte[] tempResult = new byte[size == 512 ? 86 : 43];
 
-        int saltLength = 0, cnt = 0;
+        int saltLength, cnt;
         MessageDigest ctx = MessageDigest.getInstance("SHA-" + size);
         MessageDigest altCtx = MessageDigest.getInstance("SHA-" + size);
 
@@ -153,10 +153,13 @@ public class SHACrypt {
             } else {
                 saltLength = 16;
             }
-        } 
-        
+        } else {
+            saltLength = 0;
+        }
+
         ctx.reset();
         ctx.update(pw, 0, pw.length);
+        System.out.println("ACTUAL SALT: " + new String(saltBytes, 0, saltLength));
         ctx.update(saltBytes, 0, saltLength);
 
         /*

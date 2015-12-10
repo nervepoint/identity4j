@@ -255,7 +255,7 @@ public class MySQLUsersConnector extends JDBCConnector{
 	 */
 	@Override
 	protected void setPassword(Identity identity, char[] password,
-			boolean forcePasswordChangeAtLogon) throws ConnectorException {
+			boolean forcePasswordChangeAtLogon, PasswordResetType type) throws ConnectorException {
 		UserHost userHost = UserHost.get(identity,getMySQLUserConfiguration().getDisableFlag());
 		updateHelper(getMySQLUserConfiguration().getPasswordSetSQL(),userHost.user,userHost.host,new String(password));
 	}

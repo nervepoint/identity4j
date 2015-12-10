@@ -298,7 +298,7 @@ public abstract class JDBCConnector extends AbstractConnector {
 
 	@Override
 	protected void setPassword(Identity identity, char[] password,
-			boolean forcePasswordChangeAtLogon) throws ConnectorException {
+			boolean forcePasswordChangeAtLogon, PasswordResetType type) throws ConnectorException {
 		// TODO Auto-generated method stub
 
 	}

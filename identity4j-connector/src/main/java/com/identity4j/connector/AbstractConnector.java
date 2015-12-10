@@ -98,7 +98,7 @@ public abstract class AbstractConnector implements Connector, ValidationContext 
 
 	/**
 	 * Default implementation simply delegates to
-	 * {@link #setPassword(Identity, char[], boolean)}. Most connectors won't
+	 * {@link #setPassword(Identity, char[], boolean, PasswordResetType)}. Most connectors won't
 	 * need to override this, but some (including Active Directory) work
 	 * differently when the logged on as the actual identity whose password is
 	 * being changed.
@@ -108,21 +108,27 @@ public abstract class AbstractConnector implements Connector, ValidationContext 
 	 * @param password
 	 */
 	protected void changePassword(Identity identity, char[] oldPassword, char[] password) {
-		setPassword(identity, password, false);
+		setPassword(identity, password, false, PasswordResetType.USER);
 	}
 
 	protected void assertPasswordChangeIsAllowed(Identity identity, char[] oldPassword, char[] password) throws ConnectorException {
 		// no implementation by default
 	}
 
+
 	public final void setPassword(String username, String guid, char[] password, boolean forcePasswordChangeAtLogon)
+			throws PrincipalNotFoundException, InvalidLoginCredentialsException, ConnectorException {
+		setPassword(username, guid, password, forcePasswordChangeAtLogon, PasswordResetType.ADMINISTRATIVE);
+	}
+
+	public final void setPassword(String username, String guid, char[] password, boolean forcePasswordChangeAtLogon, PasswordResetType resetType)
 			throws PrincipalNotFoundException, InvalidLoginCredentialsException, ConnectorException {
 		Identity identity = getIdentityByName(username);
 		assertGuid(identity, guid);
-		setPassword(identity, password, forcePasswordChangeAtLogon);
+		setPassword(identity, password, forcePasswordChangeAtLogon, resetType);
 	}
 
-	protected void setPassword(Identity identity, char[] password, boolean forcePasswordChangeAtLogon) throws ConnectorException {
+	protected void setPassword(Identity identity, char[] password, boolean forcePasswordChangeAtLogon, PasswordResetType type) throws ConnectorException {
 		throw new UnsupportedOperationException("Set password is not supported");
 	}
 

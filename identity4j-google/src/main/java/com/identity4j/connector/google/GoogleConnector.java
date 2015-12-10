@@ -467,7 +467,7 @@ public class GoogleConnector extends AbstractConnector {
 	 * @throws ConnectorException for api, connection related errors.
 	 */
 	@Override
-	protected void setPassword(Identity identity, char[] password, boolean forcePasswordChangeAtLogon) throws ConnectorException {
+	protected void setPassword(Identity identity, char[] password, boolean forcePasswordChangeAtLogon, PasswordResetType type) throws ConnectorException {
 		if(log.isWarnEnabled()) {
 			log.warn("Setting password for google identity " + identity.getPrincipalName());
 		}

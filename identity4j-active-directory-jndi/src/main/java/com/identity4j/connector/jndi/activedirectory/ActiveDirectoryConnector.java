@@ -905,7 +905,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 								+ ". Please see the logs for more detail.");
 			} catch (PasswordChangeRequiredException pcre) {
 				LOG.warn("Could not use change password because 'Change Password At Next Login' was set. Falling back to setPassword. Depending on the version of Active Directory in use, this may bypass password history checks.");
-				setPassword(identity, password, false);
+				setPassword(identity, password, false, PasswordResetType.USER);
 			}
 		} catch (IOException e) {
 			LOG.error("Problem in change password for identity", e);
@@ -994,7 +994,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 	}
 
 	protected void setPassword(Identity identity, char[] password,
-			boolean forcePasswordChangeAtLogon) throws ConnectorException {
+			boolean forcePasswordChangeAtLogon, PasswordResetType type) throws ConnectorException {
 		try {
 			String newQuotedPassword = "\"" + new String(password) + "\"";
 			byte[] newUnicodePassword = newQuotedPassword.getBytes("UTF-16LE");

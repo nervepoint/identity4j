@@ -470,7 +470,7 @@ public class Office365Connector extends AbstractConnector {
 	 * @throws ConnectorException for api, connection related errors.
 	 */
 	@Override
-	protected void setPassword(Identity identity, char[] password, boolean forcePasswordChangeAtLogon) throws ConnectorException {
+	protected void setPassword(Identity identity, char[] password, boolean forcePasswordChangeAtLogon, PasswordResetType type) throws ConnectorException {
 		User user = new User();
 		user.getPasswordProfile().setPassword(new String(password));
 		user.getPasswordProfile().setForceChangePasswordNextLogin(forcePasswordChangeAtLogon);

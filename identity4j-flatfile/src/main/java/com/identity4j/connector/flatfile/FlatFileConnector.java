@@ -85,20 +85,20 @@ public class FlatFileConnector extends AbstractVFSConnector {
 	}
 
 	@Override
-	protected void setPassword(Identity identity, char[] password, boolean forcePasswordChangeAtLogon) throws ConnectorException {
+	protected void setPassword(Identity identity, char[] password, boolean forcePasswordChangeAtLogon, PasswordResetType type) throws ConnectorException {
 		if (configuration.getPasswordFieldIndex() > -1) {
 			if (forcePasswordChangeAtLogon) {
 				throw new UnsupportedOperationException("Flatfile connectors do not support force password change at logon");
 			}
-			setPassword(flatFile, configuration.getPasswordFieldIndex(), configuration.getKeyFieldIndex(), identity, password);
+			setPassword(flatFile, configuration.getPasswordFieldIndex(), configuration.getKeyFieldIndex(), identity, password, type);
 		} else {
 			// Will throw an exception
-			super.setPassword(identity, password, forcePasswordChangeAtLogon);
+			super.setPassword(identity, password, forcePasswordChangeAtLogon, type);
 		}
 	}
 
 	protected final void setPassword(AbstractFlatFile passwordFile, int passwordFieldIndex, int keyFieldIndex, Identity identity,
-			char[] password) throws ConnectorException {
+			char[] password, PasswordResetType type) throws ConnectorException {
 		List<String> row = passwordFile.getRowByKeyField(keyFieldIndex, identity.getPrincipalName());
 		try {
 			row.set(
@@ -109,7 +109,7 @@ public class FlatFileConnector extends AbstractVFSConnector {
 			throw new Error(e);
 		}
 
-		onSetPassword(passwordFile, passwordFieldIndex, keyFieldIndex, identity, password);
+		onSetPassword(passwordFile, passwordFieldIndex, keyFieldIndex, identity, password, type);
 
 		// Store
 		try {
@@ -120,7 +120,7 @@ public class FlatFileConnector extends AbstractVFSConnector {
 	}
 
 	protected void onSetPassword(AbstractFlatFile passwordFile, int passwordFieldIndex, int keyFieldIndex, Identity identity,
-			char[] password) {
+			char[] password, PasswordResetType type) {
 	}
 
 	@Override

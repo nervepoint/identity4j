@@ -144,7 +144,7 @@ public class ScriptConnector extends AbstractConnector {
 	}
 
 	@Override
-	protected void setPassword(Identity identity, char[] password, boolean forcePasswordChangeAtLogon) throws ConnectorException {
+	protected void setPassword(Identity identity, char[] password, boolean forcePasswordChangeAtLogon, PasswordResetType type) throws ConnectorException {
 		try {
 			final Boolean val = (Boolean) ((Invocable) engine).invokeFunction("setPassword", identity, new String(password),
 				forcePasswordChangeAtLogon);
@@ -155,7 +155,7 @@ public class ScriptConnector extends AbstractConnector {
 			processScriptExecption(e);
 			throw new ConnectorException("Failed script execution.", e);
 		} catch (NoSuchMethodException e) {
-			super.setPassword(identity, password, forcePasswordChangeAtLogon);
+			super.setPassword(identity, password, forcePasswordChangeAtLogon, type);
 		}
 	}
 	/**
