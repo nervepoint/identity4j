@@ -128,8 +128,13 @@ public abstract class AbstractConnector implements Connector, ValidationContext 
 		setPassword(identity, password, forcePasswordChangeAtLogon, resetType);
 	}
 
-	protected void setPassword(Identity identity, char[] password, boolean forcePasswordChangeAtLogon, PasswordResetType type) throws ConnectorException {
+	@Deprecated
+	protected void setPassword(Identity identity, char[] password, boolean forcePasswordChangeAtLogon) throws ConnectorException {
 		throw new UnsupportedOperationException("Set password is not supported");
+	}
+
+	protected void setPassword(Identity identity, char[] password, boolean forcePasswordChangeAtLogon, PasswordResetType type) throws ConnectorException {
+		setPassword(identity, password, forcePasswordChangeAtLogon);
 	}
 
 	protected final void assertGuid(Principal principal, String guid) {
