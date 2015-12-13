@@ -39,8 +39,6 @@
 		<module>identity4j-utils</module>
 		<module>identity4j-vfs</module>
 		<module>identity4j-connector</module>
-		<module>identity4j-ldap-directory-spring</module>
-		<module>identity4j-active-directory-spring</module>
 		<module>identity4j-flatfile</module>
 		<module>identity4j-unix</module>
 		<module>identity4j-htpasswd</module>

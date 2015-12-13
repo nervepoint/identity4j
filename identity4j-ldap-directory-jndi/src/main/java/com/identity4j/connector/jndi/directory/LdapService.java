@@ -60,8 +60,8 @@ public class LdapService {
     	lookupContext(configuration.getBaseDn());
     }
     
-    public LdapContext getConnection() throws NamingException{
-    	return new InitialLdapContext(env,null);
+    public LdapContext getConnection(Control... controls) throws NamingException{
+    	return new InitialLdapContext(env,controls);
     }
 
     public DirContext getConnection(String account,String password) throws NamingException, IOException{
@@ -109,7 +109,7 @@ public class LdapService {
 		});
     }
     
-    public void setPassword(final String account,final byte[] encodedPassword) throws NamingException,IOException{
+    public void setPassword(final String account,final byte[] encodedPassword, Control... controls) throws NamingException,IOException{
     	processBlock(new Block<Void>() {
 
 			public Void apply(LdapContext context) throws NamingException {
@@ -119,7 +119,7 @@ public class LdapService {
 					context.modifyAttributes(account, mods);
 					return null;
 			}
-		});
+		}, controls);
     }
     
     public void close(DirContext ctx) {
@@ -338,9 +338,9 @@ public class LdapService {
 		return searchControls;
 	}
 	
-	private <T> T processBlock(Block<T> block) throws NamingException, IOException{
+	private <T> T processBlock(Block<T> block, Control... controls) throws NamingException, IOException{
 		LdapContext ctx = null;
-		ctx = getConnection();
+		ctx = getConnection(controls);
 		return block.apply(ctx);
 	}
 	
