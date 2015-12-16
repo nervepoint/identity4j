@@ -318,7 +318,7 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 		LOG.error(
 			"Connected OK, but an error occurred retrieving information from the directory server (operationsErrror). "
 				+ message, nme);
-		throw new ConnectorException("Failed to connect. " + message + ". Please see the logs for more detail.");
+		throw new ConnectorException(message);
 
 	}
 	

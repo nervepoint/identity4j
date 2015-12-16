@@ -88,11 +88,12 @@ public abstract class AbstractConnector implements Connector, ValidationContext 
 		assertGuid(identity, guid);
 		try {
 			assertValidCredentials(identity, oldPassword);
+			assertPasswordChangeIsAllowed(identity, oldPassword, password);
 		}
 		catch(PasswordChangeRequiredException pcre) {
 			// Not really surprising :)
 		}
-		assertPasswordChangeIsAllowed(identity, oldPassword, password);
+		
 		changePassword(identity, oldPassword, password);
 	}
 

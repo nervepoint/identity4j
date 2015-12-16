@@ -31,6 +31,7 @@ import javax.naming.ldap.BasicControl;
 import javax.naming.ldap.LdapName;
 import javax.naming.ldap.Rdn;
 
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
@@ -90,6 +91,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 	public static final String OBJECT_SID_ATTRIBUTE = "objectSID";
 	public static final String PWD_PROPERTIES_ATTRIBUTE = "pwdProperties";
 	public static final String OU_ATTRIBUTE = "ou";
+	public static final String IMMUTABLE_ID_ATTR = "ImmutableID";
 
 	public static final String GLOBAL = "-2147483646";
 	public static final String DOMAIN_LOCAL = "-2147483644";
@@ -163,7 +165,6 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 
 	// Controls for Win2008 R2 password history on admin reset
 	final byte[] controlData = { 48, (byte) 132, 0, 0, 0, 3, 2, 1, 1 };
-	BasicControl[] controls = new BasicControl[1];
 	final String LDAP_SERVER_POLICY_HINTS_OID = "1.2.840.113556.1.4.2066";
 
 	// TODO not yet used
@@ -784,7 +785,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 
 	protected void setForcePasswordChangeAtNextLogon(
 			DirectoryIdentity identity, boolean forcePasswordChangeAtLogon) {
-		try {
+
 			Collection<ModificationItem> items = new ArrayList<ModificationItem>();
 			if (forcePasswordChangeAtLogon) {
 				items.add(new ModificationItem(DirContext.REPLACE_ATTRIBUTE,
@@ -800,13 +801,17 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 								String.valueOf(CHANGE_PASSWORD_AT_NEXT_LOGON_CANCEL_FLAG))));
 			}
 
-			ldapService.update(((DirectoryIdentity) identity).getDn(),
-					items.toArray(new ModificationItem[items.size()]));
-		} catch (NamingException e) {
-			LOG.error("Problem in force password change at next logon", e);
-		} catch (IOException e) {
-			LOG.error("Problem in force password change at next logon", e);
-		}
+			try {
+				ldapService.update(((DirectoryIdentity) identity).getDn(),
+						items.toArray(new ModificationItem[items.size()]));
+			} catch (NamingException e) {
+				throw new ConnectorException(
+						"Failed to change password. Reason code "
+								+ processNamingException(e));
+			} catch (IOException e) {
+				throw new ConnectorException("Failed to connect: " + e.getMessage(), e);
+			}
+
 	}
 
 	private int getMinimumPasswordAge() {
@@ -900,9 +905,8 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 		} catch (NamingException nme) {
 			try {
 				throw new ConnectorException(
-						"Failed to set password. Reason code "
-								+ processNamingException(nme)
-								+ ". Please see the logs for more detail.");
+						"Failed to change password. Reason code "
+								+ processNamingException(nme));
 			} catch (PasswordChangeRequiredException pcre) {
 				LOG.warn("Could not use change password because 'Change Password At Next Login' was set. Falling back to setPassword. Depending on the version of Active Directory in use, this may bypass password history checks.");
 				setPassword(identity, password, false, PasswordResetType.USER);
@@ -911,7 +915,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			LOG.error("Problem in change password for identity", e);
 		}
 	}
-
+    
 	protected String processNamingException(NamingException nme) {
 
 		DirectoryExceptionParser dep = new DirectoryExceptionParser(nme);
@@ -973,7 +977,9 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 		} else if (reason.equals("80090308") && "775".equals(dep.getData())) {
 			throw new ConnectorException(
 					"User account is locked");
-		} 
+		} else if(reason.equals("00000005") && "0".equals(dep.getData())) {
+			throw new ConnectorException("The administrator does not allow you to change your password.");
+		}
 		LOG.error(nme.getMessage() + ". Reason code give was " + reason, nme);
 		
 		super.processNamingException(nme);
@@ -996,11 +1002,33 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 	protected void setPassword(Identity identity, char[] password,
 			boolean forcePasswordChangeAtLogon, PasswordResetType type) throws ConnectorException {
 		try {
+			
+			if(forcePasswordChangeAtLogon) {
+				switch(identity.getPasswordStatus().getType()) {
+					case neverExpires:
+						throw new ConnectorException("You cannot force password change at next login as the user's password is set to never expire.");
+					case noChangeAllowed:
+						throw new ConnectorException("You cannot force password change at next login as the user is not allowed to change their password.");
+					default:
+					{
+					
+					}
+				}
+			}
 			String newQuotedPassword = "\"" + new String(password) + "\"";
 			byte[] newUnicodePassword = newQuotedPassword.getBytes("UTF-16LE");
 
-			ldapService.setPassword(((DirectoryIdentity) identity).getDn()
-					.toString(), newUnicodePassword);
+			if(type == PasswordResetType.USER) {
+				ldapService.setPassword(((DirectoryIdentity) identity).getDn()
+						.toString(), newUnicodePassword, 
+						new BasicControl(LDAP_SERVER_POLICY_HINTS_OID, true, controlData));
+			} else {
+				ldapService.setPassword(((DirectoryIdentity) identity).getDn()
+						.toString(), newUnicodePassword);
+			}
+			
+			setForcePasswordChangeAtNextLogon((DirectoryIdentity)identity, forcePasswordChangeAtLogon);
+		
 		} catch (NamingException e) {
 			LOG.error("Problem in set password for identity", e);
 			processNamingException(e);
@@ -1070,14 +1098,17 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 						throws NamingException {
 					Attributes attributes = result.getAttributes();
 
-					String guid = UUID.nameUUIDFromBytes(
-							(byte[]) getAttribute(attributes
-									.get(OBJECT_GUID_ATTRIBUTE))).toString();
+					byte[] guidBytes = (byte[]) getAttribute(attributes.get(OBJECT_GUID_ATTRIBUTE));
+					String guid = UUID.nameUUIDFromBytes(guidBytes).toString();
 					Name udn = new LdapName(result.getNameInNamespace());
 					String domain = getDomain(udn);
 					String username = selectUsername(result);
 					DirectoryIdentity directoryIdentity = new DirectoryIdentity(
 							guid, username, udn);
+
+					// Generate Immutable ID for MSOL services
+					String guidBase64 = org.apache.commons.codec.binary.StringUtils.newStringUtf8(Base64.encodeBase64(guidBytes, false));
+					directoryIdentity.setAttribute(IMMUTABLE_ID_ATTR, guidBase64.trim());
 
 					for (NamingEnumeration<? extends Attribute> attributeEmun = result
 							.getAttributes().getAll(); attributeEmun
@@ -1187,7 +1218,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 									Integer.valueOf(userAccountControl),
 									UserAccountControl.DONT_EXPIRE_PASSWORD_FLAG)) {
 								passwordStatus
-										.setType(PasswordStatusType.upToDate);
+										.setType(PasswordStatusType.neverExpires);
 							}
 						}
 					}
@@ -1563,6 +1594,9 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 	@Override
 	protected void assertPasswordChangeIsAllowed(Identity identity,
 			char[] oldPassword, char[] password) throws ConnectorException {
+		if(identity.getPasswordStatus().isNeedChange()) {
+			return;
+		}
 		Date lastPasswordChange = identity.getPasswordStatus().getLastChange();
 		if (lastPasswordChange != null
 				&& !Util.isDatePast(lastPasswordChange, getMinimumPasswordAge())) {

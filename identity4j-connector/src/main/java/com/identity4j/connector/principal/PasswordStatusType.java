@@ -47,5 +47,9 @@ public enum PasswordStatusType {
      * Nervepoint itself uses for changing passwords (which may not be
      * changed)
      */
-    noChangeAllowed
+    noChangeAllowed,
+    /**
+     * The password is set to never expire.
+     */
+    neverExpires
 }
