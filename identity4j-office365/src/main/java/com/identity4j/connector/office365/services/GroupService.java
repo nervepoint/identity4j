@@ -40,7 +40,8 @@ public class GroupService extends AbstractRestAPIService{
 		if(response.getHttpStatusCodes().getStatusCode().intValue() == 404){
 			throw new PrincipalNotFoundException(objectId + " not found.",null,PrincipalType.role);
 		}
-		group = JsonMapperService.getInstance().getObject(Group.class, response.getData().toString());
+		Object data = response.getData();
+		group = JsonMapperService.getInstance().getObject(Group.class, data.toString());
 		
 		return group;
 	}
@@ -161,13 +162,13 @@ public class GroupService extends AbstractRestAPIService{
 						groupObjectId), null), data, HEADER_HTTP_HOOK);
 		
 		if(response.getHttpStatusCodes().getStatusCode().intValue() == 404){
-			throw new PrincipalNotFoundException("Principal not found " + groupObjectId + " not found.",null,PrincipalType.role);
+			throw new PrincipalNotFoundException("Principal '" + userOjectId + "' in  '"+ groupObjectId + "' not found.",null,PrincipalType.role);
 		}
 		
 		if(response.getHttpStatusCodes().getStatusCode().intValue() == 400){
 			AppErrorMessage errorMessage = JsonMapperService.getInstance().getObject(AppErrorMessage.class, response.getData().toString().replaceAll("odata.error", "error"));
 			if(errorMessage.getError().getMessage().getValue().contains("Invalid object identifier")){
-				throw new PrincipalNotFoundException("Principal not found " + groupObjectId + " not found.",null,PrincipalType.role);
+				throw new PrincipalNotFoundException("Principal '" + userOjectId + "' in  '"+ groupObjectId + "' not found.",null,PrincipalType.role);
 			}
 		}
 		if(response.getHttpStatusCodes().getStatusCode().intValue() != 204){
