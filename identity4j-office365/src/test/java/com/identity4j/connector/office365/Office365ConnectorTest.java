@@ -227,7 +227,8 @@ public class Office365ConnectorTest extends AbstractRestWebServiceConnectorTest{
 					fromDataSource.getPrincipalName());
 			
 		}finally{
-			connector.deleteRole(fromDataSource.getGuid());
+			if(fromDataSource != null)
+				connector.deleteRole(fromDataSource.getGuid());
 		}
 	}
 	

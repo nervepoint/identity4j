@@ -98,10 +98,15 @@ public class UserService extends AbstractRestAPIService{
 							.getInstance().getJson(user), HEADER_HTTP_HOOK);
 			if(response.getHttpStatusCodes().getStatusCode().intValue() == 400){
 				AppErrorMessage errorMessage = JsonMapperService.getInstance().getObject(AppErrorMessage.class, response.getData().toString().replaceAll("odata.error", "error"));
-				if("A conflicting object with one or more of the specified property values is present in the directory.".equals(errorMessage.getError().getMessage().getValue())){
+				String err = errorMessage.getError().getMessage().getValue();
+				
+				// TODO is there not a better way to test for error messages? This seems crazy
+				
+				if("A conflicting object with one or more of the specified property values is present in the directory.".equals(err) ||
+				   "Another object with the same value for property userPrincipalName already exists.".equals(err)){
 					throw new PrincipalAlreadyExistsException("Principal contains conflicting properties which already exists, " + user.getUserPrincipalName());
 				} else {
-					throw new ConnectorException(errorMessage.getError().getMessage().getValue());
+					throw new ConnectorException(err);
 				}
 			}
 			user = JsonMapperService.getInstance().getObject(User.class, response.getData().toString());
@@ -133,7 +138,7 @@ public class UserService extends AbstractRestAPIService{
 			}
 			
 			if(response.getHttpStatusCodes().getStatusCode().intValue() != 204){
-				throw new ConnectorException("Problem in updating user as status code is not 204 is " + response.getHttpStatusCodes().getStatusCode().intValue());
+				throw new ConnectorException("Problem in updating user as status code is not 204 is " + response.getHttpStatusCodes().getStatusCode().intValue() + ". " + response.getHttpStatusCodes().getResonPhrase());
 			}
 			
 		} catch (IOException e) {
@@ -158,7 +163,7 @@ public class UserService extends AbstractRestAPIService{
 		}
 		
 		if(response.getHttpStatusCodes().getStatusCode().intValue() != 204){
-			throw new ConnectorException("Problem in deleting user as status code is not 204 is " + response.getHttpStatusCodes().getStatusCode().intValue());
+			throw new ConnectorException("Problem in deleting user as status code is not 204 is " + response.getHttpStatusCodes().getStatusCode().intValue() + ". " + response.getHttpStatusCodes().getResonPhrase());
 		}
 		
 	}

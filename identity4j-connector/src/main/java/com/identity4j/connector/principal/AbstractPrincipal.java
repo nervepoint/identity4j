@@ -75,7 +75,7 @@ public class AbstractPrincipal implements Principal {
 
     @Override
     public final int hashCode() {
-        return 13 * getGuid().hashCode();
+        return getGuid() == null ? -1 : 13 * getGuid().hashCode();
     }
 
     public final int compareTo(Role role) {

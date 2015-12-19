@@ -53,7 +53,7 @@ public class Office365ModelConvertor {
 	public static User covertOfficeIdentityToOffice365User(Identity office365Identity){
 		User user = new User();
 		user.setMail(emptyStringToNull(office365Identity.getAttribute(ATTR_MAIL)));
-		user.setMailNickname(emptyStringToNull(office365Identity.getPrincipalName().split("@")[0]));
+		user.setMailNickname(emptyStringToNull(office365Identity.getPrincipalName().split("@")[0]).replace(" ", ""));
 		user.setMobile(emptyStringToNull(office365Identity.getAttribute(ATTR_MOBILE)));
 		user.setDisplayName(emptyStringToNull(office365Identity.getFullName()));
 		user.setObjectId(office365Identity.getGuid());

@@ -22,7 +22,7 @@ public class RoleImpl extends AbstractPrincipal implements Role {
             return false;
         }
         Role role = (Role) obj;
-        return getGuid().equals(role.getGuid());
+        return role.getGuid() != null && role.getGuid().equals(getGuid());
     }
 
 }
