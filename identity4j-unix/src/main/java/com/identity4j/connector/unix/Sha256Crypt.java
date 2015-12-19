@@ -389,7 +389,7 @@ public final class Sha256Crypt
 
         try
           {
-            int srounds = Integer.valueOf(num).intValue();
+        	Integer.valueOf(num).intValue();
           }
         catch (NumberFormatException ex)
           {

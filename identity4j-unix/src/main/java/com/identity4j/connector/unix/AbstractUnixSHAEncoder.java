@@ -8,6 +8,7 @@ import com.identity4j.util.crypt.impl.AbstractEncoder;
 public abstract class AbstractUnixSHAEncoder extends AbstractEncoder {
 
 	private final String saltPrefix;
+	@SuppressWarnings("unused")
 	private final int size;
 
 	public AbstractUnixSHAEncoder(String id, String saltPrefix, int size) {

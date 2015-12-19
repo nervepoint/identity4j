@@ -1428,7 +1428,6 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			if (indexOf == -1) {
 				userPrincipalName = userPrincipalName + "@" + domain;
 			}
-
 		}
 
 		if (StringUtil.getAfterLast(userPrincipalName, "@").equalsIgnoreCase(
