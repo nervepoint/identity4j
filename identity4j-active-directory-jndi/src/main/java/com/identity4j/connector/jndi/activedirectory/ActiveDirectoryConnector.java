@@ -122,8 +122,12 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 	 */
 	private static Collection<String> ATTRIBUTES_TO_EXCLUDE_FROM_UPDATE = Arrays
 			.asList(new String[] { USER_ACCOUNT_CONTROL_ATTRIBUTE,
-					LAST_LOGON_ATTRIBUTE, LAST_LOGON_TIMESTAMP_ATTRIBUTE,
-					PWD_LAST_SET_ATTRIBUTE, OU_ATTRIBUTE, COMMON_NAME_ATTRIBUTE });
+					LAST_LOGON_ATTRIBUTE, 
+					LAST_LOGON_TIMESTAMP_ATTRIBUTE,
+					PWD_LAST_SET_ATTRIBUTE, 
+					OU_ATTRIBUTE, 
+					COMMON_NAME_ATTRIBUTE, 
+					IMMUTABLE_ID_ATTR });
 
 	/**
 	 * These are attributes we need for operation and want to store as
@@ -255,8 +259,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 				if (!previousState.getAttributes()
 						.containsKey(entry.getKey())) {
 					// New
-					if (entry.getValue().length > 0
-							&& entry.getValue()[0].length() > 0) {
+					if (entry.getValue().length > 0) {
 
 						String[] value = entry.getValue();
 						if (value.length > 0 && !StringUtils.isEmpty(value[0])) {
@@ -379,9 +382,10 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 
 			String principalNameWithDomain = principalName + "@"
 					+ config.getDomain();
-			if (Util.differs(
-					oldIdentity.getAttribute(USER_PRINCIPAL_NAME_ATTRIBUTE),
-					principalNameWithDomain)) {
+			if (!principalName.equalsIgnoreCase(
+					oldIdentity.getAttribute(USER_PRINCIPAL_NAME_ATTRIBUTE))
+					&& !principalNameWithDomain.equalsIgnoreCase(
+							oldIdentity.getAttribute(USER_PRINCIPAL_NAME_ATTRIBUTE))) {
 				Attribute attribute = new BasicAttribute(
 						USER_PRINCIPAL_NAME_ATTRIBUTE, principalNameWithDomain);
 				modificationItems.add(new ModificationItem(
