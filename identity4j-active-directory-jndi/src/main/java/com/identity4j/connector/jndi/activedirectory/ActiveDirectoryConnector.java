@@ -147,9 +147,9 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 					OTHER_PHONE_NUMBER_ATTRIBUTE, OU_ATTRIBUTE,
 					DISTINGUISHED_NAME_ATTRIBUTE });
 
-	// private static Collection<String> ALL_ROLE_ATTRIBUTES = Arrays.asList(new
-	// String[] { MEMBER_OF_ATTRIBUTE, MEMBER_ATTRIBUTE,
-	// OBJECT_SID_ATTRIBUTE, OBJECT_GUID_ATTRIBUTE, COMMON_NAME_ATTRIBUTE });
+	private static Collection<String> CORE_IDENTITY_ATTRIBUTES = Arrays.asList(new
+	 String[] { COMMON_NAME_ATTRIBUTE, SAM_ACCOUNT_NAME_ATTRIBUTE, 
+			 USER_PRINCIPAL_NAME_ATTRIBUTE, OBJECT_CLASS_ATTRIBUTE });
 
 	private static Collection<String> ALL_ROLE_ATTRIBUTES = Arrays
 			.asList(new String[] { OBJECT_SID_ATTRIBUTE, OBJECT_GUID_ATTRIBUTE,
@@ -566,8 +566,22 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			LdapName userDn = new LdapName(usersDn.toString());
 			String principalName = identity.getPrincipalName();
 
-			userDn.add("CN=" + identity.getFullName());
+			StringBuilder tmp = new StringBuilder();
+			tmp.append(identity.getAttribute("givenName"));
+			String initials = identity.getAttribute("initials");
+			if(StringUtils.isNotBlank(initials)) {
+				tmp.append(" ");
+				tmp.append(initials);
+				tmp.append(".");
+			}
+			tmp.append(" ");
+			tmp.append(identity.getAttribute("sn"));
+			
+			userDn.add("CN=" +  tmp.toString());
 
+			identity.setFullName(tmp.toString());
+			identity.setAttribute("cn", tmp.toString());
+			
 			Name baseDn = getConfiguration().getBaseDn();
 			if (!userDn.toString().endsWith(baseDn.toString())) {
 				throw new ConnectorException("The User DN (" + userDn
@@ -584,11 +598,20 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			// First copy in the generic attributes
 			for (Map.Entry<String, String[]> entry : identity.getAttributes()
 					.entrySet()) {
+				if(CORE_IDENTITY_ATTRIBUTES.contains(entry.getKey())) {
+					continue;
+				}
 				String[] value = entry.getValue();
 				if (value.length > 0 && !StringUtils.isEmpty(value[0])) {
-					Attribute attr = new BasicAttribute(entry.getKey());
-					for(String val : value) {
-						attr.add(val);
+					if(value.length==1) {
+						attributes.add(new BasicAttribute(entry.getKey(), value[0]));
+					} else {
+						Attribute attr = new BasicAttribute(entry.getKey());
+						for(String val : value) {
+							LOG.info("Setting " + entry.getKey() + " = " + val);
+							attr.add(val);
+						}
+						attributes.add(attr);
 					}
 				}
 			}
@@ -600,8 +623,8 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			for (String objectClass : objectClasses) {
 				objectClassAttributeValues.add(objectClass);
 			}
+			
 			attributes.add(objectClassAttributeValues);
-
 			attributes.add(new BasicAttribute(COMMON_NAME_ATTRIBUTE, identity.getFullName()));
 			
 			String upn = identity.getAttribute(USER_PRINCIPAL_NAME_ATTRIBUTE);
@@ -628,10 +651,10 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 				if(sAMAccountName.contains("@")) {
 					sAMAccountName = sAMAccountName.substring(0, sAMAccountName.indexOf("@"));
 				}
-				attributes.add(new BasicAttribute(SAM_ACCOUNT_NAME_ATTRIBUTE,
-						sAMAccountName));
 			}
 			
+			attributes.add(new BasicAttribute(SAM_ACCOUNT_NAME_ATTRIBUTE,
+					sAMAccountName));
 
 			if (!StringUtil.isNullOrEmpty(identity
 					.getAddress(com.identity4j.connector.Media.mobile))) {
@@ -661,7 +684,8 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 		} catch (IOException e) {
 			LOG.error("Problem in create identity", e);
 		}
-		return identity;
+		
+		throw new ConnectorException("Failed to create identity " + identity.getPrincipalName());
 	}
 
 	@Override
