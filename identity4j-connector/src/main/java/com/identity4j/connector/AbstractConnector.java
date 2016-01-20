@@ -21,6 +21,10 @@ public abstract class AbstractConnector implements Connector, ValidationContext 
 	public PasswordCharacteristics getPasswordCharacteristics() {
 		throw new UnsupportedOperationException();
 	}
+	
+	public Iterator<? extends PasswordCharacteristics> getPasswordPolicies() {
+		throw new UnsupportedOperationException();
+	}
 
 	@Override
 	public WebAuthenticationAPI<?> startAuthentication() throws ConnectorException {

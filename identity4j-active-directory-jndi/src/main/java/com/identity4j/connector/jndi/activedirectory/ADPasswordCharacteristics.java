@@ -4,6 +4,8 @@ import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.codehaus.jackson.io.SegmentedStringWriter;
+
 import com.identity4j.util.passwords.PasswordCharacteristics;
 
 public class ADPasswordCharacteristics implements PasswordCharacteristics, Serializable {
@@ -13,17 +15,31 @@ public class ADPasswordCharacteristics implements PasswordCharacteristics, Seria
 	private boolean complex;
 	private int minLength;
 	private Map<String, String> attributes = new HashMap<String, String>();
-
-	public ADPasswordCharacteristics(boolean complex, int minLength, int passwordHistoryLength, int maximumPasswordAge,
-			int minimumPasswordAge) {
+	int precedence;
+	String commonName;
+	String dn;
+	
+	public ADPasswordCharacteristics(boolean complex, 
+			int minLength, 
+			int passwordHistoryLength, 
+			int maximumPasswordAge,
+			int minimumPasswordAge,
+			int precedence,
+			String commonName,
+			String dn) {
 		this.complex = complex;
 		this.minLength = minLength;
-
+		this.precedence = precedence;
+		this.commonName = commonName;
+		this.dn = dn;
+		
 		attributes.put("activeDirectory." + ActiveDirectoryConnector.PWD_HISTORY_LENGTH, String.valueOf(passwordHistoryLength));
 		attributes.put("activeDirectory." + ActiveDirectoryConnector.MAXIMUM_PASSWORD_AGE_ATTRIBUTE,
 			String.valueOf(maximumPasswordAge));
 		attributes.put("activeDirectory." + ActiveDirectoryConnector.MINIMUM_PASSWORD_AGE_ATTRIBUTE,
 			String.valueOf(minimumPasswordAge));
+		attributes.put("activeDirectory.cn", commonName);
+		attributes.put("activeDirectory.precedence", String.valueOf(precedence));
 	}
 
 	@Override
@@ -93,6 +109,10 @@ public class ADPasswordCharacteristics implements PasswordCharacteristics, Seria
 	@Override
 	public int getHistorySize() {
 		return Integer.parseInt(attributes.get("activeDirectory." + ActiveDirectoryConnector.PWD_HISTORY_LENGTH));
+	}
+	
+	public String getDN() {
+		return dn;
 	}
 
 }

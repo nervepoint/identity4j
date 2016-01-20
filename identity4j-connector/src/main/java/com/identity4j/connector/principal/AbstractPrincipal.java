@@ -60,6 +60,10 @@ public class AbstractPrincipal implements Principal {
     public final String getAttribute(String name) {
         return attributes.getString(name);
     }
+    
+    public final String[] getAttributes(String name) {
+        return attributes.getStringArray(name);
+    }
 
     public final Map<String, String[]> getAttributes() {
         return attributes.toMap();

@@ -9,6 +9,7 @@ import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.exception.InvalidLoginCredentialsException;
 import com.identity4j.connector.exception.PrincipalNotFoundException;
 import com.identity4j.connector.principal.Identity;
+import com.identity4j.connector.principal.Principal;
 import com.identity4j.connector.principal.Role;
 import com.identity4j.util.passwords.PasswordCharacteristics;
 
@@ -53,6 +54,13 @@ public interface Connector {
 	 * @return default password policy
 	 */
 	PasswordCharacteristics getPasswordCharacteristics();
+	
+	
+	/**
+	 * Get all the available password policies for this connector.
+	 * @return
+	 */
+	Iterator<? extends PasswordCharacteristics> getPasswordPolicies();
 
 	/**
 	 * Authenticates the given credentials, returning the identity if

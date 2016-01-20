@@ -91,6 +91,11 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 	public static final String OBJECT_SID_ATTRIBUTE = "objectSID";
 	public static final String PWD_PROPERTIES_ATTRIBUTE = "pwdProperties";
 	public static final String OU_ATTRIBUTE = "ou";
+	public static final String PASSWORD_POLICY_APPLIES = "msDS-PSOApplied";
+	
+	/**
+	 * This is a special attribute we add to mimic the Office365 ImmutableID
+	 */
 	public static final String IMMUTABLE_ID_ATTR = "ImmutableID";
 
 	public static final String GLOBAL = "-2147483646";
@@ -161,9 +166,6 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 	// Bit mask values for pwdProperties
 	public static final int DOMAIN_PASSWORD_COMPLEX = 0x01;
 
-	// private static Map<String, String> childDomainControllers = new
-	// HashMap<String, String>();
-
 	private List<String> identityAttributesToRetrieve = new ArrayList<String>(
 			ALL_USER_ATTRIBUTES);
 
@@ -171,12 +173,6 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 	final byte[] controlData = { 48, (byte) 132, 0, 0, 0, 3, 2, 1, 1 };
 	final String LDAP_SERVER_POLICY_HINTS_OID = "1.2.840.113556.1.4.2066";
 
-	// TODO not yet used
-	// public static final int DOMAIN_PASSWORD_NO_ANON_CHANGE = 0x02;
-	// public static final int DOMAIN_PASSWORD_NO_CLEAR_CHANGE = 0x04;
-	// public static final int DOMAIN_LOCKOUT_ADMINS = 0x08;
-	// public static final int DOMAIN_PASSWORD_STORE_CLEARTEXT = 0x10;
-	// public static final int DOMAIN_REFUSE_PASSWORD_CHANGE = 0x20;
 
 	@Override
 	public PasswordCharacteristics getPasswordCharacteristics() {
@@ -192,7 +188,10 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 				minPwdLengthField == null ? 6 : Integer
 						.parseInt(minPwdLengthField),
 				getPasswordHistoryLength(), getMaximumPasswordAge(),
-				getMinimumPasswordAge());
+				getMinimumPasswordAge(),
+				0,
+				"Default Group Policy",
+				null);
 	}
 
 	@Override
@@ -888,7 +887,30 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 		return ROLE_ITERATOR;
 
 	}
+	
+	private String buildPSOFilter() {
+		return ldapService.buildObjectClassFilter("msDS-PasswordSettings", "cn", WILDCARD_SEARCH);
+	}
 
+	public Iterator<ADPasswordCharacteristics> getPasswordPolicies() {
+		
+		try {
+			return ldapService.search(buildPSOFilter(), new ResultMapper<ADPasswordCharacteristics>() {
+
+				@Override
+				public ADPasswordCharacteristics apply(SearchResult result) throws NamingException, IOException {
+					return loadCharacteristics(result);
+				}
+				
+			});
+		} catch (NamingException e) {
+			LOG.error("Problem in getting PSOs", e);
+		} catch (IOException e) {
+			LOG.error("Problem in getting PSOs", e);
+		}
+		
+		return CollectionUtil.emptyIterator(ADPasswordCharacteristics.class);
+	}
 	@Override
 	protected SearchControls configureSearchControls(
 			SearchControls searchControls) {
@@ -1423,11 +1445,9 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 				.nonNull((String) getAttribute(attributes
 						.get(USER_PRINCIPAL_NAME_ATTRIBUTE)));
 		String username = StringUtil.getBeforeLast(userPrincipalName, "@");
-		// need to strip username first and check if this is blank
-		// if accounts are migrated from NT4 it's entirely possible
-		// the UPN is @something.com instead of me@something.com
+
 		if (username.equals(userPrincipalName)) {
-			// there is no username in UPN, WE HAVE to use the samAccountName
+			/** there is no username in UPN, WE HAVE to use the samAccountName **/
 			if (isPrimaryDomain) {
 				return samAccountName;
 			} else {
@@ -1695,5 +1715,88 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 	private Object getAttribute(Attribute attribute) throws NamingException {
 		return attribute != null ? attribute.get() : null;
 	}
+	
+	protected Object getAttributeValue(Attributes attrs, String attrName) throws NamingException {
+		Attribute attr = attrs.get(attrName);
+		if(attr==null) {
+			return null;
+		}
+		return attr.get();
+	}
+	
+	protected String getStringAttribute(Attributes attrs, String attrName) throws NamingException {
+		return (String) getAttributeValue(attrs, attrName);
+	}
+	
+	protected ADPasswordCharacteristics loadCharacteristics(SearchResult pso) throws NamingException, IOException {
+
+        boolean complex = false;
+        
+        Attributes attributes = pso.getAttributes();
+        
+        String value = getStringAttribute(attributes, "msDS-PasswordComplexityEnabled");
+        if (!StringUtil.isNullOrEmpty(value)) {
+            complex = Boolean.parseBoolean(value);
+        }
+
+        PasswordCharacteristics defaults = null;
+
+        // Min length
+        String minPwdLengthField = getStringAttribute(attributes, "msDS-MinimumPasswordLength");
+        if (minPwdLengthField == null) {
+            LOG.warn("msDS-MinimumPasswordLength is null. Please check your PSO configuration.");
+            if (defaults == null) {
+                defaults = getPasswordCharacteristics();
+            }
+            minPwdLengthField = String.valueOf(defaults.getMinimumSize());
+        }
+
+        // History
+        String historyLength = getStringAttribute(attributes, "msDS-PasswordHistoryLength");
+        if (historyLength == null) {
+            LOG.warn("msDS-PasswordHistoryLength is null. Please check your PSO configuration.");
+            if (defaults == null) {
+                defaults = getPasswordCharacteristics();
+            }
+            String attr = defaults.getAttributes().get("activeDirectory." + ActiveDirectoryConnector.PWD_HISTORY_LENGTH);
+            historyLength = attr == null ? "0" : attr;
+        }
+
+        // Max age
+        String maxAge = getStringAttribute(attributes, "msDS-MaximumPasswordAge");
+        if (maxAge == null) {
+            LOG.warn("msDS-MaximumPasswordAge is null. Please check your PSO configuration.");
+            if (defaults == null) {
+                defaults = getPasswordCharacteristics();
+            }
+            String attr = defaults.getAttributes()
+                            .get("activeDirectory." + ActiveDirectoryConnector.MAXIMUM_PASSWORD_AGE_ATTRIBUTE);
+            maxAge = attr == null ? "0" : attr;
+        }
+
+        String minAge = getStringAttribute(attributes, "msDS-MinimumPasswordAge");
+        if (minAge == null) {
+            LOG.warn("msDS-MinimumPasswordAge is null. Please check your PSO configuration.");
+            if (defaults == null) {
+                defaults = getPasswordCharacteristics();
+            }
+            String attr = defaults.getAttributes()
+                            .get("activeDirectory." + ActiveDirectoryConnector.MINIMUM_PASSWORD_AGE_ATTRIBUTE);
+            minAge = attr == null ? "0" : attr;
+        }
+
+        String precedence = getStringAttribute(attributes, "msDS-PasswordSettingsPrecedence");
+        if (precedence == null) {
+            LOG.warn("msDS-PasswordSettingsPrecedence is null. Please check your PSO configuration.");
+            precedence = "0";
+        }
+
+        return new ADPasswordCharacteristics(complex, Integer.parseInt(minPwdLengthField), Integer.parseInt(historyLength),
+                        ActiveDirectoryDateUtil.adTimeToJavaDays(Long.parseLong(maxAge)),
+                        ActiveDirectoryDateUtil.adTimeToJavaDays(Long.parseLong(minAge)), Integer.parseInt(precedence),
+                        getStringAttribute(attributes, "cn"), pso.getName());
+
+    }
+
 
 }

@@ -51,6 +51,16 @@ public interface Principal extends Serializable {
      * @return the attributes value
      */
     String getAttribute(String name);
+    
+    /**
+     * Returns the values associated with the specified attribute name or the
+     * <code>null</code>.
+     * 
+     * @param name
+     * @param defaultValue
+     * @return the attributes value
+     */
+    String[] getAttributes(String name);
 
     /**
      * Returns the value associated with the specified attribute name or the

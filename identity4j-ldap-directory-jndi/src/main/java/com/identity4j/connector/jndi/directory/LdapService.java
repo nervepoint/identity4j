@@ -211,6 +211,9 @@ public class LdapService {
 				} catch (NamingException e) {
 					LOG.error("Failed to get results", e);
 					throw new IllegalStateException(e);
+				} catch (IOException e) {
+					LOG.error("Failed to get results", e);
+					throw new IllegalStateException(e);
 				}
 			}
 			
@@ -319,7 +322,6 @@ public class LdapService {
 		});
 	}
 	
-	
 	public final String buildObjectClassFilter(String objectClass, String principalNameFilterAttribute, String principalName) {
 		return String.format("(&(objectClass=%s)(%s=%s))",objectClass,principalNameFilterAttribute,principalName);
 	}
@@ -345,7 +347,7 @@ public class LdapService {
 	}
 	
 	public interface ResultMapper<T>{
-		public T apply(SearchResult result) throws NamingException;
+		public T apply(SearchResult result) throws NamingException, IOException;
 	}
 	
 	public interface Block<T> {

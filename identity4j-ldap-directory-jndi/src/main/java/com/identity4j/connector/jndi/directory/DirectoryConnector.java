@@ -222,7 +222,7 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 		String roleNameAttribute = directoryConfiguration.getRoleNameAttribute();
 		return ldapService.buildObjectClassFilter(roleObjectClass, roleNameAttribute, roleName);
 	}
-
+	
 	protected Iterator<Role> getRoles() {
 		return getRoles(buildRoleFilter(WILDCARD_SEARCH,true));
 	}
