@@ -4,8 +4,6 @@ import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.codehaus.jackson.io.SegmentedStringWriter;
-
 import com.identity4j.util.passwords.PasswordCharacteristics;
 
 public class ADPasswordCharacteristics implements PasswordCharacteristics, Serializable {
@@ -42,6 +40,18 @@ public class ADPasswordCharacteristics implements PasswordCharacteristics, Seria
 		attributes.put("activeDirectory.precedence", String.valueOf(precedence));
 	}
 
+	public int getMaximumAge() {
+		return Integer.parseInt(attributes.get("activeDirectory." + ActiveDirectoryConnector.MAXIMUM_PASSWORD_AGE_ATTRIBUTE));
+	}
+	
+	public int getMinimumAge() {
+		return Integer.parseInt(attributes.get("activeDirectory." + ActiveDirectoryConnector.MINIMUM_PASSWORD_AGE_ATTRIBUTE));
+	}
+	
+	public int getPriority() {
+		return Integer.parseInt(attributes.get("activeDirectory.precedence"));
+	}
+	
 	@Override
 	public float getVeryStrongFactor() {
 		// TODO 1?
@@ -115,4 +125,7 @@ public class ADPasswordCharacteristics implements PasswordCharacteristics, Seria
 		return dn;
 	}
 
+	public String getCommonName() {
+		return commonName;
+	}
 }
