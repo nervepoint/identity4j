@@ -1794,7 +1794,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
         return new ADPasswordCharacteristics(complex, Integer.parseInt(minPwdLengthField), Integer.parseInt(historyLength),
                         ActiveDirectoryDateUtil.adTimeToJavaDays(Long.parseLong(maxAge)),
                         ActiveDirectoryDateUtil.adTimeToJavaDays(Long.parseLong(minAge)), Integer.parseInt(precedence),
-                        getStringAttribute(attributes, "cn"), pso.getName());
+                        getStringAttribute(attributes, "cn"), pso.getNameInNamespace());
 
     }
 
