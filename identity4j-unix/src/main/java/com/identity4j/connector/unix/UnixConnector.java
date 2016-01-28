@@ -55,13 +55,13 @@ public class UnixConnector extends FlatFileConnector {
 	private static final int GID_FIELD_INDEX = 3;
 
 	// Attributes
-	private static final String ATTR_HOME = "home";
-	private static final String ATTR_SHELL = "shell";
-	private static final String ATTR_DAYS_BEFORE_PASSWORD_MAY_BE_CHANGED = "daysBeforePasswordMayBeChanged";
-	private static final String ATTR_DAYS_AFTER_WHICH_PASSWORD_MUST_BE_CHANGED = "daysAfterWhichPasswordMustBeChanged";
-	private static final String ATTR_DAYS_BEFORE_PASSWORD_IS_TO_EXPIRE_THAT_USER_IS_WARNED = "daysBeforePasswordIsToExpireThatUserIsWarned";
-	private static final String ATTR_DAYS_AFTER_PASSWORD_EXPIRES_THAT_ACCOUNT_IS_DISABLED = "daysAfterPasswordExpiresThatAccountIsDisabled";
-	private static final String ATTR_DAYS_SINCE_ACCOUNT_WAS_DISABLED = "daysSinceAccountWasDisabled";
+	static final String ATTR_HOME = "home";
+	static final String ATTR_SHELL = "shell";
+	static final String ATTR_DAYS_BEFORE_PASSWORD_MAY_BE_CHANGED = "daysBeforePasswordMayBeChanged";
+	static final String ATTR_DAYS_AFTER_WHICH_PASSWORD_MUST_BE_CHANGED = "daysAfterWhichPasswordMustBeChanged";
+	static final String ATTR_DAYS_BEFORE_PASSWORD_IS_TO_EXPIRE_THAT_USER_IS_WARNED = "daysBeforePasswordIsToExpireThatUserIsWarned";
+	static final String ATTR_DAYS_AFTER_PASSWORD_EXPIRES_THAT_ACCOUNT_IS_DISABLED = "daysAfterPasswordExpiresThatAccountIsDisabled";
+	static final String ATTR_DAYS_SINCE_ACCOUNT_WAS_DISABLED = "daysSinceAccountWasDisabled";
 
 	static {
 		DefaultEncoderManager.getInstance().addEncoder(new UnixMD5Encoder());
@@ -122,6 +122,8 @@ public class UnixConnector extends FlatFileConnector {
 		Role role = roleMap.get(roleName);
 		if (role == null) {
 			final List<String> row = groupFlatFile.getRowByKeyField(0, roleName);
+			if(row == null)
+				throw new PrincipalNotFoundException(String.format("No role named '%s'", roleName));
 			role = new RoleImpl(row.get(GID_INDEX), roleName);
 			roleMap.put(roleName, role);
 		}
@@ -196,9 +198,18 @@ public class UnixConnector extends FlatFileConnector {
 			char[] password, PasswordResetType type) {
 		List<String> row = passwordFile.getRowByKeyField(keyFieldIndex, identity.getPrincipalName());
 		if (passwordsInShadow) {
+			// Move the encoded password from passwd to shadow
+			String encpw = row.set(getConfiguration().getPasswordFieldIndex(), "x");
+			row = shadowFlatFile.getRowByKeyField(keyFieldIndex, identity.getPrincipalName());
+			row.set(getConfiguration().getPasswordFieldIndex(), encpw);
 			final long now = System.currentTimeMillis();
 			row.set(DAYS_SINCE_LAST_PASSWORD_CHANGE_INDEX, String.valueOf(now / 1000 / 60 / 60 / 24));
 			identity.setPasswordStatus(createPasswordStatusFromShadowRow(row));
+			try {
+				shadowFlatFile.writeRows();
+			} catch (IOException e) {
+				throw new ConnectorException("Write failure", e);
+			}
 		}
 	}
 

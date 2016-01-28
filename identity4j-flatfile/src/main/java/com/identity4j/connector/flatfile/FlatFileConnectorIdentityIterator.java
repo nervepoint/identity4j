@@ -5,6 +5,7 @@ package com.identity4j.connector.flatfile;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 import com.identity4j.connector.Connector;
 import com.identity4j.connector.principal.Identity;
@@ -28,7 +29,10 @@ public class FlatFileConnectorIdentityIterator implements Iterator<Identity> {
     }
 
     public Identity next() {
-        List<String> list = flatFile.getContents().get(row++);
+        List<List<String>> contents = flatFile.getContents();
+        if(row >= contents.size())
+        	throw new NoSuchElementException("No more identities.");
+		List<String> list = contents.get(row++);
         String keyFieldValue = list.get(keyFieldIndex);
         return connector.getIdentityByName(keyFieldValue);
     }
