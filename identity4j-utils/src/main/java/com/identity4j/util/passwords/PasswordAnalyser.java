@@ -87,7 +87,7 @@ public class PasswordAnalyser {
 		}
 
 		// Check the password doesn't contain any dictionary words
-		if (characteristics.isDictionaryWordsAllowed()) {
+		if (!characteristics.isDictionaryWordsAllowed()) {
 			// Break up the passphrase into what look like words
 			StringBuilder bui = new StringBuilder();
 			List<String> words = new ArrayList<String>();
