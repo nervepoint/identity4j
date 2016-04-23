@@ -479,7 +479,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			roleDn.add("CN=" + role.getPrincipalName());
 
 			Name baseDn = getConfiguration().getBaseDn();
-			if (!roleDn.toString().endsWith(baseDn.toString())) {
+			if (!roleDn.toString().toLowerCase().endsWith(baseDn.toString().toLowerCase())) {
 				throw new ConnectorException("The User DN (" + roleDn
 						+ ") must be a child of the Base DN (" + baseDn
 						+ " configured for the Active Directory connector.");
@@ -582,7 +582,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			identity.setAttribute("cn", tmp.toString());
 			
 			Name baseDn = getConfiguration().getBaseDn();
-			if (!userDn.toString().endsWith(baseDn.toString())) {
+			if (!userDn.toString().toLowerCase().endsWith(baseDn.toString().toLowerCase())) {
 				throw new ConnectorException("The User DN (" + userDn
 						+ ") must be a child of the Base DN (" + baseDn
 						+ " configured for the Active Directory connector.");
@@ -878,6 +878,10 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 				public Role apply(SearchResult result) throws NamingException {
 					return mapRole(result);
 				}
+				
+				public boolean isApplyFilters() {
+					return true;
+				}
 			});
 		} catch (NamingException e) {
 			LOG.error("Problem in getting roles", e);
@@ -901,7 +905,9 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 				public ADPasswordCharacteristics apply(SearchResult result) throws NamingException, IOException {
 					return loadCharacteristics(result);
 				}
-				
+				public boolean isApplyFilters() {
+					return false;
+				}
 			});
 		} catch (NamingException e) {
 			LOG.error("Problem in getting PSOs", e);
@@ -1364,6 +1370,10 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 					}
 					return directoryIdentity;
 				}
+				
+				public boolean isApplyFilters() {
+					return true;
+				}
 			});
 		} catch (NamingException e) {
 			LOG.error("Problem in fetching identity", e);
@@ -1633,6 +1643,10 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			@Override
 			public String apply(SearchResult result) throws NamingException {
 				return result.getNameInNamespace();
+			}
+			
+			public boolean isApplyFilters() {
+				return true;
 			}
 		});
 

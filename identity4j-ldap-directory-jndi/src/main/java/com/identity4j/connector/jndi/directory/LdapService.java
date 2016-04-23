@@ -199,7 +199,33 @@ public class LdapService {
 		T getNextElement() {
 			while(results.hasMoreElements()) {
 				try {
-					return resultMapper.apply(results.next());
+					SearchResult result = results.next();
+					if(!resultMapper.isApplyFilters()) {
+						return resultMapper.apply(result);
+					}
+					Name resultName = new LdapName(result.getNameInNamespace());
+					boolean include = configuration.getIncludes().isEmpty();
+					if(!include) {
+						for(Name name : configuration.getIncludes()) {
+							if(resultName.startsWith(name)) {
+								include = true;
+								break;
+							}
+						}
+					}
+					
+					for(Name name : configuration.getExcludes()) {
+						if(resultName.startsWith(name)) {
+							include = false;
+							break;
+						}
+					}
+					
+					if(!include) {
+						continue;
+					}
+
+					return resultMapper.apply(result);
 				} catch(PartialResultException e) { 
 					if(configuration.isFollowReferrals()) {
 						LOG.error("Following referrals is on but partial result was received", e);
@@ -348,6 +374,8 @@ public class LdapService {
 	
 	public interface ResultMapper<T>{
 		public T apply(SearchResult result) throws NamingException, IOException;
+
+		public boolean isApplyFilters();
 	}
 	
 	public interface Block<T> {

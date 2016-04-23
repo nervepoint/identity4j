@@ -319,7 +319,9 @@ public class DirectoryConfiguration extends AbstractConnectorConfiguration {
 	private Collection<Name> getNames(String... values) throws InvalidNameException {
 		Collection<Name> names = new ArrayList<Name>();
 		for (String value : values) {
-			names.add(new LdapName(value).addAll(0, getBaseDn()));
+			if(StringUtils.isNotBlank(value)) {
+				names.add(new LdapName(value).addAll(0, getBaseDn()));
+			}
 		}
 		return names;
 	}

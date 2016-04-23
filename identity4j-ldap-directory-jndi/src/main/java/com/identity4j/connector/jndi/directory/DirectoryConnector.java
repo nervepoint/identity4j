@@ -145,7 +145,9 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 				return new DirectoryOU((String)result.getAttributes().get("distinguishedName").get(),
 						(String)result.getAttributes().get("ou").get());
 			}
-			
+			public boolean isApplyFilters() {
+				return true;
+			}
 		});
 	}
 	
@@ -183,6 +185,9 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 
 				public Identity apply(SearchResult result) throws NamingException {
 					return mapIdentity(result);
+				}
+				public boolean isApplyFilters() {
+					return true;
 				}
 			});
 		} catch (NamingException e) {
@@ -233,6 +238,10 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 
 				public Role apply(SearchResult result) throws NamingException {
 					return mapRole(result);
+				}
+				
+				public boolean isApplyFilters() {
+					return true;
 				}
 			});
 		} catch (NamingException e) {
@@ -414,6 +423,10 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 			        }
 			        return l;
 					
+				}
+				
+				public boolean isApplyFilters() {
+					return true;
 				}
 			});
 			 
