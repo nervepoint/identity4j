@@ -18,6 +18,14 @@ public class UnixDESEncoder extends AbstractEncoder {
 	public boolean match(byte[] encodedData, byte[] unencodedData, byte[] passphrase, String charset) throws EncoderException {
 		try {
 			String encoded = new String(encodedData, charset);
+			if(encoded.equals("*")) {
+				// No login
+				return false;
+			}
+			if(encoded.startsWith("!")) {
+				// Password locked
+				return false;
+			}
 			String salt = encoded.substring(0, 2);
 			return Arrays.equals(encode(unencodedData, salt.getBytes(charset), passphrase, charset), encodedData);
 

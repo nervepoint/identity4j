@@ -927,7 +927,7 @@ public class GoogleConnector extends AbstractConnector {
 			});
 		    
 		    //directory instance provides API for remote methods
-		    directory = new Directory.Builder(GoogleNetHttpTransport.newTrustedTransport(), JSON_FACTORY, credential).build();
+		    directory = new Directory.Builder(GoogleNetHttpTransport.newTrustedTransport(), JSON_FACTORY, credential).setApplicationName("Identity4J").build();
 		    
 		    log.info("Directory instance created");
 		}catch(Exception e){

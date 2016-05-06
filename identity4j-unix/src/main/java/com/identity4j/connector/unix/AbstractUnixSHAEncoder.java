@@ -24,6 +24,14 @@ public abstract class AbstractUnixSHAEncoder extends AbstractEncoder {
 				throw new EncoderException("Encoded data is not in Unix SHA crypt format");
 			}
 			String encoded = new String(encodedData, charset);
+			if(encoded.equals("*")) {
+				// No login
+				return false;
+			}
+			if(encoded.startsWith("!")) {
+				// Password locked
+				return false;
+			}
 			int sl = saltPrefix.length();
 			int idx = encoded.indexOf('$', sl);
 			if (idx == -1) {
