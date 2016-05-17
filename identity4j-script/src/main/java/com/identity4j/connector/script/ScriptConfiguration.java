@@ -9,8 +9,8 @@ import com.identity4j.util.MultiMap;
 
 public class ScriptConfiguration extends AbstractConnectorConfiguration {
 
-	protected static final String KEY_SCRIPT_CONTENT = "script.content";
-	protected static final String KEY_SCRIPT_MIME_TYPE = "script.mimeType";
+	public static final String KEY_SCRIPT_CONTENT = "script.content";
+	public static final String KEY_SCRIPT_MIME_TYPE = "script.mimeType";
 
 	public ScriptConfiguration(MultiMap configurationParameters) {
 		super(configurationParameters);

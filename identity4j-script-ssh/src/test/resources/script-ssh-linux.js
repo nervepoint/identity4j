@@ -41,8 +41,8 @@ var users = new ArrayList();
 var roles = new ArrayList();
 var roleMap = new HashMap();
 var userRoleMap = new HashMap();
-var minUid = config.getConfigurationParameters().getIntegerOrFail('ssh.minUid');
-var maxUid = config.getConfigurationParameters().getIntegerOrFail('ssh.maxUid');
+var minUid = config.getConfigurationParameters().getIntegerOrDefault('ssh.minUid', 0);
+var maxUid = config.getConfigurationParameters().getIntegerOrDefault('ssh.maxUid', 10000000);
 
 // Public API functions
 /**

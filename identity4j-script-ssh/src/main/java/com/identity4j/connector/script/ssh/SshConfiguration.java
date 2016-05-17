@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import com.identity4j.connector.script.ScriptConfiguration;
+import com.identity4j.connector.script.ssh.j2ssh.DefaultSshClientWrapperFactory;
 import com.identity4j.util.IOUtil;
 import com.identity4j.util.MultiMap;
 
@@ -22,11 +23,18 @@ public class SshConfiguration extends ScriptConfiguration {
 	public static final String SSH_SUDO_COMMAND = "ssh.sudoCommand";
 	public static final String SSH_SUDO_PROMPT = "ssh.sudoPrompt";
 
+	SshClientWrapperFactory clientFactory = new DefaultSshClientWrapperFactory();
+	
 	/**
 	 * @param configurationParameters
 	 */
 	public SshConfiguration(MultiMap configurationParameters) {
 		super(configurationParameters);
+	}
+	
+	
+	public SshClientWrapperFactory getClientFactory() {
+		return clientFactory;
 	}
 
 	/**
@@ -71,10 +79,6 @@ public class SshConfiguration extends ScriptConfiguration {
 	 */
 	public final InputStream getServiceAccountPrivateKey() throws FileNotFoundException {
 		String str = getConfigurationParameters().getStringOrNull(SSH_SERVICE_ACCOUNT_PRIVATE_KEY);
-		// if(str == null || str.equals("")) {
-		// return null;
-		// }
-		// return new FileInputStream(str);
 		return str == null ? null : new ByteArrayInputStream(str.getBytes());
 	}
 
