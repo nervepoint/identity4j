@@ -18,6 +18,7 @@ public class SshConfiguration extends ScriptConfiguration {
 	public static final String SSH_PORT = "ssh.port";
 	public static final String SSH_SERVICE_ACCOUNT_PASSWORD = "ssh.serviceAccountPassword";
 	public static final String SSH_SERVICE_ACCOUNT_PRIVATE_KEY = "ssh.serviceAccountPrivateKey";
+	public static final String SSH_SERVICE_ACCOUNT_PRIVATE_KEY_PASSPHRASE = "ssh.serviceAccountPrivateKeyPassphrase";
 	public static final String SSH_SERVICE_ACCOUNT_USERNAME = "ssh.serviceAccountUsername";
 	public static final String SSH_HOSTNAME = "ssh.hostname";
 	public static final String SSH_SUDO_COMMAND = "ssh.sudoCommand";
@@ -116,5 +117,10 @@ public class SshConfiguration extends ScriptConfiguration {
 
 	public String getSudoPrompt() {
 		return getConfigurationParameters().getStringOrDefault(SSH_SUDO_PROMPT, "[sudo] password for ${username}");
+	}
+
+
+	public String getServiceAccountPrivateKeyPassphrase() {
+		return  getConfigurationParameters().getStringOrDefault(SSH_SERVICE_ACCOUNT_PRIVATE_KEY_PASSPHRASE, null);
 	}
 }

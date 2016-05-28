@@ -33,7 +33,9 @@ public class SshClientWrapperImpl implements SshClientWrapper {
 	public SshCommand executeCommand(String cmd) throws IOException, ExpectTimeoutException {
 		try {
 			return new SshCommandImpl(client, cmd);
-		} catch (SshException | ChannelOpenException e) {
+		} catch (SshException e) { 
+			throw new IOException(e);
+		} catch(ChannelOpenException e) {
 			throw new IOException(e);
 		}
 	}
@@ -45,7 +47,9 @@ public class SshClientWrapperImpl implements SshClientWrapper {
 	public SshCommand sudoCommand(String cmd) throws IOException, ExpectTimeoutException {
 		try {
 			return new SshCommandImpl(client, cmd, config.getSudoCommand(), config.getSudoPrompt(), config.getServiceAccountPassword());
-		} catch (SshException | ChannelOpenException e) {
+		} catch (SshException e) { 
+			throw new IOException(e);
+		} catch(ChannelOpenException e) {
 			throw new IOException(e);
 		}
 	}
@@ -69,7 +73,11 @@ public class SshClientWrapperImpl implements SshClientWrapper {
 				}
 
 			};
-		} catch (SftpStatusException | SshException | ChannelOpenException e) {
+		} catch (SshException e) { 
+			throw new IOException(e);
+		} catch (SftpStatusException e) { 
+			throw new IOException(e);
+		} catch(ChannelOpenException e) {
 			throw new IOException(e);
 		}
 	}

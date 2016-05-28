@@ -52,7 +52,12 @@ public class DefaultSshClientWrapperFactory implements SshClientWrapperFactory {
 					try {
 						SshPrivateKeyFile pkf = SshPrivateKeyFileFactory.parse(in);
 						PublicKeyAuthentication pka = new PublicKeyAuthentication();
-						SshKeyPair keyPair = pkf.toKeyPair(null);
+						SshKeyPair keyPair;
+						if(pkf.isPassphraseProtected()) {
+							keyPair = pkf.toKeyPair(config.getServiceAccountPrivateKeyPassphrase());
+						} else {
+							keyPair = pkf.toKeyPair(null);
+						}
 						pka.setPrivateKey(keyPair.getPrivateKey());
 						pka.setPublicKey(keyPair.getPublicKey());
 						checkAuth(client, config, pka);
