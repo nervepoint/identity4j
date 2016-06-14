@@ -66,11 +66,9 @@ public class ActiveDirectoryConfiguration extends DirectoryConfiguration {
 		final List<String> excludes = Arrays.asList(configurationParameters
 				.getStringArray(DIRECTORY_EXCLUDES));
 		if (!includes.contains(CN_BUILTIN) && !excludes.contains(CN_BUILTIN)) {
-			if (configurationParameters
-					.getBoolean(ACTIVE_DIRECTORY_INCLUDE_BUILTN_GROUPS)) {
+			if (configurationParameters.getBoolean(ACTIVE_DIRECTORY_INCLUDE_BUILTN_GROUPS)) {
 				if (configurationParameters.getStringArray(DIRECTORY_INCLUDES).length != 0) {
-					configurationParameters.setMore(DIRECTORY_INCLUDES,
-							CN_BUILTIN);
+					configurationParameters.setMore(DIRECTORY_INCLUDES, CN_BUILTIN);
 				}
 			} else {
 				configurationParameters.setMore(DIRECTORY_EXCLUDES, CN_BUILTIN);
@@ -84,11 +82,9 @@ public class ActiveDirectoryConfiguration extends DirectoryConfiguration {
 		final List<String> excludes = Arrays.asList(configurationParameters
 				.getStringArray(DIRECTORY_EXCLUDES));
 		if (!includes.contains(CN_USERS) && !excludes.contains(CN_USERS)) {
-			if (configurationParameters
-					.getBoolean(ACTIVE_DIRECTORY_INCLUDE_DEFAULT_USERS)) {
+			if (configurationParameters.getBoolean(ACTIVE_DIRECTORY_INCLUDE_DEFAULT_USERS)) {
 				if (configurationParameters.getStringArray(DIRECTORY_INCLUDES).length != 0) {
-					configurationParameters.setMore(DIRECTORY_INCLUDES,
-							CN_USERS);
+					configurationParameters.setMore(DIRECTORY_INCLUDES, CN_USERS);
 				}
 			} else {
 				configurationParameters.setMore(DIRECTORY_EXCLUDES, CN_USERS);
