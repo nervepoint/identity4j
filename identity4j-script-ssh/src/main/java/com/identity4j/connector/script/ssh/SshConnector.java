@@ -28,8 +28,6 @@ public class SshConnector extends ScriptConnector {
 	public static final String OFFICE_NUMBER = "officeNumber";
 	public static final String OTHER_CONTACT = "otherContact";
 	
-	SshClientWrapperFactory clientFactory = new DefaultSshClientWrapperFactory();
-	
 	public SshConnector() {
 		super();
 	}
@@ -48,7 +46,7 @@ public class SshConnector extends ScriptConnector {
 	protected void onOpen(ConnectorConfigurationParameters parameters) {
 		sshConfiguration = (SshConfiguration) parameters;
 		super.onOpen(parameters);
-		client = clientFactory.createInstance(sshConfiguration);
+		client = sshConfiguration.getClientFactory().createInstance(sshConfiguration);
 		getEngine().put("sshClient",client);
 		
 		try {

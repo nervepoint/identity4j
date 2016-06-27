@@ -3,12 +3,9 @@ package com.identity4j.connector.script.ssh;
 
 import java.io.ByteArrayInputStream;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.InputStream;
 
 import com.identity4j.connector.script.ScriptConfiguration;
-import com.identity4j.connector.script.ssh.j2ssh.DefaultSshClientWrapperFactory;
-import com.identity4j.util.IOUtil;
 import com.identity4j.util.MultiMap;
 
 public class SshConfiguration extends ScriptConfiguration {
@@ -24,13 +21,14 @@ public class SshConfiguration extends ScriptConfiguration {
 	public static final String SSH_SUDO_COMMAND = "ssh.sudoCommand";
 	public static final String SSH_SUDO_PROMPT = "ssh.sudoPrompt";
 
-	SshClientWrapperFactory clientFactory = new DefaultSshClientWrapperFactory();
+	SshClientWrapperFactory clientFactory;
 	
 	/**
 	 * @param configurationParameters
 	 */
 	public SshConfiguration(MultiMap configurationParameters) {
 		super(configurationParameters);
+		clientFactory = SshClientWrapperFactoryHolder.getClientFactory();
 	}
 	
 	
