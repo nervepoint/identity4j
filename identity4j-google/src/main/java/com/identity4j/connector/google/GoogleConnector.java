@@ -1,9 +1,11 @@
 package com.identity4j.connector.google;
 
+
 import static com.identity4j.util.StringUtil.isNullOrEmpty;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.security.PrivateKey;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -25,7 +27,8 @@ import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestInitializer;
-import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.http.HttpTransport;
+import com.google.api.client.http.apache.ApacheHttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.client.util.SecurityUtils;
@@ -375,7 +378,7 @@ public class GoogleConnector extends AbstractConnector {
 				}catch(IOException e){
 				    if(e instanceof TokenResponseException) {
 				        TokenResponseException tokenResponseException = (TokenResponseException)e;
-				        if("invalid_grant".equals(tokenResponseException.getDetails().getError())) {
+				        if(tokenResponseException.getDetails() != null && "invalid_grant".equals(tokenResponseException.getDetails().getError())) {
 				            throw new ConnectorException("Incorrect credentials. Check your configured service email addresses and the private key.");
 				        };
 				    }
@@ -906,7 +909,7 @@ public class GoogleConnector extends AbstractConnector {
 		    
 		    //credential credential store
 		    GoogleCredential credential = new GoogleCredential.Builder().
-		    								setTransport(GoogleNetHttpTransport.newTrustedTransport()).
+		    								setTransport(createTransport()).
 		    								setJsonFactory(JSON_FACTORY).
 		    								setServiceAccountId(configuration.getGoogleServiceAccountId()).
 		    								setServiceAccountScopes(scopes).setServiceAccountPrivateKey(privateKey).
@@ -914,7 +917,7 @@ public class GoogleConnector extends AbstractConnector {
 		    								build(); 
 		    
 		    //Adding gzip support for all requests
-		    NetHttpTransport transport = GoogleNetHttpTransport.newTrustedTransport();
+		    HttpTransport transport = createTransport();
 		    transport.createRequestFactory(new HttpRequestInitializer() {
 				
 				@Override
@@ -927,7 +930,7 @@ public class GoogleConnector extends AbstractConnector {
 			});
 		    
 		    //directory instance provides API for remote methods
-		    directory = new Directory.Builder(GoogleNetHttpTransport.newTrustedTransport(), JSON_FACTORY, credential).setApplicationName("Identity4J").build();
+		    directory = new Directory.Builder(createTransport(), JSON_FACTORY, credential).setApplicationName("Identity4J").build();
 		    
 		    log.info("Directory instance created");
 		}catch(Exception e){
@@ -938,6 +941,12 @@ public class GoogleConnector extends AbstractConnector {
 			throw new ConnectorException(e.getMessage(), e);
 		}
 
+	}
+
+	public static HttpTransport createTransport() throws GeneralSecurityException, IOException {
+		return "true".equals(System.getProperty("identity4j.google.useApacheTransport"))?
+				new ApacheHttpTransport(ApacheHttpTransport.newDefaultHttpClient()) :
+					GoogleNetHttpTransport.newTrustedTransport();
 	}
 	
 	/**

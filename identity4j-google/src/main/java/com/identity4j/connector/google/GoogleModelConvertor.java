@@ -44,8 +44,9 @@ class GoogleModelConvertor {
 		googleIdentity.setFullName(user.getName().getFullName());
 		googleIdentity.setAddress(Media.email, user.getPrimaryEmail());
 		
-		if(user.getPhones() != null && !user.getPhones().isEmpty())
-			googleIdentity.setAddress(Media.mobile, user.getPhones().get(0).getValue());
+		// TODO how?
+//		if(user.getPhones() != null && !user.getPhones().isEmpty())
+//			googleIdentity.setAddress(Media.mobile, user.getPhones().get(0).getValue());
 		
 		if(user.getChangePasswordAtNextLogin() != null){
 			googleIdentity.getPasswordStatus().setNeedChange(user.getChangePasswordAtNextLogin());

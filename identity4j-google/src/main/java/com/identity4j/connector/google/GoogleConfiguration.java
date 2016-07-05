@@ -70,6 +70,20 @@ public class GoogleConfiguration extends AbstractConnectorConfiguration{
 	public String getGoogleCustomerDomain(){
 		return configurationParameters.getString(GOOGLE_CUSTOMER_DOMAIN);
 	}
+	
+	/**
+	 * Google OAuth client ID 
+	 */
+	public String getGoogleOAuthClientId(){
+		return configurationParameters.getString(GOOGLE_OAUTH_CLIENT_ID);
+	}
+	
+	/**
+	 * Google OAuth client secret 
+	 */
+	public String getGoogleOAuthClientSecret(){
+		return configurationParameters.getString(GOOGLE_OAUTH_CLIENT_SECRET);
+	}
 
 	public boolean getFetchRoles() {
 		return configurationParameters.getBooleanOrDefault(GOOGLE_FETCH_ROLES, false);

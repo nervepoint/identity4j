@@ -12,20 +12,27 @@
 
 	<dependencies>
 		<dependency>
-			<groupId>com.google.apis</groupId>
-			<artifactId>google-api-services-admin</artifactId>
-			<version>directory_v1-rev16-1.15.0-rc</version>
-		</dependency>
+    <groupId>com.google.apis</groupId>
+    <artifactId>google-api-services-admin-directory</artifactId>
+    <version>directory_v1-rev68-1.22.0</version>
+</dependency>
+
 		<dependency>
 			<groupId>com.google.http-client</groupId>
 			<artifactId>google-http-client-jackson2</artifactId>
-			<version>1.17.0-rc</version>
+    		<version>1.22.0</version>
 		</dependency>
 		<dependency>
 			<groupId>com.google.oauth-client</groupId>
 			<artifactId>google-oauth-client-jetty</artifactId>
-			<version>1.17.0-rc</version>
+    		<version>1.22.0</version>
+		</dependency><!-- https://mvnrepository.com/artifact/com.google.apis/google-api-services-oauth2 -->
+		<dependency>
+			<groupId>com.google.apis</groupId>
+			<artifactId>google-api-services-oauth2</artifactId>
+			<version>v2-rev112-1.22.0</version>
 		</dependency>
+
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
