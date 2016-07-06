@@ -14,8 +14,10 @@ public class GoogleConfiguration extends AbstractConnectorConfiguration{
 	public static final String GOOGLE_OAUTH_CLIENT_ID = "googleOAuthClientID";
 	public static final String GOOGLE_OAUTH_CLIENT_SECRET = "googleOAuthClientSecret";
 	public static final String GOOGLE_USERNAME = "googleUsername";
+	public static final String GOOGLE_SERVICE_ACCOUNT_JSON = "googleServiceAccountJson";
 	public static final String GOOGLE_SERVICE_ACCOUNT_ID = "googleServiceAccountId";
 	public static final String GOOGLE_PRIVATE_KEY_ENCODED = "googlePrivateKeyEncoded";
+	public static final String GOOGLE_PRIVATE_KEY_PASSPHRASE = "googlePrivateKeyPassphrase";
 	public static final String GOOGLE_CUSTOMER_ID = "googleCustomerId";
 	public static final String GOOGLE_CUSTOMER_DOMAIN ="googleCustomerDomain";
 	public static final String GOOGLE_FETCH_ROLES ="googleFetchRoles";
@@ -43,6 +45,15 @@ public class GoogleConfiguration extends AbstractConnectorConfiguration{
 	}
 	
 	/**
+	 * Instead of using {@link #getGoogleServiceAccountId()}, {@link #getGooglePrivateKeyEncoded()}
+	 * and {@link #getGoogleUsername()}, the JSON file generated from Google API console should
+	 * now be used.
+	 */
+	public String getGoogleServiceAccountJson(){
+		return configurationParameters.getString(GOOGLE_SERVICE_ACCOUNT_JSON);
+	}
+	
+	/**
 	 * Google apps service id who has been given consent to perform operations
 	 * on behalf of admin user. 
 	 */
@@ -55,6 +66,13 @@ public class GoogleConfiguration extends AbstractConnectorConfiguration{
 	 */
 	public String getGooglePrivateKeyEncoded(){
 		return configurationParameters.getString(GOOGLE_PRIVATE_KEY_ENCODED);
+	}
+	
+	/**
+	 * Service id private key passphrase 
+	 */
+	public String getGooglePrivatePassphrase(){
+		return configurationParameters.getStringOrDefault(GOOGLE_PRIVATE_KEY_PASSPHRASE, "notasecret");
 	}
 	
 	/**
