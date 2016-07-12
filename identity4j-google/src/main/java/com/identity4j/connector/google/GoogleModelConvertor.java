@@ -52,10 +52,15 @@ class GoogleModelConvertor {
 			googleIdentity.getPasswordStatus().setNeedChange(user.getChangePasswordAtNextLogin());
 			if(user.getChangePasswordAtNextLogin())
 				googleIdentity.getPasswordStatus().setType(PasswordStatusType.changeRequired);
+			else
+				googleIdentity.getPasswordStatus().calculateType();
 		}
+		else
+			googleIdentity.getPasswordStatus().calculateType();
 		
 		if(user.getSuspended() != null)
 			googleIdentity.getAccountStatus().setDisabled(user.getSuspended());
+		googleIdentity.getAccountStatus().calculateType();
 		
 		if(user.getLastLoginTime() != null)
 			googleIdentity.setLastSignOnDate(new Date(user.getLastLoginTime().getValue()));
