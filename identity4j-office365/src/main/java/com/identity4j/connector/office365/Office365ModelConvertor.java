@@ -124,6 +124,7 @@ public class Office365ModelConvertor {
 		identity.setAccountStatus(new AccountStatus());
 		if(user.getAccountEnabled() != null)
 			identity.getAccountStatus().setDisabled(!user.getAccountEnabled());
+		identity.getAccountStatus().calculateType();
 		
 		identity.setAttribute(ATTR_MOBILE, nullToEmptyString(user.getMobile()));
 		identity.setAttribute(ATTR_MAIL, nullToEmptyString(user.getMail()));
