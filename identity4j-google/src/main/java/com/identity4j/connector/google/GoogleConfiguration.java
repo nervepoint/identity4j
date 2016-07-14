@@ -1,5 +1,8 @@
 package com.identity4j.connector.google;
 
+import java.util.Arrays;
+import java.util.Collection;
+
 import com.identity4j.connector.AbstractConnectorConfiguration;
 import com.identity4j.util.MultiMap;
 
@@ -22,6 +25,9 @@ public class GoogleConfiguration extends AbstractConnectorConfiguration{
 	public static final String GOOGLE_CUSTOMER_DOMAIN ="googleCustomerDomain";
 	public static final String GOOGLE_FETCH_ROLES ="googleFetchRoles";
 	public static final String GOOGLE_FETCH_DELAY ="googleRequestInterval";
+	public static final String GOOGLE_INCLUDE_ORGUNITS ="googleIncludeOrgunits";
+	public static final String GOOGLE_EXCLUDE_ORGUNITS ="googleExcludeOrgunits";
+	
 	
 	public GoogleConfiguration(MultiMap configurationParameters) {
 		super(configurationParameters);
@@ -109,5 +115,47 @@ public class GoogleConfiguration extends AbstractConnectorConfiguration{
 
 	public Integer getRequestInterval() {
 		return configurationParameters.getIntegerOrDefault(GOOGLE_FETCH_DELAY, 50);
+	}
+
+	/**
+	 * Get a list of Orgunits to include the search. If not specified, all orgunits are
+	 * included..
+	 * 
+	 * @return orgunits to exclude
+	 */
+	public Collection<String> getIncludes() {
+		return Arrays.asList(configurationParameters.getStringArrayOrDefault(GOOGLE_INCLUDE_ORGUNITS, new String[0]));
+	}
+	
+	/**
+	 * Get a list of Orgunits to exclude from the search. If not specified, no orgunits are
+	 * exluded.
+	 * 
+	 * @return orgunits to exclude
+	 */
+	public Collection<String> getExcludes() {
+		return Arrays.asList(configurationParameters.getStringArrayOrDefault(GOOGLE_EXCLUDE_ORGUNITS, new String[0]));
+	}
+	
+	/**
+	 * Set a list of Orgunits to include the search. If not specified, all orgunits are
+	 * included.
+	 * 
+	 * @param include orgunits to include
+	 */
+	public void setIncludes(Collection<String> includes) {
+		configurationParameters.put(GOOGLE_INCLUDE_ORGUNITS, includes.toArray(new String[0]));
+	}
+	
+
+	
+	/**
+	 * Set a list of Orgunits to exclude from the search. If not specified, no orgunits are
+	 * excluded.
+	 * 
+	 * @param exclude orgunits to exclude
+	 */
+	public void setExcludes(Collection<String> excludes) {
+		configurationParameters.put(GOOGLE_INCLUDE_ORGUNITS, excludes.toArray(new String[0]));
 	}
 }

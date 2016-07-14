@@ -62,6 +62,7 @@ import com.identity4j.connector.exception.PrincipalNotFoundException;
 import com.identity4j.connector.principal.Identity;
 import com.identity4j.connector.principal.Role;
 import com.identity4j.util.CollectionUtil;
+import com.identity4j.util.StringUtil;
 import com.identity4j.util.passwords.PasswordCharacteristics;
 
 /**
@@ -383,6 +384,9 @@ public class GoogleConnector extends AbstractConnector {
 						throw new IllegalStateException("Customer Domain or Customer Id not set.");
 					}
 
+					Collection<String> includes = configuration.getIncludes();
+					Collection<String> excludes = configuration.getIncludes();
+
 					com.google.api.services.admin.directory.Directory.Users.List list = directory.users().list();
 
 					list.setMaxResults(500);
@@ -407,12 +411,18 @@ public class GoogleConnector extends AbstractConnector {
 					List<Identity> googleIdentities = new ArrayList<Identity>();
 
 					for (User user : users.getUsers()) {
-						GoogleIdentity identity = GoogleModelConvertor.googleUserToGoogleIdentity(user);
-						if (configuration.getFetchRoles()) {
-							List<Role> roles = findAllRolesForAUser(user.getPrimaryEmail());
-							identity.setRoles(roles);
+						String orgUnit = StringUtil.nonNull(user.getOrgUnitPath());
+						if ((includes.isEmpty() || includes.contains(orgUnit))
+								&& (excludes.isEmpty() || !excludes.contains(orgUnit))) {
+
+							GoogleIdentity identity = GoogleModelConvertor.googleUserToGoogleIdentity(user);
+							if (configuration.getFetchRoles()) {
+								List<Role> roles = findAllRolesForAUser(user.getPrimaryEmail());
+								identity.setRoles(roles);
+							}
+							googleIdentities.add(identity);
 						}
-						googleIdentities.add(identity);
+
 					}
 
 					currentIterator = googleIdentities.iterator();
@@ -1047,7 +1057,8 @@ public class GoogleConnector extends AbstractConnector {
 				PrivateKey privateKey = SecurityUtils.loadPrivateKeyFromKeyStore(SecurityUtils.getPkcs12KeyStore(),
 						new Base64InputStream(
 								new ByteArrayInputStream(configuration.getGooglePrivateKeyEncoded().getBytes())),
-						configuration.getGooglePrivatePassphrase(), "privatekey", configuration.getGooglePrivatePassphrase());
+						configuration.getGooglePrivatePassphrase(), "privatekey",
+						configuration.getGooglePrivatePassphrase());
 				credential = new GoogleCredential.Builder().setTransport(createTransport()).setJsonFactory(JSON_FACTORY)
 						.setServiceAccountId(configuration.getGoogleServiceAccountId()).setServiceAccountScopes(scopes)
 						.setServiceAccountPrivateKey(privateKey)
