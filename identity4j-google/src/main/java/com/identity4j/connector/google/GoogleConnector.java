@@ -385,7 +385,7 @@ public class GoogleConnector extends AbstractConnector {
 					}
 
 					Collection<String> includes = configuration.getIncludes();
-					Collection<String> excludes = configuration.getIncludes();
+					Collection<String> excludes = configuration.getExcludes();
 
 					com.google.api.services.admin.directory.Directory.Users.List list = directory.users().list();
 
@@ -412,6 +412,7 @@ public class GoogleConnector extends AbstractConnector {
 
 					for (User user : users.getUsers()) {
 						String orgUnit = StringUtil.nonNull(user.getOrgUnitPath());
+						System.out.println("Matching " + orgUnit + " against " + includes + " / " + excludes);
 						if ((includes.isEmpty() || includes.contains(orgUnit))
 								&& (excludes.isEmpty() || !excludes.contains(orgUnit))) {
 
