@@ -43,7 +43,7 @@ public class User{
 	/**
 	 * The list groups holds a list of group entity this user belongs to. 
 	 */
-	private List<Group> groups;
+	private List<Group> memberOf;
 
 	/**
 	 * The list roles holds a list of role entity this user belongs to. 
@@ -54,7 +54,7 @@ public class User{
 	 * The constructor for the User class. Initializes the dynamic lists and manager variables.
 	 */
 	public User(){
-		passwordProfile = this.new PasswordProfile();
+		passwordProfile = new PasswordProfile();
 	}
 	
 
@@ -571,18 +571,18 @@ public class User{
 	/**
 	 * @return the groups
 	 */
-	public List<Group> getGroups() {
-		return groups;
+	public List<Group> getMemberOf() {
+		return memberOf;
 	}
 
 
 
 
 	/**
-	 * @param groups the groups to set
+	 * @param memberOf the groups to set
 	 */
-	public void setGroups(List<Group> groups) {
-		this.groups = groups;
+	public void setMemberOf(List<Group> memberOf) {
+		this.memberOf = memberOf;
 	}
 
 
@@ -606,7 +606,7 @@ public class User{
 	}
 
 	public void addNewGroup(Group group){
-		this.groups.add(group);
+		this.memberOf.add(group);
 	}
 	
 
@@ -616,7 +616,7 @@ public class User{
 	 */
 	
 	public String getGroupObjectId(int index){
-		return this.groups.get(index).getObjectId();
+		return this.memberOf.get(index).getObjectId();
 	}
 
 
@@ -626,7 +626,7 @@ public class User{
 	 */
 	
 	public String getGroupDisplayName(int index){
-		return this.groups.get(index).getDisplayName();
+		return this.memberOf.get(index).getDisplayName();
 	}
 	
 
@@ -664,7 +664,7 @@ public class User{
 		this.passwordProfile = passwordProfile;
 	}
 	
-	public class PasswordProfile{
+	public static class PasswordProfile{
 		private String password;
 		private Boolean forceChangePasswordNextLogin;
 		

@@ -106,7 +106,7 @@ public class Office365Connector extends AbstractConnector {
 			boolean ok;
 			Set<String> inc = configuration.getIncludedGroups();
 			Set<String> exc = configuration.getExcludedGroups();
-
+			
 			// Are all of the roles the user has included
 			ok = inc.isEmpty();
 			if (!ok) {
@@ -177,17 +177,16 @@ public class Office365Connector extends AbstractConnector {
 				// Already have an unconsumed user
 				return;
 
-			while (!eof) {
-				while (!eof) {
+			while (!eof && current == null) {
+				while (!eof && current == null) {
 					if (users == null) {
 						// Get the next batch
 						users = directory.users().all(nextLink);
 						nextLink = users.getNextLink();
-						eof = nextLink == null;
-						inner = users.getUsers().iterator();
+						inner = users.getUsers() == null ? null : users.getUsers().iterator();
 					}
 
-					if (inner.hasNext()) {
+					if (inner != null && inner.hasNext()) {
 						break;
 					}
 
@@ -196,13 +195,16 @@ public class Office365Connector extends AbstractConnector {
 					inner = null;
 
 					if (nextLink == null) {
+						eof = true;
 						// No more
 						break;
 					}
 				}
 
-				if (inner != null && inner.hasNext())
+				if (inner != null && inner.hasNext()) {
 					current = inner.next();
+					directory.users().probeGroupsAndRoles(current);
+				}
 
 			}
 
@@ -518,8 +520,8 @@ public class Office365Connector extends AbstractConnector {
 	@Override
 	public Identity createIdentity(Identity identity, char[] password) throws ConnectorException {
 		User user = Office365ModelConvertor.covertOfficeIdentityToOffice365User(identity);
-		List<Group> groups = user.getGroups();
-		user.setGroups(null);// as groups will be saved independent from User
+		List<Group> groups = user.getMemberOf();
+		user.setMemberOf(null);// as groups will be saved independent from User
 		user.getPasswordProfile().setForceChangePasswordNextLogin(false);
 		user.getPasswordProfile().setPassword(new String(password));
 		Identity identitySaved = Office365ModelConvertor
@@ -562,7 +564,7 @@ public class Office365Connector extends AbstractConnector {
 					"This directory is read only because the service account does not have sufficient privileges to perform all required operations");
 		}
 		User user = Office365ModelConvertor.covertOfficeIdentityToOffice365User(identity);
-		user.setGroups(null);// will be updated individually not along with user
+		user.setMemberOf(null);// will be updated individually not along with user
 		directory.users().update(user);
 		adjustAdditionRemovalOfRoleOnIdentityUpdate(identity);
 	}
@@ -768,7 +770,7 @@ public class Office365Connector extends AbstractConnector {
 	}
 
 	private boolean isGroupFilterInUse() {
-		return !configuration.getIncludedGroups().isEmpty() || !configuration.getIncludedGroups().isEmpty();
+		return !configuration.getIncludedGroups().isEmpty() || !configuration.getExcludedGroups().isEmpty();
 	}
 
 	private boolean matchesGroups(Group group, Set<String> groups) {

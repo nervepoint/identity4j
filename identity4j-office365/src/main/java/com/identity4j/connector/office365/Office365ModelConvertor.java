@@ -82,7 +82,7 @@ public class Office365ModelConvertor {
 		
 		
 		Role[] roles = office365Identity.getRoles();
-		user.setGroups(new ArrayList<Group>());
+		user.setMemberOf(new ArrayList<Group>());
 		for (Role role : roles) {
 			user.addNewGroup(roleToGroup(role));
 		}
@@ -145,7 +145,7 @@ public class Office365ModelConvertor {
 		identity.setAttribute(ATTR_TELEPHONE,nullToEmptyString(user.getTelephoneNumber()));
 		identity.setAttribute(ATTR_FAX,nullToEmptyString(user.getFacsimileTelephoneNumber()));
 		
-		List<Group> groups = user.getGroups();
+		List<Group> groups = user.getMemberOf();
 		if(groups != null){
 			for (Group group : groups) {
 				identity.addRole(groupToRole(group));

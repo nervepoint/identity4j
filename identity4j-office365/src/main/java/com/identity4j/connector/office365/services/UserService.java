@@ -213,12 +213,12 @@ public class UserService extends AbstractRestAPIService{
 	 * @param objectId
 	 * @param user
 	 */
-	private void probeGroupsAndRoles(User user) {
+	public void probeGroupsAndRoles(User user) {
 		HttpResponse response = httpRequestHandler
 				.handleRequestGet(constructURI(String.format("/users/%s/memberOf",user.getObjectId()), null),
 						HEADER_HTTP_HOOK);
 		GroupsAndRoles groupsAndRoles = mapGroupsAndRoles(response);
-		user.setGroups(groupsAndRoles.groups);
+		user.setMemberOf(groupsAndRoles.groups);
 		user.setRoles(groupsAndRoles.roles);
 	}
 
