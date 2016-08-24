@@ -15,10 +15,11 @@ import com.identity4j.util.crypt.impl.DefaultEncoderManager;
 public abstract class AbstractEncoderTest {
 	private final Encoder encoder;
 	private final boolean twoWay;
-	private final String[] testStrings;
+	protected String[] testStrings;
 	private byte[][] expectedHashes;
 	private byte[][] salts;
 	private byte[][] passphrases;
+	
 	private final static String[] TEST_STRINGS = { "asecret", "a slightly longer secret",
 		"a secret with other characters like $£\"!&*(" };
 

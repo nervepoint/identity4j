@@ -133,7 +133,9 @@ public class MD5Crypt {
             } else {
                 sl = 8;
             }
-        } 
+        } else {
+            sl = 0;
+        }
 
         ctx.reset();
         /* The password first, since that is what is most unknown */

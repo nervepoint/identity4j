@@ -19,6 +19,7 @@ public class DefaultEncoderManager extends EncoderManager {
 			addEncoder(new SHAStringEncoder());
 			addEncoder(new PBEWithMD5AndDESEncoder());
 			addEncoder(new Base64PBEWithMD5AndDESEncoder());
+            addEncoder(new Drupal7Encoder());
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}

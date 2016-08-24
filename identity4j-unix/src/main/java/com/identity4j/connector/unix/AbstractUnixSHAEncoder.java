@@ -37,8 +37,8 @@ public abstract class AbstractUnixSHAEncoder extends AbstractEncoder {
 			if (idx == -1) {
 				throw new EncoderException("Expected end of salt character $");
 			}
-			String salt = encoded.substring(0, idx);
-			String toMatch = doCrypt(unencodedData, charset, salt);
+			String encsalt = encoded.substring(0, idx);
+			String toMatch = doCrypt(unencodedData, charset, encsalt);
 			return toMatch.equals(encoded);
 			
 		} catch (UnsupportedEncodingException e) {

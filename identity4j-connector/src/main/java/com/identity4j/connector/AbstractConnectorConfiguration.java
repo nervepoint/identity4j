@@ -44,4 +44,9 @@ public abstract class AbstractConnectorConfiguration implements ConnectorConfigu
 		return configurationParameters;
 	}
 
+    @Override
+    public String getProvisionAttributeForPrincipalName() {
+        return null;
+    }
+
 }

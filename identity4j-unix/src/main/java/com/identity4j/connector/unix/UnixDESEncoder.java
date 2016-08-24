@@ -26,8 +26,8 @@ public class UnixDESEncoder extends AbstractEncoder {
 				// Password locked
 				return false;
 			}
-			String salt = encoded.substring(0, 2);
-			return Arrays.equals(encode(unencodedData, salt.getBytes(charset), passphrase, charset), encodedData);
+			String encsalt = encoded.substring(0, 2);
+			return Arrays.equals(encode(unencodedData, encsalt.getBytes(charset), passphrase, charset), encodedData);
 
 		} catch (UnsupportedEncodingException e) {
 			throw new EncoderException(e);

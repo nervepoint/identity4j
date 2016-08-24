@@ -41,8 +41,8 @@ public class UnixMD5Encoder extends AbstractEncoder {
 			if (idx == -1) {
 				throw new EncoderException("Expected end of salt character $");
 			}
-			String salt = encoded.substring(0, idx);
-			return Arrays.equals(encode(unencodedData, salt.getBytes(charset), passphrase, charset), encodedData);
+			String encsalt = encoded.substring(0, idx);
+			return Arrays.equals(encode(unencodedData,  encsalt.getBytes(charset), passphrase, charset), encodedData);
 
 		} catch (UnsupportedEncodingException e) {
 			throw new EncoderException(e);
