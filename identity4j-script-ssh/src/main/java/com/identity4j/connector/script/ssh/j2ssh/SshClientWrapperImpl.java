@@ -2,17 +2,19 @@ package com.identity4j.connector.script.ssh.j2ssh;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+
+import org.apache.commons.io.IOUtils;
 
 import com.identity4j.connector.script.ssh.SshClientWrapper;
 import com.identity4j.connector.script.ssh.SshCommand;
 import com.identity4j.connector.script.ssh.SshConfiguration;
 import com.identity4j.util.expect.ExpectTimeoutException;
-import com.sshtools.net.SocketTransport;
+import com.sshtools.scp.ScpClient;
 import com.sshtools.sftp.SftpClient;
 import com.sshtools.sftp.SftpStatusException;
 import com.sshtools.ssh.ChannelOpenException;
-import com.sshtools.ssh.PasswordAuthentication;
 import com.sshtools.ssh.SshClient;
 import com.sshtools.ssh.SshException;
 
@@ -100,5 +102,24 @@ public class SshClientWrapperImpl implements SshClientWrapper {
 		if(client.isConnected()) {
 			client.disconnect();
 		}
+	}
+
+
+	@Override
+	public void uploadFile(InputStream in, String filename) throws IOException {
+		
+		ScpClient scp = new ScpClient(client);
+		try {
+			scp.put(in, in.available(), filename, filename);
+		} catch (Exception e) {
+			throw new IOException(e.getMessage(), e);
+		} finally {
+			IOUtils.closeQuietly(in);
+			try {
+				scp.exit();
+			} catch (SshException e) {
+			}
+		}
+		
 	}
 }

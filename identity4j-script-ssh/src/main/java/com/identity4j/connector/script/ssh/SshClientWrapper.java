@@ -2,6 +2,7 @@ package com.identity4j.connector.script.ssh;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 
 import com.identity4j.util.expect.ExpectTimeoutException;
 import com.sshtools.sftp.SftpStatusException;
@@ -23,5 +24,7 @@ public interface SshClientWrapper {
 	boolean isAuthenticated();
 
 	void disconnect();
+
+	void uploadFile(InputStream in, String filename) throws IOException;
 
 }
