@@ -19,7 +19,7 @@ public class Base64Encoder extends AbstractEncoder {
 	}
 
 	@Override
-	public byte[] decode(byte[] toDecode, byte[] passphrase, String charset) throws EncoderException {
+	public byte[] decode(byte[] toDecode, byte[] salt, byte[] passphrase, String charset) throws EncoderException {
 		Base64 encoder = new Base64();
 		return encoder.decode(toDecode);
 	}

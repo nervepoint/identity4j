@@ -75,13 +75,13 @@ public abstract class AbstractEncoderTest {
 			int i = 0;
 			for (String string : testStrings) {
 				byte[] expected = string.getBytes("UTF-8");
-				byte[] decoded = encoder.decode(expectedHashes[i], passphrases == null ? null : passphrases[i], "UTF-8");
+				byte[] decoded = encoder.decode(expectedHashes[i], null, passphrases == null ? null : passphrases[i], "UTF-8");
 				assertArrayEquals(expected, decoded);
 				i++;
 			}
 		} else {
 			try {
-				encoder.decode(expectedHashes[0], passphrases == null ? null : passphrases[0], "UTF-8");
+				encoder.decode(expectedHashes[0], null, passphrases == null ? null : passphrases[0], "UTF-8");
 				assertTrue("UnsupportedOperationException must be thrown", false);
 			} catch (UnsupportedOperationException uoe) {
 				// Ok

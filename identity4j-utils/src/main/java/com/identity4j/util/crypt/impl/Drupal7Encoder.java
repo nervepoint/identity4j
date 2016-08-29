@@ -27,6 +27,15 @@ public class Drupal7Encoder extends AbstractPHPHashEncoder {
     }
 
     @Override
+    public boolean isOfType(byte[] encodedBytes, String charset) {
+        try {
+            return new String(encodedBytes, charset).startsWith("$S$");
+        } catch (UnsupportedEncodingException e) {
+            return false;
+        }
+    }
+
+    @Override
     public boolean match(byte[] encodedData, byte[] unencodedData, byte[] passphrase, String charset) {
 
         try {
@@ -122,14 +131,6 @@ public class Drupal7Encoder extends AbstractPHPHashEncoder {
             output += passwordItoa64().charAt((val >>> 18) & 0x3f);
         }
         return output;
-    }
-
-    private byte[] randomBytes(int count) {
-        byte[] b = new byte[count];
-        for (int i = 0; i < b.length; i++) {
-            b[i] = (byte) (Math.random() * 255f);
-        }
-        return b;
     }
 
     private int enforceLog2Boundaries(int count) {

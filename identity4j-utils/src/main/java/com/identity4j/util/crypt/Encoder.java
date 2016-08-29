@@ -41,13 +41,14 @@ public interface Encoder {
 	 * Decode bytes (if supported) to text.
 	 * 
 	 * @param toDecode bytes to decode
+	 * @param salt TODO
 	 * @param passphrase passphrase if supported
 	 * @param charset character set
 	 * @return decoded text
 	 * @throws EncoderException if encoding fails
 	 * @throws UnsupportedOperationException
 	 */
-	byte[] decode(byte[] toDecode, byte[] passphrase, String charset) throws EncoderException;
+	byte[] decode(byte[] toDecode, byte[] salt, byte[] passphrase, String charset) throws EncoderException;
 
 	/**
 	 * Check if the provide un-encoded data would match the encoded data if it
