@@ -5,6 +5,8 @@ import java.io.ByteArrayInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 
+import org.apache.commons.lang3.StringUtils;
+
 import com.identity4j.connector.script.ScriptConfiguration;
 import com.identity4j.util.MultiMap;
 
@@ -78,7 +80,7 @@ public class SshConfiguration extends ScriptConfiguration {
 	 */
 	public final InputStream getServiceAccountPrivateKey() throws FileNotFoundException {
 		String str = getConfigurationParameters().getStringOrNull(SSH_SERVICE_ACCOUNT_PRIVATE_KEY);
-		return str == null ? null : new ByteArrayInputStream(str.getBytes());
+		return StringUtils.isBlank(str) ? null : new ByteArrayInputStream(str.getBytes());
 	}
 
 	/**
