@@ -5,9 +5,6 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import com.identity4j.util.expect.ExpectTimeoutException;
-import com.sshtools.sftp.SftpStatusException;
-import com.sshtools.ssh.ChannelOpenException;
-import com.sshtools.ssh.SshException;
 
 public interface SshClientWrapper {
 
@@ -27,4 +24,6 @@ public interface SshClientWrapper {
 
 	void uploadFile(InputStream in, String filename) throws IOException;
 
+	InputStream downloadFile(String filename) throws IOException;
+	
 }

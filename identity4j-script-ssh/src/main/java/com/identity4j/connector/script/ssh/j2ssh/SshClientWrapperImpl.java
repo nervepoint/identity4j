@@ -12,6 +12,7 @@ import com.identity4j.connector.script.ssh.SshCommand;
 import com.identity4j.connector.script.ssh.SshConfiguration;
 import com.identity4j.util.expect.ExpectTimeoutException;
 import com.sshtools.scp.ScpClient;
+import com.sshtools.scp.ScpClientIO;
 import com.sshtools.sftp.SftpClient;
 import com.sshtools.sftp.SftpStatusException;
 import com.sshtools.ssh.ChannelOpenException;
@@ -120,6 +121,16 @@ public class SshClientWrapperImpl implements SshClientWrapper {
 			} catch (SshException e) {
 			}
 		}
+	}
+	
+	@Override
+	public InputStream downloadFile(String filename) throws IOException {
 		
+		ScpClientIO scp = new ScpClientIO(client);
+		try {
+			return scp.get(filename);
+		} catch(Exception e) {
+			throw new IOException(e.getMessage(), e);
+		} 
 	}
 }

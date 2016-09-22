@@ -350,7 +350,7 @@ function deleteIdentity(principalName) {
         if (config.getConfigurationParameters().getBooleanOrDefault('ssh.deleteUserHomeOnDeleteAccount',false)) {
             var identity = getIdentityByName(principalName);
             var home = identity.getAttribute('home');
-            if(home && home.length > 0 && execCommand('test -f "' + home + '"') == 0) {
+            if(home && home.length > 0 && execCommand('test -d "' + home + '"') == 0) {
                 log.info('Deleting home directory for ' + principalName);
                 cmd += ' --remove-home';
             }

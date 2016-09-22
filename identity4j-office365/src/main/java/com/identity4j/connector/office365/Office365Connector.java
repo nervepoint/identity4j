@@ -140,6 +140,11 @@ public class Office365Connector extends AbstractConnector {
 			return ok;
 
 		}
+
+		@Override
+		public void remove() {
+			throw new UnsupportedOperationException();
+		}
 	}
 
 	private final class IdentityIterator implements Iterator<Identity> {
