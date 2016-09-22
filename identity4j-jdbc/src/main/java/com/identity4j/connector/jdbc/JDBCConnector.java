@@ -191,9 +191,11 @@ public abstract class JDBCConnector extends AbstractConnector {
                 int columnType = resultSet.getMetaData().getColumnType(colidx);
                 if (columnType == Types.DATE) {
                     i.setLastSignOnDate(resultSet.getDate(colidx));
-                } else if (columnType == Types.TIME || columnType == Types.TIME_WITH_TIMEZONE) {
+                } else if (columnType == Types.TIME || columnType == 2013) {
+                	// 2013 = Types.TIME_WITH_TIMEZONE (Java 8 only)
                     i.setLastSignOnDate(new Date(resultSet.getTime(colidx).getTime()));
-                } else if (columnType == Types.TIMESTAMP || columnType == Types.TIMESTAMP_WITH_TIMEZONE) {
+                } else if (columnType == Types.TIMESTAMP || columnType == 2014) {
+                	// 2014 = Types.TIMESTAMP_WITH_TIMEZONE (Java 8 only)
                     i.setLastSignOnDate(new Date(resultSet.getTimestamp(colidx).getTime()));
                 } else if (columnType == Types.BIGINT) {
                     i.setLastSignOnDate(new Date(resultSet.getLong(colidx)));

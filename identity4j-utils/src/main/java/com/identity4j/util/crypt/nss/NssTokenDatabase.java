@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
@@ -36,6 +37,7 @@ public class NssTokenDatabase {
     private Provider cryptoProvider;
     private byte[] noise;
     private File dbDir;
+    private File privateDir;
     private byte[] passphrase;
 
     private static NssTokenDatabase instance;
@@ -50,7 +52,7 @@ public class NssTokenDatabase {
 
     public NssTokenDatabase()
         throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException, InterruptedException {
-        this(new File(getNssConfigurationDirectory(), ".private"));
+        this(new File(getNssConfigurationDirectory()));
     }
 
     public static String getNssConfigurationDirectory() {
@@ -86,7 +88,15 @@ public class NssTokenDatabase {
                 "Could not create database directory %s.  Please ensure user %s has permissions to write to the parent directory.",
                 dbDir, System.getProperty("user.name")));
         }
-        File keystoreFile = new File(dbDir, ".key");
+
+        this.privateDir = new File(dbDir, ".private");
+        if (!privateDir.exists() && !privateDir.mkdirs()) {
+            throw new IOException(String.format(
+                "Could not create database private directory %s.  Please ensure user %s has permissions to write to the parent directory.",
+                privateDir, System.getProperty("user.name")));
+        }
+
+        File keystoreFile = new File(privateDir, ".key");
         if (!keystoreFile.exists())
             createDatabase(keystoreFile);
 
@@ -140,7 +150,7 @@ public class NssTokenDatabase {
          * If there is no nss configuration file, generate a temporary default
          * one
          */
-        File configFile = new File(getNssConfigurationDirectory(), filename);
+        File configFile = new File(dbDir, filename);
         if (!configFile.exists()) {
             configFile = File.createTempFile("id4j", filename);
             configFile.deleteOnExit();
@@ -150,7 +160,7 @@ public class NssTokenDatabase {
                 pw.println("attributes = compatibility");
                 // pw.println("nssLibraryDirectory =
                 // /usr/lib/x86_64-linux-gnu");
-                pw.println("nssSecmodDirectory = " + dbDir.getAbsolutePath());
+                pw.println("nssSecmodDirectory = " + privateDir.getAbsolutePath());
                 pw.println("nssDbMode = readWrite");
                 pw.println("nssModule = fips");
             } finally {
@@ -219,17 +229,17 @@ public class NssTokenDatabase {
                 out.close();
             }
 
-            String db = dbDir.getAbsolutePath();
+            String db = privateDir.getAbsolutePath();
 
-            String[] createCmd = new String[] { "certutil", "-N", "-d", db, "-f", ".private/.key" };
-            exec(createCmd);
+            String[] createCmd = new String[] { "certutil", "-N", "-d", db, "-f", db + "/.key" };
+            exec(false, createCmd);
             String[] makeFips = new String[] { "modutil", "-fips", "true", "-dbdir", db, "-force" };
-            exec(makeFips);
+            exec(false, makeFips);
             String[] certCmd = new String[] { "certutil", "-S", "-s", "CN=Access Manager", "-n", "nam", "-x", "-t", "CT,C,C", "-v",
-                            "120", "-m", "1234", "-d", db, "-z", noiseFile.getAbsolutePath(), "-f", ".private/.key", "-g", "2048" };
-            exec(certCmd);
-            exec(new String[] { "chmod", "400", keyFile.getAbsolutePath() });
-            exec(new String[] { "chmod", "500", dbDir.getAbsolutePath() });
+                            "120", "-m", "1234", "-d", db, "-z", noiseFile.getAbsolutePath(), "-f", db + "/.key", "-g", "2048" };
+            exec(false, certCmd);
+            exec(false, new String[] { "chmod", "400", keyFile.getAbsolutePath() });
+            exec(false, new String[] { "chmod", "500", privateDir.getAbsolutePath() });
         } finally {
             noiseFile.delete();
         }
@@ -238,21 +248,28 @@ public class NssTokenDatabase {
 
     private int check(String... cmd) {
         try {
-            return exec(cmd);
+            return exec(true, cmd);
         } catch (IOException ioe) {
             return -1;
         }
     }
 
-    public int exec(String... cmd) throws IOException {
+    public int exec(boolean quiet, String... cmd) throws IOException {
         ProcessBuilder pb = new ProcessBuilder(cmd);
-        pb.directory(new File(getNssConfigurationDirectory()));
+        pb.directory(dbDir);
         pb.redirectErrorStream(true);
         Process proc = pb.start();
-        IOUtils.copy(proc.getInputStream(), System.out);
+        if (quiet)
+            IOUtils.copy(proc.getInputStream(), new OutputStream() {
+                @Override
+                public void write(int b) throws IOException {
+                }
+            });
+        else
+            IOUtils.copy(proc.getInputStream(), System.out);
         try {
             int ret = proc.waitFor();
-            if (ret != 0) {
+            if (ret != 0 && !quiet) {
                 log.warn(String.format("%s failed with exit code %d", cmd[0], ret));
             }
             return ret;
