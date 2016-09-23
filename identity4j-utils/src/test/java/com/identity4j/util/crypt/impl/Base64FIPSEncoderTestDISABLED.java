@@ -3,7 +3,7 @@ package com.identity4j.util.crypt.impl;
 import com.identity4j.util.crypt.AbstractEncoderTest;
 import com.identity4j.util.crypt.nss.NssTokenDatabase;
 
-public class Base64FIPSEncoderTest extends AbstractEncoderTest {
+public class Base64FIPSEncoderTestDISABLED extends AbstractEncoderTest {
 
     static {
         try {
@@ -23,7 +23,7 @@ public class Base64FIPSEncoderTest extends AbstractEncoderTest {
         }
     }
 
-    public Base64FIPSEncoderTest() throws Exception {
+    public Base64FIPSEncoderTestDISABLED() throws Exception {
         super(Base64FIPSEncoder.ID, true, false);
         setExpectedHashes(new byte[][] { "Y0dXL0JGczF6ZUVoa09UTGZVRHBFN1ZPbzZuQjhPYXlFa01CMEZjdy9GUzVtZXAyRmx5UXBmL0dDUU5EdmNHb1dGM0d2WDBoa2hBWS9lTzJQTVoxalh4Rmx4c29iR0hkMHhFaGxwa3RVQStxQjVUTVRpdnNsYWtHZ3BORVljY3VUVkQ0RU02dHI0bENUZUh1U3lsMzZsVFc4Lyt1Q0piTU5yMXN0T3pJVm1pcmJuVFVrU3dNTmltR2I5eEJ0NGxFWDl1SnBnVjJMVnJNdWRnc2lxWEEyWkJrVEZNRUE1aitwcnlDN0VSeDlxaTNEM0lONjZIWUNFNzRySHhHNEMxeFRPd29BODh2M2hwdzdnbzkxQy9JRkZYVGhHemhxeUxBUE1CV0xyU2hNTThlUGsxSiszdnpLczdwZXhJQmJBVDI5a3VGck5hSUFjVTc5eitvZjZNa25RPT0=".getBytes("UTF-8"),
                         "b2g4UTZpY1FtY3dOQTVqakptMGlpMk5WYy9nazAvdE9YdS9tNTBweDYxaXJoZ3Z1ZmY3TlVZVW9CaEVUVzh4NmZxdHQ4U3RyWTVWVU9wK1B6clFxcXdjZnB5Y2p6VzJINy9LZXo2eWwrMlpMdzdwOXJRcnlHRkc0Y2M1bnVjc0x3QnA2WlNXSDUvZ2prUk9qaW9rVkt1Y2NEWjZTeTJxZXh0aWMxTjRZeXRRTEMwejFaTXJ0R3RzWDl6cFQ1eGU5MXFqcWJuSElrdXBpNERxMnlqNUVnditKM2ZsbkJqQmtZdTF1eW1Iajg5T1RmQi9RNWdhVk4xS3RZelgvVmVodFl5WU9yaTRUcytEVExLSEJVdndIdmhoK1Q2ODY3dTRnMUxWckdiM2IreVU4MmtKK2xWUTFjT20xNkQrNDdMT2NUSFJGLy9MdVZXOWFhWXFkYTJQSU53PT0=".getBytes("UTF-8"),
