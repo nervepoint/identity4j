@@ -9,6 +9,7 @@ import com.identity4j.connector.exception.PrincipalNotFoundException;
 import com.identity4j.connector.office365.Office365Configuration;
 import com.identity4j.connector.office365.entity.Group;
 import com.identity4j.connector.office365.entity.Groups;
+import com.identity4j.connector.office365.services.token.handler.ADToken;
 import com.identity4j.util.http.request.HttpRequestHandler;
 import com.identity4j.util.http.response.HttpResponse;
 import com.identity4j.util.json.JsonMapperService;
@@ -21,8 +22,8 @@ import com.identity4j.util.json.JsonMapperService;
  */
 public class GroupService extends AbstractRestAPIService{
 	
-	GroupService(HttpRequestHandler httpRequestHandler,Office365Configuration office365Configuration) {
-		super(httpRequestHandler, office365Configuration);
+	GroupService(ADToken token, HttpRequestHandler httpRequestHandler,Office365Configuration office365Configuration) {
+		super(token, httpRequestHandler, office365Configuration);
 	}
 
 	/**
@@ -39,7 +40,8 @@ public class GroupService extends AbstractRestAPIService{
 		if(response.getHttpStatusCodes().getStatusCode().intValue() == 404){
 			throw new PrincipalNotFoundException(objectId + " not found.",null,PrincipalType.role);
 		}
-		group = JsonMapperService.getInstance().getObject(Group.class, response.getData().toString());
+		Object data = response.getData();
+		group = JsonMapperService.getInstance().getObject(Group.class, data.toString());
 		
 		return group;
 	}
@@ -160,13 +162,13 @@ public class GroupService extends AbstractRestAPIService{
 						groupObjectId), null), data, HEADER_HTTP_HOOK);
 		
 		if(response.getHttpStatusCodes().getStatusCode().intValue() == 404){
-			throw new PrincipalNotFoundException("Principal not found " + groupObjectId + " not found.",null,PrincipalType.role);
+			throw new PrincipalNotFoundException("Principal '" + userOjectId + "' in  '"+ groupObjectId + "' not found.",null,PrincipalType.role);
 		}
 		
 		if(response.getHttpStatusCodes().getStatusCode().intValue() == 400){
 			AppErrorMessage errorMessage = JsonMapperService.getInstance().getObject(AppErrorMessage.class, response.getData().toString().replaceAll("odata.error", "error"));
 			if(errorMessage.getError().getMessage().getValue().contains("Invalid object identifier")){
-				throw new PrincipalNotFoundException("Principal not found " + groupObjectId + " not found.",null,PrincipalType.role);
+				throw new PrincipalNotFoundException("Principal '" + userOjectId + "' in  '"+ groupObjectId + "' not found.",null,PrincipalType.role);
 			}
 		}
 		if(response.getHttpStatusCodes().getStatusCode().intValue() != 204){

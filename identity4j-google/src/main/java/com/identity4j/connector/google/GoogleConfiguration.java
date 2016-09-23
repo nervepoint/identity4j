@@ -1,5 +1,8 @@
 package com.identity4j.connector.google;
 
+import java.util.Arrays;
+import java.util.Collection;
+
 import com.identity4j.connector.AbstractConnectorConfiguration;
 import com.identity4j.util.MultiMap;
 
@@ -10,14 +13,21 @@ import com.identity4j.util.MultiMap;
  *
  */
 public class GoogleConfiguration extends AbstractConnectorConfiguration{
-	
+
+	public static final String GOOGLE_OAUTH_CLIENT_ID = "googleOAuthClientID";
+	public static final String GOOGLE_OAUTH_CLIENT_SECRET = "googleOAuthClientSecret";
 	public static final String GOOGLE_USERNAME = "googleUsername";
+	public static final String GOOGLE_SERVICE_ACCOUNT_JSON = "googleServiceAccountJson";
 	public static final String GOOGLE_SERVICE_ACCOUNT_ID = "googleServiceAccountId";
 	public static final String GOOGLE_PRIVATE_KEY_ENCODED = "googlePrivateKeyEncoded";
+	public static final String GOOGLE_PRIVATE_KEY_PASSPHRASE = "googlePrivateKeyPassphrase";
 	public static final String GOOGLE_CUSTOMER_ID = "googleCustomerId";
 	public static final String GOOGLE_CUSTOMER_DOMAIN ="googleCustomerDomain";
 	public static final String GOOGLE_FETCH_ROLES ="googleFetchRoles";
 	public static final String GOOGLE_FETCH_DELAY ="googleRequestInterval";
+	public static final String GOOGLE_INCLUDE_ORGUNITS ="googleIncludeOrgunits";
+	public static final String GOOGLE_EXCLUDE_ORGUNITS ="googleExcludeOrgunits";
+	
 	
 	public GoogleConfiguration(MultiMap configurationParameters) {
 		super(configurationParameters);
@@ -41,6 +51,15 @@ public class GoogleConfiguration extends AbstractConnectorConfiguration{
 	}
 	
 	/**
+	 * Instead of using {@link #getGoogleServiceAccountId()}, {@link #getGooglePrivateKeyEncoded()}
+	 * and {@link #getGoogleUsername()}, the JSON file generated from Google API console should
+	 * now be used.
+	 */
+	public String getGoogleServiceAccountJson(){
+		return configurationParameters.getString(GOOGLE_SERVICE_ACCOUNT_JSON);
+	}
+	
+	/**
 	 * Google apps service id who has been given consent to perform operations
 	 * on behalf of admin user. 
 	 */
@@ -56,6 +75,13 @@ public class GoogleConfiguration extends AbstractConnectorConfiguration{
 	}
 	
 	/**
+	 * Service id private key passphrase 
+	 */
+	public String getGooglePrivatePassphrase(){
+		return configurationParameters.getStringOrDefault(GOOGLE_PRIVATE_KEY_PASSPHRASE, "notasecret");
+	}
+	
+	/**
 	 * Google apps customer id. 
 	 */
 	public String getGoogleCustomerId(){
@@ -68,6 +94,20 @@ public class GoogleConfiguration extends AbstractConnectorConfiguration{
 	public String getGoogleCustomerDomain(){
 		return configurationParameters.getString(GOOGLE_CUSTOMER_DOMAIN);
 	}
+	
+	/**
+	 * Google OAuth client ID 
+	 */
+	public String getGoogleOAuthClientId(){
+		return configurationParameters.getString(GOOGLE_OAUTH_CLIENT_ID);
+	}
+	
+	/**
+	 * Google OAuth client secret 
+	 */
+	public String getGoogleOAuthClientSecret(){
+		return configurationParameters.getString(GOOGLE_OAUTH_CLIENT_SECRET);
+	}
 
 	public boolean getFetchRoles() {
 		return configurationParameters.getBooleanOrDefault(GOOGLE_FETCH_ROLES, false);
@@ -75,5 +115,47 @@ public class GoogleConfiguration extends AbstractConnectorConfiguration{
 
 	public Integer getRequestInterval() {
 		return configurationParameters.getIntegerOrDefault(GOOGLE_FETCH_DELAY, 50);
+	}
+
+	/**
+	 * Get a list of Orgunits to include the search. If not specified, all orgunits are
+	 * included..
+	 * 
+	 * @return orgunits to exclude
+	 */
+	public Collection<String> getIncludes() {
+		return Arrays.asList(configurationParameters.getStringArrayOrDefault(GOOGLE_INCLUDE_ORGUNITS, new String[0]));
+	}
+	
+	/**
+	 * Get a list of Orgunits to exclude from the search. If not specified, no orgunits are
+	 * exluded.
+	 * 
+	 * @return orgunits to exclude
+	 */
+	public Collection<String> getExcludes() {
+		return Arrays.asList(configurationParameters.getStringArrayOrDefault(GOOGLE_EXCLUDE_ORGUNITS, new String[0]));
+	}
+	
+	/**
+	 * Set a list of Orgunits to include the search. If not specified, all orgunits are
+	 * included.
+	 * 
+	 * @param include orgunits to include
+	 */
+	public void setIncludes(Collection<String> includes) {
+		configurationParameters.put(GOOGLE_INCLUDE_ORGUNITS, includes.toArray(new String[0]));
+	}
+	
+
+	
+	/**
+	 * Set a list of Orgunits to exclude from the search. If not specified, no orgunits are
+	 * excluded.
+	 * 
+	 * @param exclude orgunits to exclude
+	 */
+	public void setExcludes(Collection<String> excludes) {
+		configurationParameters.put(GOOGLE_INCLUDE_ORGUNITS, excludes.toArray(new String[0]));
 	}
 }

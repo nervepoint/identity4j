@@ -27,4 +27,6 @@ public interface ConnectorConfigurationParameters {
 
 	void setIdentityAttributesToRetrieve(Collection<String> identityAttributesToRetrieve);
 
+    String getProvisionAttributeForPrincipalName();
+
 }

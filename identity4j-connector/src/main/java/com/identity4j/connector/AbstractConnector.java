@@ -21,6 +21,15 @@ public abstract class AbstractConnector implements Connector, ValidationContext 
 	public PasswordCharacteristics getPasswordCharacteristics() {
 		throw new UnsupportedOperationException();
 	}
+	
+	public Iterator<? extends PasswordCharacteristics> getPasswordPolicies() {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public WebAuthenticationAPI<?> startAuthentication() throws ConnectorException {
+		throw new UnsupportedOperationException("This connector does not support integrated web authentication.");
+	}
 
 	@Override
 	public long countIdentities() throws ConnectorException {
@@ -83,17 +92,18 @@ public abstract class AbstractConnector implements Connector, ValidationContext 
 		assertGuid(identity, guid);
 		try {
 			assertValidCredentials(identity, oldPassword);
+			assertPasswordChangeIsAllowed(identity, oldPassword, password);
 		}
 		catch(PasswordChangeRequiredException pcre) {
 			// Not really surprising :)
 		}
-		assertPasswordChangeIsAllowed(identity, oldPassword, password);
+		
 		changePassword(identity, oldPassword, password);
 	}
 
 	/**
 	 * Default implementation simply delegates to
-	 * {@link #setPassword(Identity, char[], boolean)}. Most connectors won't
+	 * {@link #setPassword(Identity, char[], boolean, PasswordResetType)}. Most connectors won't
 	 * need to override this, but some (including Active Directory) work
 	 * differently when the logged on as the actual identity whose password is
 	 * being changed.
@@ -103,22 +113,33 @@ public abstract class AbstractConnector implements Connector, ValidationContext 
 	 * @param password
 	 */
 	protected void changePassword(Identity identity, char[] oldPassword, char[] password) {
-		setPassword(identity, password, false);
+		setPassword(identity, password, false, PasswordResetType.USER);
 	}
 
 	protected void assertPasswordChangeIsAllowed(Identity identity, char[] oldPassword, char[] password) throws ConnectorException {
 		// no implementation by default
 	}
 
+
 	public final void setPassword(String username, String guid, char[] password, boolean forcePasswordChangeAtLogon)
+			throws PrincipalNotFoundException, InvalidLoginCredentialsException, ConnectorException {
+		setPassword(username, guid, password, forcePasswordChangeAtLogon, PasswordResetType.ADMINISTRATIVE);
+	}
+
+	public final void setPassword(String username, String guid, char[] password, boolean forcePasswordChangeAtLogon, PasswordResetType resetType)
 			throws PrincipalNotFoundException, InvalidLoginCredentialsException, ConnectorException {
 		Identity identity = getIdentityByName(username);
 		assertGuid(identity, guid);
-		setPassword(identity, password, forcePasswordChangeAtLogon);
+		setPassword(identity, password, forcePasswordChangeAtLogon, resetType);
 	}
 
+	@Deprecated
 	protected void setPassword(Identity identity, char[] password, boolean forcePasswordChangeAtLogon) throws ConnectorException {
 		throw new UnsupportedOperationException("Set password is not supported");
+	}
+
+	protected void setPassword(Identity identity, char[] password, boolean forcePasswordChangeAtLogon, PasswordResetType type) throws ConnectorException {
+		setPassword(identity, password, forcePasswordChangeAtLogon);
 	}
 
 	protected final void assertGuid(Principal principal, String guid) {
@@ -226,6 +247,25 @@ public abstract class AbstractConnector implements Connector, ValidationContext 
 		throw new UnsupportedOperationException("Delete identity is not supported");
 	}
 
+	/**
+	 * Default implementation. Need to override this to delete a identity
+	 * 
+	 * @param roleName role to delete
+	 * @throws ConnectorException
+	 */
+	public void deleteRole(String principalName) throws ConnectorException {
+		throw new UnsupportedOperationException("Delete role is not supported");
+	}
+	
+	public Role createRole(Role role) throws ConnectorException {
+		throw new UnsupportedOperationException("Create role is not supported");
+	}
+
+	@Override
+	public void updateRole(Role role) throws ConnectorException {
+		throw new UnsupportedOperationException("Update role is not supported");
+	}
+	
 	public void lockIdentity(Identity identity) throws ConnectorException {
 		throw new UnsupportedOperationException("Lock account is not supported");
 	}
@@ -244,7 +284,7 @@ public abstract class AbstractConnector implements Connector, ValidationContext 
 		throw new UnsupportedOperationException("Unlock account is not supported");
 	}
 
-	public void open(ConnectorConfigurationParameters parameters) {
+	public void open(ConnectorConfigurationParameters parameters) throws ConnectorException {
 		this.parameters = parameters;
 		onOpen(parameters);
 		if (!isOpen()) {
@@ -254,7 +294,7 @@ public abstract class AbstractConnector implements Connector, ValidationContext 
 
 	protected abstract void onOpen(ConnectorConfigurationParameters parameters) throws ConnectorException;
 
-	public void reopen() {
+	public void reopen() throws ConnectorException {
 		close();
 		open(parameters);
 	}

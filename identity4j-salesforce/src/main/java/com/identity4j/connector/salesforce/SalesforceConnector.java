@@ -379,7 +379,7 @@ public class SalesforceConnector extends AbstractConnector {
 	 * @throws ConnectorException for api, connection related errors.
 	 */
 	@Override
-	protected void setPassword(Identity identity, char[] password, boolean forcePasswordChangeAtLogon) throws ConnectorException {
+	protected void setPassword(Identity identity, char[] password, boolean forcePasswordChangeAtLogon, PasswordResetType type) throws ConnectorException {
 		User user = new User();
 		user.setPassword(new String(password));
 		user.setId(identity.getGuid());

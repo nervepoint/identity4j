@@ -19,7 +19,16 @@ public class UnixBlowfishEncoder extends AbstractEncoder {
 			if (!isOfType(encodedData, charset)) {
 				throw new EncoderException("Encoded data is not in Unix MD5 crypt format");
 			}
-			return BCrypt.checkpw(new String(unencodedData, charset), new String(encodedData));
+			String encoded = new String(encodedData);
+			if(encoded.equals("*")) {
+				// No login
+				return false;
+			}
+			if(encoded.startsWith("!")) {
+				// Password locked
+				return false;
+			}
+			return BCrypt.checkpw(new String(unencodedData, charset), encoded);
 		} catch (UnsupportedEncodingException e) {
 			throw new EncoderException(e);
 		}

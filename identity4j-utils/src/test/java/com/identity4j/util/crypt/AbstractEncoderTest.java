@@ -15,10 +15,11 @@ import com.identity4j.util.crypt.impl.DefaultEncoderManager;
 public abstract class AbstractEncoderTest {
 	private final Encoder encoder;
 	private final boolean twoWay;
-	private final String[] testStrings;
+	protected String[] testStrings;
 	private byte[][] expectedHashes;
 	private byte[][] salts;
 	private byte[][] passphrases;
+	
 	private final static String[] TEST_STRINGS = { "asecret", "a slightly longer secret",
 		"a secret with other characters like $£\"!&*(" };
 
@@ -74,13 +75,13 @@ public abstract class AbstractEncoderTest {
 			int i = 0;
 			for (String string : testStrings) {
 				byte[] expected = string.getBytes("UTF-8");
-				byte[] decoded = encoder.decode(expectedHashes[i], passphrases == null ? null : passphrases[i], "UTF-8");
+				byte[] decoded = encoder.decode(expectedHashes[i], null, passphrases == null ? null : passphrases[i], "UTF-8");
 				assertArrayEquals(expected, decoded);
 				i++;
 			}
 		} else {
 			try {
-				encoder.decode(expectedHashes[0], passphrases == null ? null : passphrases[0], "UTF-8");
+				encoder.decode(expectedHashes[0], null, passphrases == null ? null : passphrases[0], "UTF-8");
 				assertTrue("UnsupportedOperationException must be thrown", false);
 			} catch (UnsupportedOperationException uoe) {
 				// Ok

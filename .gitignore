@@ -1,0 +1,6 @@
+/.settings/
+/identity4j-webauth-test/
+/identity4j-active-directory-spring/
+/identity4j-ldap-directory-spring/
+/.metadata/
+/target/

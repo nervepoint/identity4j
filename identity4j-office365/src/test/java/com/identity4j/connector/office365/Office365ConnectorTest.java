@@ -1,7 +1,11 @@
 package com.identity4j.connector.office365;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+
+import java.util.Iterator;
+import java.util.NoSuchElementException;
 
 import org.apache.log4j.PropertyConfigurator;
 import org.junit.Assert;
@@ -52,6 +56,18 @@ public class Office365ConnectorTest extends AbstractRestWebServiceConnectorTest{
 	
 	static {
 		init("/office365-connector.properties");
+	}
+	
+	@Test(expected = NoSuchElementException.class)
+	public final void itShouldReadAllIdentities() {
+		Assume.assumeTrue(connector.getCapabilities().contains(
+				ConnectorCapability.identities));
+		Iterator<Identity> allIdentities = connector.allIdentities();
+		assertNotNull(allIdentities);
+		while (allIdentities.hasNext()) {
+			 allIdentities.next();
+		}
+		allIdentities.next();
 	}
 	
 	@Before
@@ -211,7 +227,8 @@ public class Office365ConnectorTest extends AbstractRestWebServiceConnectorTest{
 					fromDataSource.getPrincipalName());
 			
 		}finally{
-			connector.deleteRole(fromDataSource.getGuid());
+			if(fromDataSource != null)
+				connector.deleteRole(fromDataSource.getGuid());
 		}
 	}
 	

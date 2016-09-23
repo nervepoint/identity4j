@@ -9,6 +9,7 @@ import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.exception.InvalidLoginCredentialsException;
 import com.identity4j.connector.exception.PrincipalNotFoundException;
 import com.identity4j.connector.principal.Identity;
+import com.identity4j.connector.principal.Principal;
 import com.identity4j.connector.principal.Role;
 import com.identity4j.util.passwords.PasswordCharacteristics;
 
@@ -24,6 +25,25 @@ import com.identity4j.util.passwords.PasswordCharacteristics;
  * {@link #supportsAccountCreation()} and {@link #supportsPasswordChange()}.
  */
 public interface Connector {
+    
+    /**
+     * Used as a hint to {@link Connector#setPassword(Principal, char[], boolean, PasswordResetType)} and
+     * {@link Connector#setPassword(String, String, char[], boolean, PasswordResetType)} to tell the 
+     * connector what sort of reset it is. For example, Active Directory could use this to determine if
+     * to attempt to enforce password on resets
+     *
+     */
+    public enum PasswordResetType {
+        /**
+         * The reset is administrative. For example, should ignore password history
+         */
+        ADMINISTRATIVE, 
+        /**
+         * The reset is on behalf of a user, and additional restrictions should apply where
+         * possible. E.g Active Directory might try to apply password history. 
+         */
+        USER
+    }
 
 	Set<ConnectorCapability> getCapabilities();
 	
@@ -34,6 +54,13 @@ public interface Connector {
 	 * @return default password policy
 	 */
 	PasswordCharacteristics getPasswordCharacteristics();
+	
+	
+	/**
+	 * Get all the available password policies for this connector.
+	 * @return
+	 */
+	Iterator<? extends PasswordCharacteristics> getPasswordPolicies();
 
 	/**
 	 * Authenticates the given credentials, returning the identity if
@@ -48,6 +75,17 @@ public interface Connector {
 	 */
 	Identity logon(String username, char[] password) throws PrincipalNotFoundException, InvalidLoginCredentialsException,
 			ConnectorException;
+
+	/**
+	 * Start authenticating a user using an authentication API.
+	 * 
+	 * @param username
+	 * @param password
+	 * @return <tt>true</tt> is returned on success and <tt>false</tt> on
+	 *         failure.
+	 * @throws ConnectorException
+	 */
+	WebAuthenticationAPI<? extends ConnectorConfigurationParameters> startAuthentication() throws ConnectorException;
 
 	/**
 	 * Check the given credentials but do not actually logon.
@@ -85,6 +123,20 @@ public interface Connector {
 	 * @throws ConnectorException
 	 */
 	void setPassword(String username, String guid, char[] password, boolean forcePasswordChangeAtLogon)
+			throws InvalidLoginCredentialsException, PrincipalNotFoundException, ConnectorException;
+
+	/**
+	 * Set a {@link Identity}s password. This is used by an administrator.
+	 * 
+	 * @param guid
+	 * @param password
+	 * @param forcePasswordChangeAtLogon
+	 * @param resetType
+	 * @throws InvalidLoginCredentialsException
+	 * @throws PrincipalNotFoundException
+	 * @throws ConnectorException
+	 */
+	void setPassword(String username, String guid, char[] password, boolean forcePasswordChangeAtLogon, PasswordResetType resetType)
 			throws InvalidLoginCredentialsException, PrincipalNotFoundException, ConnectorException;
 
 	/**
@@ -194,7 +246,6 @@ public interface Connector {
 	 * @throws ConnectorException
 	 */
 	Identity createIdentity(Identity identity, char[] password) throws ConnectorException;
-
 	/**
 	 * Update an identity's details.
 	 * 

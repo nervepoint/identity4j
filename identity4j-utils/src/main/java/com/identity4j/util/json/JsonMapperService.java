@@ -20,7 +20,8 @@ import org.codehaus.jackson.type.TypeReference;
 public class JsonMapperService{
     private final ObjectMapper objectMapper = new ObjectMapper();
     
-    private JsonMapperService() {
+    @SuppressWarnings("deprecation")
+	private JsonMapperService() {
     	//not to include null properties in JSON generated
         //objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
     	objectMapper.configure(SerializationConfig.Feature.WRITE_NULL_PROPERTIES, false);

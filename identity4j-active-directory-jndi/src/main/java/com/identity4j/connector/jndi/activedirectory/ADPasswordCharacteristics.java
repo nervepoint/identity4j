@@ -13,19 +13,45 @@ public class ADPasswordCharacteristics implements PasswordCharacteristics, Seria
 	private boolean complex;
 	private int minLength;
 	private Map<String, String> attributes = new HashMap<String, String>();
-
-	public ADPasswordCharacteristics(boolean complex, int minLength, int passwordHistoryLength, int maximumPasswordAge,
-			int minimumPasswordAge) {
+	int precedence;
+	String commonName;
+	String dn;
+	
+	public ADPasswordCharacteristics(boolean complex, 
+			int minLength, 
+			int passwordHistoryLength, 
+			int maximumPasswordAge,
+			int minimumPasswordAge,
+			int precedence,
+			String commonName,
+			String dn) {
 		this.complex = complex;
 		this.minLength = minLength;
-
+		this.precedence = precedence;
+		this.commonName = commonName;
+		this.dn = dn;
+		
 		attributes.put("activeDirectory." + ActiveDirectoryConnector.PWD_HISTORY_LENGTH, String.valueOf(passwordHistoryLength));
 		attributes.put("activeDirectory." + ActiveDirectoryConnector.MAXIMUM_PASSWORD_AGE_ATTRIBUTE,
 			String.valueOf(maximumPasswordAge));
 		attributes.put("activeDirectory." + ActiveDirectoryConnector.MINIMUM_PASSWORD_AGE_ATTRIBUTE,
 			String.valueOf(minimumPasswordAge));
+		attributes.put("activeDirectory.cn", commonName);
+		attributes.put("activeDirectory.precedence", String.valueOf(precedence));
 	}
 
+	public int getMaximumAge() {
+		return Integer.parseInt(attributes.get("activeDirectory." + ActiveDirectoryConnector.MAXIMUM_PASSWORD_AGE_ATTRIBUTE));
+	}
+	
+	public int getMinimumAge() {
+		return Integer.parseInt(attributes.get("activeDirectory." + ActiveDirectoryConnector.MINIMUM_PASSWORD_AGE_ATTRIBUTE));
+	}
+	
+	public int getPriority() {
+		return Integer.parseInt(attributes.get("activeDirectory.precedence"));
+	}
+	
 	@Override
 	public float getVeryStrongFactor() {
 		// TODO 1?
@@ -90,4 +116,16 @@ public class ADPasswordCharacteristics implements PasswordCharacteristics, Seria
 		return attributes;
 	}
 
+	@Override
+	public int getHistorySize() {
+		return Integer.parseInt(attributes.get("activeDirectory." + ActiveDirectoryConnector.PWD_HISTORY_LENGTH));
+	}
+	
+	public String getDN() {
+		return dn;
+	}
+
+	public String getCommonName() {
+		return commonName;
+	}
 }

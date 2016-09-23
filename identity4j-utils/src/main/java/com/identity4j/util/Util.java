@@ -534,31 +534,35 @@ public final class Util {
 
 	public static int unzip(File zipfile, File directory) throws IOException {
 		ZipFile zfile = new ZipFile(zipfile);
-		int files = 0;
-		Enumeration<? extends ZipEntry> entries = zfile.entries();
-		while (entries.hasMoreElements()) {
-			ZipEntry entry = entries.nextElement();
-			File file = new File(directory, entry.getName());
-			if (entry.isDirectory()) {
-				file.mkdirs();
-			} else {
-				file.getParentFile().mkdirs();
-				InputStream in = zfile.getInputStream(entry);
-				try {
-					FileOutputStream fos = new FileOutputStream(file);
+		try {
+			int files = 0;
+			Enumeration<? extends ZipEntry> entries = zfile.entries();
+			while (entries.hasMoreElements()) {
+				ZipEntry entry = entries.nextElement();
+				File file = new File(directory, entry.getName());
+				if (entry.isDirectory()) {
+					file.mkdirs();
+				} else {
+					file.getParentFile().mkdirs();
+					InputStream in = zfile.getInputStream(entry);
 					try {
-						IOUtils.copy(in, fos);
-						LOG.info("Extracted " + file);
-						files++;
+						FileOutputStream fos = new FileOutputStream(file);
+						try {
+							IOUtils.copy(in, fos);
+							LOG.info("Extracted " + file);
+							files++;
+						} finally {
+							fos.close();
+						}
 					} finally {
-						fos.close();
+						in.close();
 					}
-				} finally {
-					in.close();
 				}
 			}
+			return files;
+		} finally {
+			zfile.close();
 		}
-		return files;
 	}
 
 	public static void zip(File directory, File zipfile) throws IOException {

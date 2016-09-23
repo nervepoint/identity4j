@@ -1,0 +1,4 @@
+AuthName "API"
+AuthType Basic
+AuthUserFile /tmp/htpasswd
+Require valid-user

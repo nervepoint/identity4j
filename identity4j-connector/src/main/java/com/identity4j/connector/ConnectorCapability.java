@@ -133,4 +133,8 @@ public enum ConnectorCapability {
 	 * The connector supports forcing password change next time an identity logs in
 	 */
 	forcePasswordChange,
+	/**
+	 * The connector supports a web based authentication API such as OAuth
+	 */
+	webAuthentication,
 }

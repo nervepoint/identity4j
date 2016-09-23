@@ -80,6 +80,8 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 			ldapService.init(directoryConfiguration);
 			ldapService.openConnection();
 			return true;
+		} catch(ConnectorException ex) { 
+			throw ex;
 		} catch (Exception nme) {
 			LOG.error("Problen in open connection check.", nme);
 			return false;
@@ -99,12 +101,13 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 
 	@Override
 	protected final boolean areCredentialsValid(Identity identity, char[] password) throws ConnectorException {
+
+		DirectoryIdentity directoryIdentity = (DirectoryIdentity) identity;
 		try {
-			DirectoryIdentity directoryIdentity = (DirectoryIdentity) identity;
 			return ldapService.authenticate(directoryIdentity.getDn().toString(), new String(password));
-		} catch (Exception ae) {
+		} catch (IOException e) {
 			return false;
-		} 
+		}
 	}
 
 	
@@ -122,7 +125,7 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 	}
 
 	@Override
-	protected void setPassword(Identity identity, char[] password, boolean forcePasswordChangeAtLogon) throws ConnectorException {
+	protected void setPassword(Identity identity, char[] password, boolean forcePasswordChangeAtLogon, PasswordResetType type) throws ConnectorException {
 		DirectoryIdentity directoryIdentity = (DirectoryIdentity) identity;
 		try {
 			ldapService.setPassword(directoryIdentity.getDn().toString(), password);
@@ -133,7 +136,21 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 		}
 	}
 
+	public Iterator<DirectoryOU> getOrganizationalUnits() throws NamingException, IOException {
+		return ldapService.search(ldapService.buildObjectClassFilter(
+				"organizationalUnit", "ou", WILDCARD_SEARCH), new ResultMapper<DirectoryOU>() {
 
+			@Override
+			public DirectoryOU apply(SearchResult result) throws NamingException {
+				return new DirectoryOU((String)result.getAttributes().get("distinguishedName").get(),
+						(String)result.getAttributes().get("ou").get());
+			}
+			public boolean isApplyFilters() {
+				return true;
+			}
+		});
+	}
+	
 	@Override
 	public final Identity getIdentityByName(String identityName) throws PrincipalNotFoundException, ConnectorException {
 		String identityFilter = buildIdentityFilter(identityName);
@@ -164,10 +181,13 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 
 	protected Iterator<Identity> getIdentities(String filter) {
 		try {
-			return ldapService.search(filter, directoryConfiguration.getMaxPageSize(), new ResultMapper<Identity>() {
+			return ldapService.search(filter, new ResultMapper<Identity>() {
 
 				public Identity apply(SearchResult result) throws NamingException {
 					return mapIdentity(result);
+				}
+				public boolean isApplyFilters() {
+					return true;
 				}
 			});
 		} catch (NamingException e) {
@@ -207,17 +227,21 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 		String roleNameAttribute = directoryConfiguration.getRoleNameAttribute();
 		return ldapService.buildObjectClassFilter(roleObjectClass, roleNameAttribute, roleName);
 	}
-
+	
 	protected Iterator<Role> getRoles() {
 		return getRoles(buildRoleFilter(WILDCARD_SEARCH,true));
 	}
 	
 	protected Iterator<Role> getRoles(String filter) {
 		try {
-			return ldapService.search(filter, directoryConfiguration.getMaxPageSize(), new ResultMapper<Role>() {
+			return ldapService.search(filter, new ResultMapper<Role>() {
 
 				public Role apply(SearchResult result) throws NamingException {
 					return mapRole(result);
+				}
+				
+				public boolean isApplyFilters() {
+					return true;
 				}
 			});
 		} catch (NamingException e) {
@@ -289,24 +313,23 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 			Name baseDn = directoryConfiguration.getBaseDn();
 			LOG.info("Looking up " + baseDn);
 			
-		}catch(NamingException nme){
-			DirectoryExceptionParser dep = new DirectoryExceptionParser(nme);
-			String message = dep.getMessage();
-			int code = dep.getCode();
-			String reason = dep.getReason();
-			if (code == 1 && reason.equals("000020D6")) {
-				throw new ConnectorException("Connected OK, but the initial directory could not be read. Is your Base DN correct?");
-			} else {
-				LOG.error(
-					"Connected OK, but an error occurred retrieving information from the directory server (operationsErrror). "
-						+ message, nme);
-				throw new ConnectorException("Failed to connect. " + message + ". Please see the logs for more detail.");
-			}
+		} catch(NamingException nme){
+			processNamingException(nme);
 		} catch (Exception e) {
 			LOG.error("Problem in opening connector.", e);
+			throw new ConnectorException(e);
 		}
 	}
 
+	protected String processNamingException(NamingException nme) {
+		DirectoryExceptionParser dep = new DirectoryExceptionParser(nme);
+		String message = dep.getMessage();
+		LOG.error(
+			"Connected OK, but an error occurred retrieving information from the directory server (operationsErrror). "
+				+ message, nme);
+		throw new ConnectorException(message);
+
+	}
 	
 	protected String getReason(NamingException nme) {
 		/*
@@ -365,23 +388,6 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 		return message;
 	}
 
-	
-
-	@Override
-	public Role createRole(Role role) throws ConnectorException {
-		throw new UnsupportedOperationException("Role maintenance is not yet supported");
-	}
-
-	@Override
-	public void deleteRole(String principleName) throws ConnectorException {
-		throw new UnsupportedOperationException("Role maintenance is not yet supported");
-	}
-
-	@Override
-	public void updateRole(Role role) throws ConnectorException {
-		throw new UnsupportedOperationException("Role maintenance is not yet supported");
-	}
-
 	@Override
 	public Iterator<BrowseNode> getBrowseableNodes(BrowseNode parent) {
 		final SearchControls ctrls = new SearchControls();
@@ -389,7 +395,7 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 		ctrls.setReturningObjFlag(true);
 		
 		try {
-			 Iterator<List<BrowseNode>> nodes = ldapService.search(new LdapName(parent.toString()),"(objectclass=*)", directoryConfiguration.getMaxPageSize(), new ResultMapper<List<BrowseNode>>() {
+			 Iterator<List<BrowseNode>> nodes = ldapService.search(new LdapName(parent.toString()),"(objectclass=*)", new ResultMapper<List<BrowseNode>>() {
 
 				@SuppressWarnings("serial")
 				public List<BrowseNode> apply(SearchResult result) throws NamingException {
@@ -417,6 +423,10 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 			        }
 			        return l;
 					
+				}
+				
+				public boolean isApplyFilters() {
+					return true;
 				}
 			});
 			 
@@ -446,4 +456,5 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 		//return null;
 
 	}
+
 }

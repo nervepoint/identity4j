@@ -27,9 +27,9 @@ public class ActiveDirectoryConfigurationTest {
         DirectoryConfiguration configuration = new ActiveDirectoryConfiguration(configurationParameters);
         Name baseDn = configuration.getBaseDn();
         assertEquals(3, baseDn.size());
-        assertEquals("dc=root", baseDn.get(2));
-        assertEquals("dc=nervepoint", baseDn.get(1));
-        assertEquals("dc=com", baseDn.get(0));
+        assertEquals("DC=root", baseDn.get(2));
+        assertEquals("DC=nervepoint", baseDn.get(1));
+        assertEquals("DC=com", baseDn.get(0));
     }
 
     @Test

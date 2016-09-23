@@ -14,7 +14,7 @@ public abstract class AbstractEncoder implements Encoder {
 	}
 
 	@Override
-	public byte[] decode(byte[] toDecode, byte[] passphrase, String charset) throws EncoderException {
+	public byte[] decode(byte[] toDecode, byte[] salt, byte[] passphrase, String charset) throws EncoderException {
 		throw new UnsupportedOperationException();
 	}
 
@@ -33,4 +33,12 @@ public abstract class AbstractEncoder implements Encoder {
 		return Arrays.equals(encodedData, encode(unencodedData, null, passphrase, charset));
 	}
 
+
+    protected byte[] randomBytes(int count) {
+        byte[] b = new byte[count];
+        for (int i = 0; i < b.length; i++) {
+            b[i] = (byte) (Math.random() * 256f);
+        }
+        return b;
+    }
 }

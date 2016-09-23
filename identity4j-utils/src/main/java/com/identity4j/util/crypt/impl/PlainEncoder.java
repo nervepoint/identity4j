@@ -16,7 +16,7 @@ public class PlainEncoder extends AbstractEncoder {
 	}
 
 	@Override
-	public byte[] decode(byte[] toEncode, byte[] passphrase, String charset) throws EncoderException {
+	public byte[] decode(byte[] toEncode, byte[] salt, byte[] passphrase, String charset) throws EncoderException {
 		byte[] decoded = new byte[toEncode.length];
 		System.arraycopy(toEncode, 0, decoded, 0, decoded.length);
 		return decoded;

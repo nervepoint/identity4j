@@ -60,6 +60,10 @@ public class AbstractPrincipal implements Principal {
     public final String getAttribute(String name) {
         return attributes.getString(name);
     }
+    
+    public final String[] getAttributes(String name) {
+        return attributes.getStringArray(name);
+    }
 
     public final Map<String, String[]> getAttributes() {
         return attributes.toMap();
@@ -75,7 +79,7 @@ public class AbstractPrincipal implements Principal {
 
     @Override
     public final int hashCode() {
-        return 13 * getGuid().hashCode();
+        return getGuid() == null ? -1 : 13 * getGuid().hashCode();
     }
 
     public final int compareTo(Role role) {

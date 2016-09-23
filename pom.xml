@@ -1,9 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.nervepoint</groupId>
 	<artifactId>identity4j</artifactId>
-	<version>1.0.1-SNAPSHOT</version>
+	<version>1.0.1</version>
 	<name>Identity4J</name>
 	<description>A suite of Java Identity and Authentication Connectors.</description>
 	<url>http://www.nervepoint.com</url>
@@ -38,8 +39,6 @@
 		<module>identity4j-utils</module>
 		<module>identity4j-vfs</module>
 		<module>identity4j-connector</module>
-		<module>identity4j-ldap-directory-spring</module>
-		<module>identity4j-active-directory-spring</module>
 		<module>identity4j-flatfile</module>
 		<module>identity4j-unix</module>
 		<module>identity4j-htpasswd</module>
@@ -48,10 +47,14 @@
 		<module>identity4j-google</module>
 		<module>identity4j-office365</module>
 		<module>identity4j-salesforce</module>
-                <module>identity4j-zendesk</module>
-                <module>identity4j-mysql-users-connector</module>
-                <module>identity4j-ldap-directory-jndi</module>
-                <module>identity4j-active-directory-jndi</module>
+		<module>identity4j-script</module>
+		<module>identity4j-script-ssh</module>
+		<module>identity4j-script-http</module>
+		<module>identity4j-zendesk</module>
+		<module>identity4j-mysql-users-connector</module>
+		<module>identity4j-ldap-directory-jndi</module>
+		<module>identity4j-active-directory-jndi</module>
+		<!-- <module>identity4j-webauth-test</module> -->
 	</modules>
 
 	<dependencies>
@@ -100,4 +103,56 @@
 		</profile>
 	</profiles>
 
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<source>1.7</source>
+					<target>1.7</target>
+				</configuration>
+				</plugin>
+		</plugins>
+		<pluginManagement>
+			<plugins>
+				
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-surefire-plugin</artifactId>
+					<version>2.19</version>
+					<configuration>
+						<excludes>
+							<exclude>**/*ConnectorTest.java</exclude>
+							<exclude>**/*IntegrationTest.java</exclude>
+						</excludes>
+					</configuration>
+				</plugin>
+				<plugin>
+					<groupId>org.eclipse.m2e</groupId>
+					<artifactId>lifecycle-mapping</artifactId>
+					<version>1.0.0</version>
+					<configuration>
+						<lifecycleMappingMetadata>
+							<pluginExecutions>
+								<pluginExecution>
+									<pluginExecutionFilter>
+										<groupId>org.apache.maven.plugins</groupId>
+										<artifactId>maven-enforcer-plugin</artifactId>
+										<versionRange>[1.0.0,)</versionRange>
+										<goals>
+											<goal>enforce</goal>
+										</goals>
+									</pluginExecutionFilter>
+									<action>
+										<ignore />
+									</action>
+								</pluginExecution>
+							</pluginExecutions>
+						</lifecycleMappingMetadata>
+					</configuration>
+				</plugin>
+			</plugins>
+		</pluginManagement>
+	</build>
 </project>

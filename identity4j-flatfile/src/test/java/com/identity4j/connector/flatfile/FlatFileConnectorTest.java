@@ -51,7 +51,7 @@ public class FlatFileConnectorTest extends AbstractConnectorTest {
                 } finally {
                     IOUtils.closeQuietly(fos);
                 }
-                properties.put(FlatFileConfiguration.KEY_FILENAME, createTempFile.getAbsolutePath());
+                properties.put(key, createTempFile.getAbsolutePath());
             } finally {
                 IOUtils.closeQuietly(in);
             }

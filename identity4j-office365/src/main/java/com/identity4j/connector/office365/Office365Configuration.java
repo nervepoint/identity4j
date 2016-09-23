@@ -1,5 +1,9 @@
 package com.identity4j.connector.office365;
 
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+
 import com.identity4j.connector.AbstractConnectorConfiguration;
 import com.identity4j.util.MultiMap;
 
@@ -32,7 +36,10 @@ public class Office365Configuration extends AbstractConnectorConfiguration{
 	public static final String OFFICE365_APP_PRINCIPAL_ID = "office365AppPrincipalId";
 	public static final String OFFICE365_APP_PRINCIPAL_OBJECT_ID = "office365AppPrincipalObjectId";
 	public static final String OFFICE365_SYMMETRIC_KEY = "office365SymmetricKey";
-	
+	/**
+	 * Other
+	 */
+	public static final String OFFICE365_REQUEST_SIZE_LIMIT = "office365RequestSizeLimit";
 	
 	/**
 	 * Property for role having delete rights
@@ -40,6 +47,15 @@ public class Office365Configuration extends AbstractConnectorConfiguration{
 	public static final String OFFICE365_APP_DELETE_PRINCIPAL_ROLE = "office365AppDeletePrincipalRole";
 
 
+	/**
+	 * Configuration property key for excludes
+	 */
+	public static final String OFFICE365_EXCLUDED_GROUPS = "office365ExcludedGroups";
+	/**
+	 * Configuration property key for excludes
+	 */
+	public static final String OFFICE365_INCLUDED_GROUPS = "office365IncludedGroups";
+	
 	public Office365Configuration(MultiMap configurationParameters) {
 		super(configurationParameters);
 	}
@@ -59,6 +75,11 @@ public class Office365Configuration extends AbstractConnectorConfiguration{
      * Error occured during generating access tokens.
      */
     public static final String ErrorGeneratingToken = "Could Not Generate Access Token";
+    
+    /**
+     * Error occured during retrieving user details.
+     */
+    public static final String ErrorRetrievingUserDetails = "Could not retrieve user details";
 	
     /**
      * The Error Message that would be shown to the User if ErrorConnectingRestService error is encountered.
@@ -164,5 +185,39 @@ public class Office365Configuration extends AbstractConnectorConfiguration{
 	public String getHostnameHint() {
 		return null;
 	}
+	
+	public Set<String> getIncludedGroups() {
+		return new HashSet<String>(Arrays.asList(configurationParameters.getStringArrayOrDefault(OFFICE365_INCLUDED_GROUPS)));
+	}
+	
+	public Set<String> getExcludedGroups() {
+		return new HashSet<String>(Arrays.asList(configurationParameters.getStringArrayOrDefault(OFFICE365_EXCLUDED_GROUPS)));
+	}
 
+	/**
+	 * @return the symmetricKey
+	 */
+	public  int getRequestSizeLimit() {
+		return configurationParameters.getIntegerOrDefault(OFFICE365_REQUEST_SIZE_LIMIT, 500);
+	}	
+	
+	/**
+	 * Set a list of groups to which users must be belong to at least one of to be included in the search. 
+	 * If not specified, all groups are included.
+	 * 
+	 * @param include groups to include
+	 */
+	public void setIncludedGroups(Set<String> includes) {
+		configurationParameters.put(OFFICE365_INCLUDED_GROUPS, includes.toArray(new String[0]));
+	}
+	
+	/**
+	 * Set a list of groups to which users must NOT be belong to to be included in the search. 
+	 * If not specified, all no groups are excluded.
+	 * 
+	 * @param exclude groups to exclude
+	 */
+	public void setExcludedGroups(Set<String> excludes) {
+		configurationParameters.put(OFFICE365_EXCLUDED_GROUPS, excludes.toArray(new String[0]));
+	}
 }

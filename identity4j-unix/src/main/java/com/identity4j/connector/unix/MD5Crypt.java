@@ -108,7 +108,7 @@ public class MD5Crypt {
         String sp, ep;
         byte[] finalState = new byte[MD5_SIZE];
 
-        int sl, pl, i;
+        int sl = 0, pl = 0, i = 0;
         MessageDigest ctx = MessageDigest.getInstance("MD5");
         MessageDigest ctx1 = MessageDigest.getInstance("MD5");
         long l;

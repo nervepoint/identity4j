@@ -1,5 +1,6 @@
 package com.identity4j.connector.unix;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
@@ -13,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.commons.vfs2.Capability;
@@ -36,6 +38,8 @@ import com.identity4j.util.Util;
 import com.identity4j.util.crypt.Encoder;
 import com.identity4j.util.crypt.EncoderException;
 import com.identity4j.util.crypt.impl.DefaultEncoderManager;
+import com.identity4j.util.passwords.PasswordCharacteristics;
+import com.identity4j.util.passwords.UNIXPasswordCharacteristics;
 import com.identity4j.util.validator.ValidationException;
 
 public class UnixConnector extends FlatFileConnector {
@@ -55,18 +59,20 @@ public class UnixConnector extends FlatFileConnector {
 	private static final int GID_FIELD_INDEX = 3;
 
 	// Attributes
-	private static final String ATTR_HOME = "home";
-	private static final String ATTR_SHELL = "shell";
-	private static final String ATTR_DAYS_BEFORE_PASSWORD_MAY_BE_CHANGED = "daysBeforePasswordMayBeChanged";
-	private static final String ATTR_DAYS_AFTER_WHICH_PASSWORD_MUST_BE_CHANGED = "daysAfterWhichPasswordMustBeChanged";
-	private static final String ATTR_DAYS_BEFORE_PASSWORD_IS_TO_EXPIRE_THAT_USER_IS_WARNED = "daysBeforePasswordIsToExpireThatUserIsWarned";
-	private static final String ATTR_DAYS_AFTER_PASSWORD_EXPIRES_THAT_ACCOUNT_IS_DISABLED = "daysAfterPasswordExpiresThatAccountIsDisabled";
-	private static final String ATTR_DAYS_SINCE_ACCOUNT_WAS_DISABLED = "daysSinceAccountWasDisabled";
+	static final String ATTR_HOME = "home";
+	static final String ATTR_SHELL = "shell";
+	static final String ATTR_DAYS_BEFORE_PASSWORD_MAY_BE_CHANGED = "daysBeforePasswordMayBeChanged";
+	static final String ATTR_DAYS_AFTER_WHICH_PASSWORD_MUST_BE_CHANGED = "daysAfterWhichPasswordMustBeChanged";
+	static final String ATTR_DAYS_BEFORE_PASSWORD_IS_TO_EXPIRE_THAT_USER_IS_WARNED = "daysBeforePasswordIsToExpireThatUserIsWarned";
+	static final String ATTR_DAYS_AFTER_PASSWORD_EXPIRES_THAT_ACCOUNT_IS_DISABLED = "daysAfterPasswordExpiresThatAccountIsDisabled";
+	static final String ATTR_DAYS_SINCE_ACCOUNT_WAS_DISABLED = "daysSinceAccountWasDisabled";
 
 	static {
 		DefaultEncoderManager.getInstance().addEncoder(new UnixMD5Encoder());
 		DefaultEncoderManager.getInstance().addEncoder(new UnixDESEncoder());
 		DefaultEncoderManager.getInstance().addEncoder(new UnixBlowfishEncoder());
+		DefaultEncoderManager.getInstance().addEncoder(new UnixSHA256Encoder());
+		DefaultEncoderManager.getInstance().addEncoder(new UnixSHA512Encoder());
 	}
 
 	private final static Log LOG = LogFactory.getLog(UnixConnector.class);
@@ -81,7 +87,7 @@ public class UnixConnector extends FlatFileConnector {
 	private LocalFixedWidthFlatFile lastLogFlatFile;
 
 	public UnixConnector() {
-		super(UnixDESEncoder.ID, UnixMD5Encoder.ID, UnixBlowfishEncoder.ID);
+		super(UnixDESEncoder.ID, UnixMD5Encoder.ID, UnixBlowfishEncoder.ID, UnixSHA256Encoder.ID, UnixSHA512Encoder.ID);
 	}
 
 	@Override
@@ -120,28 +126,34 @@ public class UnixConnector extends FlatFileConnector {
 		Role role = roleMap.get(roleName);
 		if (role == null) {
 			final List<String> row = groupFlatFile.getRowByKeyField(0, roleName);
+			if (row == null)
+				throw new PrincipalNotFoundException(String.format("No role named '%s'", roleName));
 			role = new RoleImpl(row.get(GID_INDEX), roleName);
 			roleMap.put(roleName, role);
 		}
 		return role;
 	}
 
-	@Override
-	protected void setPassword(Identity identity, char[] password, boolean forcePasswordChangeAtLogon) throws ConnectorException {
-		if (forcePasswordChangeAtLogon) {
-			throw new UnsupportedOperationException("Unix connectors do not support force password change at logon");
+	protected boolean isStoredPasswordValid(char[] password, char[] storedPassword, Encoder encoderForStoredPassword,
+			final String charset) throws UnsupportedEncodingException {
+		if (storedPassword.length > 0 && storedPassword[0] == '!' && (password == null || password.length == 0)) {
+			// Disabled
+			return false;
 		}
-		setPassword(getPasswordFile(), 1, 0, identity, password);
+		return encoderForStoredPassword.match(new String(storedPassword).getBytes(charset),
+				new String(password).getBytes(charset), null, charset);
 	}
 
 	@Override
 	public void lockIdentity(Identity identity) throws ConnectorException {
-		List<String> row = getPasswordFile().getRowByKeyField(getConfiguration().getKeyFieldIndex(), identity.getPrincipalName());
+		List<String> row = getPasswordFile().getRowByKeyField(getConfiguration().getKeyFieldIndex(),
+				identity.getPrincipalName());
 		String password = row.get(getConfiguration().getPasswordFieldIndex());
-		List<String> shadowRow = passwordsInShadow ? shadowFlatFile.getRowByKeyField(getConfiguration().getKeyFieldIndex(),
-			identity.getPrincipalName()) : null;
+		List<String> shadowRow = passwordsInShadow
+				? shadowFlatFile.getRowByKeyField(getConfiguration().getKeyFieldIndex(), identity.getPrincipalName())
+				: null;
 		if (!passwordsInShadow && password.startsWith("!") || passwordsInShadow && password.startsWith("!")
-			&& !getFromRowOrDefault(shadowRow, DAYS_SINCE_ACCOUNT_WAS_DISABLED_INDEX, "").trim().equals("")) {
+				&& !getFromRowOrDefault(shadowRow, DAYS_SINCE_ACCOUNT_WAS_DISABLED_INDEX, "").trim().equals("")) {
 			throw new IllegalStateException("Account already locked");
 		}
 		try {
@@ -152,7 +164,8 @@ public class UnixConnector extends FlatFileConnector {
 			}
 			if (passwordsInShadow) {
 				final long now = System.currentTimeMillis();
-				setOnRowOrAdd(shadowRow, DAYS_SINCE_ACCOUNT_WAS_DISABLED_INDEX, String.valueOf(now / 1000 / 60 / 60 / 24));
+				setOnRowOrAdd(shadowRow, DAYS_SINCE_ACCOUNT_WAS_DISABLED_INDEX,
+						String.valueOf(now / 1000 / 60 / 60 / 24));
 				shadowFlatFile.writeRows();
 			}
 			identity.getAccountStatus().lock();
@@ -162,13 +175,218 @@ public class UnixConnector extends FlatFileConnector {
 	}
 
 	@Override
+	public PasswordCharacteristics getPasswordCharacteristics() {
+	    // Some explanation - http://www.itworld.com/endpoint-security/275056/how-enforce-password-complexity-linux
+		try {
+	    
+		UNIXPasswordCharacteristics c = new UNIXPasswordCharacteristics();
+	    c.setMinimumSize(6);
+	    c.setDictionaryWordsAllowed(true);
+	    c.setContainUsername(true);
+	    c.setUseCracklib(false);
+	    
+	    
+	    // Look for PAM configuration
+	    File file = new File("/etc/pam.d/common-password");
+	    if(file.exists()) {
+	        LOG.debug("Use (Debian style) PAM from " + file);
+	    }
+	    else  {
+	    	file = new File("/etc/pam.d/system-auth");
+	    	if(file.exists()) {
+	    		LOG.debug("Use (Redhat style) PAM from " + file);
+	    	}
+	    	else {
+	    		file = null;
+	    	}
+	    }
+	    
+	    if(file != null) {
+
+	        int lcredit = 1;
+	        int ucredit = 1;
+	        int dcredit = 1;
+	        int ocredit = 1;
+	        int minlength = -1;
+	        int maxlength = -1;
+	        int entries = 0;
+	        String authToken = "UNIX";
+	        int historySize = 0;
+	        
+	        // Unix
+	        List<String> lines = FileUtils.readLines(file);
+//	        var process = sshClient.executeCommand("grep \"password.*pam_unix.so\" " + file);
+	        String scheme = "des";
+	        for(String line : lines) {
+	            line = line.trim();
+	            if(!line.startsWith("#") && line.matches(".*password.*pam_unix.so")) {
+	                entries++;
+	                String[] elements = line.split(" ");
+	                for(int i = 0; i < elements.length; i++) {
+	                    if(elements[i].startsWith("remember")) {
+	                        historySize = parsePamVal(elements[i]);
+	                    }
+	                    if(elements[i].startsWith("min") || elements[i].startsWith("minlen")) {
+	                        minlength = parsePamVal(elements[i]);
+	                    }
+	                    if(elements[i].startsWith("max") || elements[i].startsWith("maxlen")) {
+	                        maxlength = parsePamVal(elements[i]);
+	                    }
+	                    if(elements[i] == "md5" || elements[i] == "sha256" || elements[i] == "sha512" || elements[i] == "bigcrypt" || elements[i] == "blowfish") {
+	                        scheme = elements[i];
+	                    }
+	                }
+	            }
+	        }
+	        if(entries > 0) {
+	            LOG.debug("Found pam_unix minlength = " + minlength + " maxlenght = " + maxlength + " scheme = " + scheme);
+	            c.setHistorySize(historySize);
+	            if(minlength > -1) {
+	                c.setMinimumSize(minlength);
+	            }
+	            if(maxlength > -1) {
+	                c.setMaximumSize(maxlength);
+	            }
+	            else if(scheme == "des") {
+	                c.setMaximumSize(8);
+	            }
+	        }
+	        
+	        // Cracklib
+	        entries = 0;
+	        for(String line : lines) {
+	            line = line.trim();
+	            if(!line.startsWith("#") && line.matches(".*password.*pam_cracklib.so.*")) {
+	                entries++;
+	                String[] elements = line.split(" ");
+	                for(int i = 0; i < elements.length; i++) {
+	                    if(elements[i].startsWith("lcredit")) {
+	                        lcredit = parsePamVal(elements[i]);
+	                    }
+	                    if(elements[i].startsWith("ucredit")) {
+	                        ucredit = parsePamVal(elements[i]);
+	                    }
+	                    if(elements[i].startsWith("dcredit")) {
+	                        dcredit = parsePamVal(elements[i]);
+	                    }
+	                    if(elements[i].startsWith("ocredit")) {
+	                        ocredit = parsePamVal(elements[i]);
+	                    }
+	                    if(elements[i].startsWith("minlen")) {
+	                        minlength = parsePamVal(elements[i]);
+	                    }
+	                    if(elements[i].startsWith("authtok_type")) {
+	                        authToken = parsePamValStr(elements[i], authToken);
+	                    }               
+	                    
+	                    if(elements[i].startsWith("reject_username")) {
+	                        // TODO this would actually prevent username in reverse as well but
+	                        // NAM doesn"t yet support this check
+	                        c.setContainUsername(false);
+	                    }
+	                }
+	            }
+	        }
+	        
+	        if(entries > 0) {
+	            // The very existence of cracklib signals dictionary words are not allowed
+	            c.setDictionaryWordsAllowed(false);
+	            c.setAuthToken(authToken);
+	            c.setUseCracklib(true);
+	            
+	            c.setMinimumSize(6); // Minimum required by cracklib
+	            int requiredMatches = 4;
+	            LOG.debug("Found pam_cracklib minlength = " + minlength + " ocredit = " + ocredit + " lcredit = " + lcredit + " ucredit = " + ucredit  + " dcredit = " +dcredit);
+	            
+	            /* When the credit numbers are negative, these are fixed minimum character counts
+	             * that must match. When negative, they are suppose to be optional but credit towards
+	             * the minimum length. We can"t really do that, so they are not optional.
+	             */
+	            if(lcredit < 0) {
+	                c.setMinimumLowerCase(Math.abs(lcredit));
+	            }
+	            else if(lcredit > 0) {
+	                c.setMinimumLowerCase(lcredit);
+	                minlength = minlength - lcredit;
+	            } else {
+	                requiredMatches--;
+	            }
+	            
+	            if(ucredit < 0) {
+	                c.setMinimumUpperCase(Math.abs(ucredit));
+	            }
+	            else if(ucredit > 0) {
+	                c.setMinimumUpperCase(ucredit);
+	                minlength = minlength - ucredit;
+	            } else {
+	                requiredMatches--;
+	            }
+	            
+	            if(dcredit < 0) {
+	                c.setMinimumDigits(Math.abs(dcredit));
+	            }
+	            else if(dcredit > 0) {
+	                c.setMinimumDigits(dcredit);
+	                minlength = minlength - dcredit;
+	            } else {
+	                requiredMatches--;
+	            }
+	            
+	            if(ocredit < 0) {
+	                c.setMinimumSymbols(Math.abs(ocredit));
+	            }
+	            else if(ocredit > 0) {
+	                c.setMinimumSymbols(ocredit);
+	                minlength = minlength - ocredit;
+	            } else {
+	                requiredMatches--;
+	            }
+
+	            c.setRequiresMatches(requiredMatches);
+	            if(minlength > c.getMinimumSize()) {
+	                c.setMinimumSize(minlength);
+	            }
+	            LOG.debug("Final pam_cracklib minlength = " + minlength);
+	        }
+	    }
+	    else {
+	        LOG.debug("No password rules were retreived from PAM");
+	    }
+	    return c;
+		}
+		catch(IOException ioe) {
+			throw new RuntimeException(ioe);
+		}
+	    
+		
+	}
+
+	private int parsePamVal(String str) {
+	    int i = str.indexOf('=');
+	    if(i != -1) {
+	        return Integer.parseInt(str.substring(i + 1).trim());
+	    }
+	    return -1;
+	}
+
+	private String parsePamValStr(String str, String defaultVal) {
+	    int i = str.indexOf('=');
+	    if(i != -1) {
+	        return str.substring(i + 1).trim();
+	    }
+	    return defaultVal;
+	}
+
+	@Override
 	public void unlockIdentity(Identity identity) throws ConnectorException {
-		List<String> row = getPasswordFile().getRowByKeyField(getConfiguration().getKeyFieldIndex(), identity.getPrincipalName());
-		List<String> shadowRow = passwordsInShadow ? shadowFlatFile.getRowByKeyField(getConfiguration().getKeyFieldIndex(),
-			identity.getPrincipalName()) : null;
+		List<String> row = getPasswordFile().getRowByKeyField(getConfiguration().getKeyFieldIndex(),
+				identity.getPrincipalName());
+		List<String> shadowRow = passwordsInShadow
+				? shadowFlatFile.getRowByKeyField(getConfiguration().getKeyFieldIndex(), identity.getPrincipalName())
+				: null;
 		String password = row.get(1);
 		if (!passwordsInShadow && !password.startsWith("!") || passwordsInShadow && !password.startsWith("!")
-			&& getFromRowOrDefault(shadowRow, DAYS_SINCE_ACCOUNT_WAS_DISABLED_INDEX, "").trim().equals("")) {
+				&& getFromRowOrDefault(shadowRow, DAYS_SINCE_ACCOUNT_WAS_DISABLED_INDEX, "").trim().equals("")) {
 			throw new IllegalStateException("Account not locked");
 		}
 		try {
@@ -188,13 +406,23 @@ public class UnixConnector extends FlatFileConnector {
 	}
 
 	@Override
-	protected void onSetPassword(AbstractFlatFile passwordFile, int passwordFieldIndex, int keyFieldIndex, Identity identity,
-			char[] password) {
+	protected void onSetPassword(AbstractFlatFile passwordFile, int passwordFieldIndex, int keyFieldIndex,
+			Identity identity, char[] password, PasswordResetType type) {
+		
 		List<String> row = passwordFile.getRowByKeyField(keyFieldIndex, identity.getPrincipalName());
 		if (passwordsInShadow) {
+			// Move the encoded password from passwd to shadow
+			String encpw = row.set(getConfiguration().getPasswordFieldIndex(), "x");
+			row = shadowFlatFile.getRowByKeyField(keyFieldIndex, identity.getPrincipalName());
+			row.set(getConfiguration().getPasswordFieldIndex(), encpw);
 			final long now = System.currentTimeMillis();
 			row.set(DAYS_SINCE_LAST_PASSWORD_CHANGE_INDEX, String.valueOf(now / 1000 / 60 / 60 / 24));
 			identity.setPasswordStatus(createPasswordStatusFromShadowRow(row));
+			try {
+				shadowFlatFile.writeRows();
+			} catch (IOException e) {
+				throw new ConnectorException("Write failure", e);
+			}
 		}
 	}
 
@@ -212,30 +440,31 @@ public class UnixConnector extends FlatFileConnector {
 			String daysBeforePasswordMayBeChanged = row.get(DAYS_BEFORE_PASSWORD_MAY_BE_CHANGED_INDEX).trim();
 			if (!StringUtil.isNullOrEmpty(daysBeforePasswordMayBeChanged)) {
 				status.setUnlocked(new Date(lastPasswordChange.getTime()
-					+ Util.daysToMillis(Long.parseLong(daysBeforePasswordMayBeChanged))));
+						+ Util.daysToMillis(Long.parseLong(daysBeforePasswordMayBeChanged))));
 			}
 
 			// When is the password supposed to expire?
-			String daysAfterWhichPasswordMustBeChanged = row.get(DAYS_AFTER_WHICH_PASSWORD_MUST_BE_CHANGED_INDEX_INDEX).trim();
+			String daysAfterWhichPasswordMustBeChanged = row.get(DAYS_AFTER_WHICH_PASSWORD_MUST_BE_CHANGED_INDEX_INDEX)
+					.trim();
 			if (!StringUtil.isNullOrEmpty(daysAfterWhichPasswordMustBeChanged)) {
 				status.setExpire(new Date(lastPasswordChange.getTime()
-					+ Util.daysToMillis(Long.parseLong(daysAfterWhichPasswordMustBeChanged))));
+						+ Util.daysToMillis(Long.parseLong(daysAfterWhichPasswordMustBeChanged))));
 			}
 
 			// When is the user supposed to be warned?
-			String daysBeforePasswordIsToExpireUserIsWarned = row.get(DAYS_BEFORE_PASSWORD_IS_TO_EXPIRE_USER_IS_WARNED_INDEX)
-				.trim();
+			String daysBeforePasswordIsToExpireUserIsWarned = row
+					.get(DAYS_BEFORE_PASSWORD_IS_TO_EXPIRE_USER_IS_WARNED_INDEX).trim();
 			if (!StringUtil.isNullOrEmpty(daysBeforePasswordIsToExpireUserIsWarned)) {
 				status.setWarn(new Date(lastPasswordChange.getTime()
-					- Util.daysToMillis(Long.parseLong(daysBeforePasswordIsToExpireUserIsWarned))));
+						- Util.daysToMillis(Long.parseLong(daysBeforePasswordIsToExpireUserIsWarned))));
 			}
 
 			// When is the account supposed to be disabled?
-			String daysAfterPasswordExpiresAccountIsDisabled = row.get(DAYS_AFTER_PASSWORD_EXPIRES_ACCOUNT_IS_DISABLED_INDEX)
-				.trim();
+			String daysAfterPasswordExpiresAccountIsDisabled = row
+					.get(DAYS_AFTER_PASSWORD_EXPIRES_ACCOUNT_IS_DISABLED_INDEX).trim();
 			if (!StringUtil.isNullOrEmpty(daysAfterPasswordExpiresAccountIsDisabled)) {
 				status.setDisable(new Date(lastPasswordChange.getTime()
-					- Util.daysToMillis(Long.parseLong(daysAfterPasswordExpiresAccountIsDisabled))));
+						- Util.daysToMillis(Long.parseLong(daysAfterPasswordExpiresAccountIsDisabled))));
 			}
 
 			// Determine in the status
@@ -250,7 +479,8 @@ public class UnixConnector extends FlatFileConnector {
 	protected void updateUserRow(List<String> row, Identity identity) {
 		final Role[] groups = identity.getRoles();
 		if (groups.length < 1) {
-			throw new ValidationException(this, "unix", "Connector.UpdateUser.ErrorHasNoGroups", identity.getPrincipalName());
+			throw new ValidationException(this, "unix", "Connector.UpdateUser.ErrorHasNoGroups",
+					identity.getPrincipalName());
 		}
 		Role primaryGroup = groups[0];
 		row.set(GID_FIELD_INDEX, primaryGroup.getGuid());
@@ -258,13 +488,14 @@ public class UnixConnector extends FlatFileConnector {
 		row.set(SHELL_FIELD_INDEX, identity.getAttributeOrDefault(ATTR_SHELL, ""));
 		if (passwordsInShadow) {
 			List<String> shadowRow = shadowFlatFile.getRowByKeyField(0, identity.getPrincipalName());
-			maybeSet(DAYS_BEFORE_PASSWORD_MAY_BE_CHANGED_INDEX, ATTR_DAYS_BEFORE_PASSWORD_MAY_BE_CHANGED, identity, shadowRow);
-			maybeSet(DAYS_AFTER_WHICH_PASSWORD_MUST_BE_CHANGED_INDEX_INDEX, ATTR_DAYS_AFTER_WHICH_PASSWORD_MUST_BE_CHANGED,
-				identity, shadowRow);
+			maybeSet(DAYS_BEFORE_PASSWORD_MAY_BE_CHANGED_INDEX, ATTR_DAYS_BEFORE_PASSWORD_MAY_BE_CHANGED, identity,
+					shadowRow);
+			maybeSet(DAYS_AFTER_WHICH_PASSWORD_MUST_BE_CHANGED_INDEX_INDEX,
+					ATTR_DAYS_AFTER_WHICH_PASSWORD_MUST_BE_CHANGED, identity, shadowRow);
 			maybeSet(DAYS_BEFORE_PASSWORD_IS_TO_EXPIRE_USER_IS_WARNED_INDEX,
-				ATTR_DAYS_BEFORE_PASSWORD_IS_TO_EXPIRE_THAT_USER_IS_WARNED, identity, shadowRow);
+					ATTR_DAYS_BEFORE_PASSWORD_IS_TO_EXPIRE_THAT_USER_IS_WARNED, identity, shadowRow);
 			maybeSet(DAYS_AFTER_PASSWORD_EXPIRES_ACCOUNT_IS_DISABLED_INDEX,
-				ATTR_DAYS_AFTER_PASSWORD_EXPIRES_THAT_ACCOUNT_IS_DISABLED, identity, shadowRow);
+					ATTR_DAYS_AFTER_PASSWORD_EXPIRES_THAT_ACCOUNT_IS_DISABLED, identity, shadowRow);
 			maybeSet(DAYS_SINCE_ACCOUNT_WAS_DISABLED_INDEX, ATTR_DAYS_SINCE_ACCOUNT_WAS_DISABLED, identity, shadowRow);
 			try {
 				shadowFlatFile.writeRows();
@@ -399,9 +630,12 @@ public class UnixConnector extends FlatFileConnector {
 				passwordRow.add(String.valueOf(System.currentTimeMillis() / 1000 / 60 / 60 / 24));
 				passwordRow.add(identity.getAttributeOrDefault(ATTR_DAYS_BEFORE_PASSWORD_MAY_BE_CHANGED, ""));
 				passwordRow.add(identity.getAttributeOrDefault(ATTR_DAYS_AFTER_WHICH_PASSWORD_MUST_BE_CHANGED, ""));
-				passwordRow.add(identity.getAttributeOrDefault(ATTR_DAYS_BEFORE_PASSWORD_IS_TO_EXPIRE_THAT_USER_IS_WARNED, ""));
-				passwordRow.add(identity.getAttributeOrDefault(ATTR_DAYS_AFTER_PASSWORD_EXPIRES_THAT_ACCOUNT_IS_DISABLED, ""));
-				String daysSinceAccountDisabled = identity.getAttributeOrDefault(ATTR_DAYS_SINCE_ACCOUNT_WAS_DISABLED, "");
+				passwordRow.add(
+						identity.getAttributeOrDefault(ATTR_DAYS_BEFORE_PASSWORD_IS_TO_EXPIRE_THAT_USER_IS_WARNED, ""));
+				passwordRow.add(
+						identity.getAttributeOrDefault(ATTR_DAYS_AFTER_PASSWORD_EXPIRES_THAT_ACCOUNT_IS_DISABLED, ""));
+				String daysSinceAccountDisabled = identity.getAttributeOrDefault(ATTR_DAYS_SINCE_ACCOUNT_WAS_DISABLED,
+						"");
 				passwordRow.add(daysSinceAccountDisabled.equals("0") ? "" : daysSinceAccountDisabled);
 				// reserved
 				passwordRow.add("");
@@ -418,10 +652,12 @@ public class UnixConnector extends FlatFileConnector {
 				}
 
 				try {
-					passwordRow.set(
-						getConfiguration().getPasswordFieldIndex(),
-						new String(getEncoderManager().encode(password, getConfiguration().getIdentityPasswordEncoding(),
-							getConfiguration().getCharset(), null, null), getConfiguration().getCharset()));
+					passwordRow.set(getConfiguration().getPasswordFieldIndex(),
+							new String(
+									getEncoderManager().encode(password,
+											getConfiguration().getIdentityPasswordEncoding(),
+											getConfiguration().getCharset(), null, null),
+									getConfiguration().getCharset()));
 					passwordFile.writeRows();
 				} catch (UnsupportedEncodingException e) {
 					throw new ConnectorException(e);
@@ -432,7 +668,7 @@ public class UnixConnector extends FlatFileConnector {
 				}
 
 			} else {
-				setPassword(passwordFile, 1, 0, identity, password);
+				setPassword(passwordFile, 1, 0, identity, password, PasswordResetType.USER);
 			}
 		} else {
 		}
@@ -487,18 +723,19 @@ public class UnixConnector extends FlatFileConnector {
 			} else {
 				identity.setPasswordStatus(createPasswordStatusFromShadowRow(shadowRow));
 				Date now = new Date();
-				String daysSinceAccountWasDisabled = getFromRowOrDefault(shadowRow, DAYS_SINCE_ACCOUNT_WAS_DISABLED_INDEX, "");
+				String daysSinceAccountWasDisabled = getFromRowOrDefault(shadowRow,
+						DAYS_SINCE_ACCOUNT_WAS_DISABLED_INDEX, "");
 				if (!StringUtil.isNullOrEmpty(daysSinceAccountWasDisabled)) {
 					// Explicitly disabled
 					identity.getAccountStatus().lock();
 					identity.setAttribute(ATTR_DAYS_SINCE_ACCOUNT_WAS_DISABLED, daysSinceAccountWasDisabled);
 				} else {
 					identity.setAttribute(ATTR_DAYS_SINCE_ACCOUNT_WAS_DISABLED, "0");
-					String daysAfterPasswordExpiresAccountIsDisabled = shadowRow.get(
-						DAYS_AFTER_PASSWORD_EXPIRES_ACCOUNT_IS_DISABLED_INDEX).trim();
+					String daysAfterPasswordExpiresAccountIsDisabled = shadowRow
+							.get(DAYS_AFTER_PASSWORD_EXPIRES_ACCOUNT_IS_DISABLED_INDEX).trim();
 					if (!StringUtil.isNullOrEmpty(daysAfterPasswordExpiresAccountIsDisabled)) {
 						Date expire = new Date(identity.getPasswordStatus().getLastChange().getTime()
-							- Util.daysToMillis(Long.parseLong(daysAfterPasswordExpiresAccountIsDisabled)));
+								- Util.daysToMillis(Long.parseLong(daysAfterPasswordExpiresAccountIsDisabled)));
 						if (now.after(expire)) {
 							// Disabled because past maximum expire days
 							identity.getAccountStatus().lock();
@@ -507,13 +744,13 @@ public class UnixConnector extends FlatFileConnector {
 				}
 
 				identity.setAttribute(ATTR_DAYS_BEFORE_PASSWORD_MAY_BE_CHANGED,
-					shadowRow.get(DAYS_BEFORE_PASSWORD_MAY_BE_CHANGED_INDEX));
+						shadowRow.get(DAYS_BEFORE_PASSWORD_MAY_BE_CHANGED_INDEX));
 				identity.setAttribute(ATTR_DAYS_AFTER_WHICH_PASSWORD_MUST_BE_CHANGED,
-					shadowRow.get(DAYS_AFTER_WHICH_PASSWORD_MUST_BE_CHANGED_INDEX_INDEX));
+						shadowRow.get(DAYS_AFTER_WHICH_PASSWORD_MUST_BE_CHANGED_INDEX_INDEX));
 				identity.setAttribute(ATTR_DAYS_BEFORE_PASSWORD_IS_TO_EXPIRE_THAT_USER_IS_WARNED,
-					shadowRow.get(DAYS_BEFORE_PASSWORD_IS_TO_EXPIRE_USER_IS_WARNED_INDEX));
+						shadowRow.get(DAYS_BEFORE_PASSWORD_IS_TO_EXPIRE_USER_IS_WARNED_INDEX));
 				identity.setAttribute(ATTR_DAYS_AFTER_PASSWORD_EXPIRES_THAT_ACCOUNT_IS_DISABLED,
-					shadowRow.get(DAYS_AFTER_PASSWORD_EXPIRES_ACCOUNT_IS_DISABLED_INDEX));
+						shadowRow.get(DAYS_AFTER_PASSWORD_EXPIRES_ACCOUNT_IS_DISABLED_INDEX));
 
 				// Fall back to determining password disable
 				// TODO this may cause incomplete account lockouts if
@@ -525,7 +762,8 @@ public class UnixConnector extends FlatFileConnector {
 				}
 			}
 		} else {
-			identity.getAccountStatus().setType(row.get(1).startsWith("!") ? AccountStatusType.locked : AccountStatusType.unlocked);
+			identity.getAccountStatus()
+					.setType(row.get(1).startsWith("!") ? AccountStatusType.locked : AccountStatusType.unlocked);
 		}
 
 		// We might have the last login time
@@ -595,8 +833,9 @@ public class UnixConnector extends FlatFileConnector {
 
 	private void checkGroupLoaded() throws IOException {
 		if (groupFlatFile == null) {
-			groupFlatFile = new LocalDelimitedFlatFile(getFileSystemManager().resolveFile(
-				((UnixConfiguration) getConfiguration()).getGroupFileUri()), getConfiguration().getCharset());
+			groupFlatFile = new LocalDelimitedFlatFile(
+					getFileSystemManager().resolveFile(((UnixConfiguration) getConfiguration()).getGroupFileUri()),
+					getConfiguration().getCharset());
 			groupFlatFile.addIndex(0); // Name
 			groupFlatFile.addIndex(GID_INDEX); // GID
 			groupFlatFile.setFieldSeparator(':');
@@ -619,7 +858,7 @@ public class UnixConnector extends FlatFileConnector {
 	}
 
 	private void loadLastLog() throws IOException {
-		Process process = Runtime.getRuntime().exec("lastlog");
+		Process process = new ProcessBuilder("lastlog").redirectErrorStream(true).start();
 
 		// TODO handle error stream
 		try {
@@ -669,7 +908,8 @@ public class UnixConnector extends FlatFileConnector {
 		}
 
 		if (shadowFlatFile == null) {
-			FileObject shadowFile = getFileSystemManager().resolveFile(((UnixConfiguration) getConfiguration()).getShadowFileUri());
+			FileObject shadowFile = getFileSystemManager()
+					.resolveFile(((UnixConfiguration) getConfiguration()).getShadowFileUri());
 			if (shadowFile.exists()) {
 				/*
 				 * If there is a shadow file, then the passwords are here. It

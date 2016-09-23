@@ -3,16 +3,15 @@ package com.identity4j.connector.jndi.directory;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Iterator;
-import java.util.List;
 import java.util.NoSuchElementException;
 
 import javax.naming.Context;
 import javax.naming.Name;
 import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
+import javax.naming.PartialResultException;
 import javax.naming.directory.Attribute;
 import javax.naming.directory.Attributes;
 import javax.naming.directory.BasicAttribute;
@@ -25,6 +24,7 @@ import javax.naming.directory.SearchResult;
 import javax.naming.ldap.Control;
 import javax.naming.ldap.InitialLdapContext;
 import javax.naming.ldap.LdapContext;
+import javax.naming.ldap.LdapName;
 import javax.naming.ldap.PagedResultsControl;
 import javax.naming.ldap.PagedResultsResponseControl;
 
@@ -60,8 +60,8 @@ public class LdapService {
     	lookupContext(configuration.getBaseDn());
     }
     
-    public LdapContext getConnection() throws NamingException{
-    	return new InitialLdapContext(env,null);
+    public LdapContext getConnection(Control... controls) throws NamingException{
+    	return new InitialLdapContext(env,controls);
     }
 
     public DirContext getConnection(String account,String password) throws NamingException, IOException{
@@ -85,6 +85,9 @@ public class LdapService {
 			DirectoryExceptionParser dep = new DirectoryExceptionParser(nme);
 			if ("773".equals(dep.getData())) {
 				throw new PasswordChangeRequiredException();
+			} else if("775".equals(dep.getData())) {
+				LOG.error(account +  " attempted to login but account reports as locked");
+				throw new IOException("Account is locked");
 			}
 			return false;
 		}
@@ -92,7 +95,7 @@ public class LdapService {
     }
     
     public void setPassword(final String account,final char[] newPassword) throws NamingException,IOException{
-		_(new Block<Void>() {
+    	processBlock(new Block<Void>() {
 
 			public Void apply(LdapContext context) throws NamingException {
 		            ModificationItem[] mods = new ModificationItem[1];
@@ -106,8 +109,8 @@ public class LdapService {
 		});
     }
     
-    public void setPassword(final String account,final byte[] encodedPassword) throws NamingException,IOException{
-		_(new Block<Void>() {
+    public void setPassword(final String account,final byte[] encodedPassword, Control... controls) throws NamingException,IOException{
+    	processBlock(new Block<Void>() {
 
 			public Void apply(LdapContext context) throws NamingException {
 		            ModificationItem[] mods = new ModificationItem[1];
@@ -116,7 +119,7 @@ public class LdapService {
 					context.modifyAttributes(account, mods);
 					return null;
 			}
-		});
+		}, controls);
     }
     
     public void close(DirContext ctx) {
@@ -140,49 +143,137 @@ public class LdapService {
 		this.configuration = configuration;
 	}
 	
-	public <T> Iterator<T> search(final String filter,final ResultMapper<T> resultMapper)throws NamingException,IOException{
-		return _(new Block<Iterator<T>>() {
+	public void rename(final LdapName currentDN, final LdapName newDN) throws NamingException, IOException {
+		processBlock(new Block<Void>() {
 
-			public Iterator<T> apply(LdapContext context) throws NamingException {
-				NamingEnumeration<SearchResult> results = context.search(configuration.getBaseDn(), 
-						filter, getSearchControls());
-				
-				return new SearchResultIterator<T>(results, resultMapper);
-//				List<T> res = new ArrayList<T>();
-//	            SearchResult searchResult = null;
-//	            while(results.hasMoreElements()) {
-//	                 searchResult = (SearchResult) results.nextElement();
-//	                 res.add(resultMapper.apply(searchResult));
-//	            }
-//	            return res.iterator();
+			@Override
+			public Void apply(LdapContext context) throws NamingException,IOException {
+				context.rename(currentDN, newDN);
+				return null;
+			}
+		});
+	}
+	
+	public <T> Iterator<T> search(String filter, ResultMapper<T> resultMapper)throws NamingException,IOException{
+		return search(configuration.getBaseDn(), filter, resultMapper);
+	}
+	
+	public <T> Iterator<T> search(final Name baseDN, final String filter,final ResultMapper<T> resultMapper)throws NamingException,IOException{
+		return processBlock(new Block<Iterator<T>>() {
+
+			public Iterator<T> apply(LdapContext context) throws IOException, NamingException {
+				return new SearchResultIterator<T>(baseDN, context, filter, resultMapper);
 			}
 		});
 	}
 	
 	class SearchResultIterator<T> implements Iterator<T> {
 
-		NamingEnumeration<SearchResult> results;
+		NamingEnumeration<SearchResult> results = null;
 		ResultMapper<T> resultMapper;
 		T nextElement;
+		byte[] cookie = null;
+		LdapContext context;
+		Name baseDN;
+		String filter;
 		
-		SearchResultIterator(NamingEnumeration<SearchResult> results, ResultMapper<T> resultMapper) {
-			this.results = results;
+		SearchResultIterator(Name baseDN, LdapContext context, String filter, ResultMapper<T> resultMapper) throws NamingException, IOException {
 			this.resultMapper = resultMapper;
+			this.baseDN = baseDN;
+			this.context = context;
+			this.filter = filter;
+			buildResults();
 			nextElement = getNextElement();
 		}
 		
+		private void buildResults() throws NamingException, IOException {
+			if(cookie!=null) {
+				context.setRequestControls(new Control[]{new PagedResultsControl(configuration.getMaxPageSize(), cookie, Control.CRITICAL) });
+			} else {
+				context.setRequestControls(new Control[]{new PagedResultsControl(configuration.getMaxPageSize(), Control.CRITICAL) });
+			}
+			results = context.search(baseDN, filter, getSearchControls());
+
+		}
+		
 		T getNextElement() {
-			if(results.hasMoreElements()) {
+			while(results.hasMoreElements()) {
 				try {
-					return resultMapper.apply(results.next());
+					SearchResult result = results.next();
+					if(!resultMapper.isApplyFilters()) {
+						return resultMapper.apply(result);
+					}
+					Name resultName = new LdapName(result.getNameInNamespace());
+					boolean include = configuration.getIncludes().isEmpty();
+					if(!include) {
+						for(Name name : configuration.getIncludes()) {
+							if(resultName.startsWith(name)) {
+								include = true;
+								break;
+							}
+						}
+					}
+					
+					for(Name name : configuration.getExcludes()) {
+						if(resultName.startsWith(name)) {
+							include = false;
+							break;
+						}
+					}
+					
+					if(!include) {
+						continue;
+					}
+
+					return resultMapper.apply(result);
+				} catch(PartialResultException e) { 
+					if(configuration.isFollowReferrals()) {
+						LOG.error("Following referrals is on but partial result was received", e);
+					} else {
+						if(LOG.isDebugEnabled()) {
+							LOG.debug("Partial resluts ignored: " + e.getExplanation());
+						}
+					}
 				} catch (NamingException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-					return getNextElement();
+					LOG.error("Failed to get results", e);
+					throw new IllegalStateException(e);
+				} catch (IOException e) {
+					LOG.error("Failed to get results", e);
+					throw new IllegalStateException(e);
 				}
 			}
-			return null;
+			
+			try {
+
+				// Record page cookie for next set of results
+				Control[] controls = context.getResponseControls();
+				if (controls != null) {
+					for (int i = 0; i < controls.length; i++) {
+					    if (controls[i] instanceof PagedResultsResponseControl) {
+							PagedResultsResponseControl pagedResultsResponseControl =
+				                         	 (PagedResultsResponseControl)controls[i];
+							cookie = pagedResultsResponseControl.getCookie();
+					    }
+					}
+				}
+				
+				
+				if(cookie==null) {
+					close(context);
+					return null;
+				}
+				
+				buildResults();
+				return getNextElement();
+			} catch (NamingException e) {
+				LOG.error("Failed to get results", e);
+				throw new IllegalStateException(e);
+			} catch (IOException e) {
+				LOG.error("Failed to get results", e);
+				throw new IllegalStateException(e);
+			}
 		}
+		
 		
 		@Override
 		public boolean hasNext() {
@@ -210,7 +301,7 @@ public class LdapService {
 	}
 	
 	public void unbind(final Name name) throws NamingException, IOException{
-		_(new Block<Void>() {
+		processBlock(new Block<Void>() {
 
 			@Override
 			public Void apply(LdapContext context) throws NamingException,IOException {
@@ -222,7 +313,7 @@ public class LdapService {
 	
 	
 	public void update(final Name name,final ModificationItem...mods) throws NamingException, IOException{
-		_(new Block<Void>() {
+		processBlock(new Block<Void>() {
 
 			@Override
 			public Void apply(LdapContext context) throws NamingException,IOException {
@@ -234,7 +325,7 @@ public class LdapService {
 	
 	
 	public void bind(final Name name,final Attribute...attrs) throws NamingException, IOException{
-		_(new Block<Void>() {
+		processBlock(new Block<Void>() {
 
 			@Override
 			public Void apply(LdapContext context) throws NamingException,IOException {
@@ -247,77 +338,15 @@ public class LdapService {
 			}
 		});
 	}
-	
-	public <T> Iterator<T> search(final String filter,final int pageSize,final ResultMapper<T> resultMapper)throws NamingException,IOException{
-		return search(configuration.getBaseDn(),filter, pageSize, resultMapper);
-	}
-	
-	public <T> Iterator<T> search(final Name baseDn,final String filter,final int pageSize,final ResultMapper<T> resultMapper)throws NamingException,IOException{
-		return _(new Block<Iterator<T>>() {
 
-			public Iterator<T> apply(LdapContext context) throws NamingException, IOException {
-				//LdapContext ldapContext = (LdapContext) context;  
-				// Activate paged results
-				byte[] cookie = null;
-				context.setRequestControls(new Control[]{new PagedResultsControl(pageSize, Control.NONCRITICAL) });
-				int total;
-				List<T> res = new ArrayList<T>();
-				//cookie == null end of one paged search on one dn
-				//loop over below do for multiple dns
-				do {
-			    	/* perform the search */
-					NamingEnumeration<SearchResult> results =
-		            		context.search(baseDn, 
-		            				filter,
-		            				getSearchControls());
-
-		            /* for each entry print out name + all attrs and values */
-		            while (results != null && results.hasMore()) {
-						SearchResult searchResult = results.next();
-						res.add(resultMapper.apply(searchResult));
-					}
-
-				    // Examine the paged results control response
-				    Control[] controls = context.getResponseControls();
-				    if (controls != null) {
-						for (int i = 0; i < controls.length; i++) {
-						    if (controls[i] instanceof PagedResultsResponseControl) {
-								PagedResultsResponseControl pagedResultsResponseControl =
-					                         	 (PagedResultsResponseControl)controls[i];
-								total = pagedResultsResponseControl.getResultSize();
-								if (total != 0) {
-									LOG.info("EOP (total : " + total + ") *****************\n");
-								} else {
-									LOG.info("EOP (total: unknown) ***************\n");
-								}
-								/**
-								 * END OF PAGE
-								 */
-								cookie = pagedResultsResponseControl.getCookie();
-						    }
-						}
-				    } else {
-				    	LOG.info("No controls were sent from the server");
-				    }
-			            // Re-activate paged results
-				    context.setRequestControls(new Control[]{
-					new PagedResultsControl(pageSize, cookie, Control.CRITICAL) });
-
-				} while (cookie != null);
-				return res.iterator();
-			}
-		});
-	}
-	
 	public Attributes lookupContext(final Name dn) throws NamingException,IOException{
-		return _(new Block<Attributes>() {
+		return processBlock(new Block<Attributes>() {
 
 			public Attributes apply(LdapContext context) throws NamingException {
 				return ((LdapContext) context.lookup(dn)).getAttributes("");
 			}
 		});
 	}
-	
 	
 	public final String buildObjectClassFilter(String objectClass, String principalNameFilterAttribute, String principalName) {
 		return String.format("(&(objectClass=%s)(%s=%s))",objectClass,principalNameFilterAttribute,principalName);
@@ -337,20 +366,16 @@ public class LdapService {
 		return searchControls;
 	}
 	
-	private <T> T _(Block<T> block) throws NamingException, IOException{
+	private <T> T processBlock(Block<T> block, Control... controls) throws NamingException, IOException{
 		LdapContext ctx = null;
-		try{
-			ctx = getConnection();
-			
-			return block.apply(ctx);
-			
-		}finally{
-			close(ctx);
-		}
+		ctx = getConnection(controls);
+		return block.apply(ctx);
 	}
 	
 	public interface ResultMapper<T>{
-		public T apply(SearchResult result) throws NamingException;
+		public T apply(SearchResult result) throws NamingException, IOException;
+
+		public boolean isApplyFilters();
 	}
 	
 	public interface Block<T> {
@@ -371,8 +396,8 @@ public class LdapService {
 				try {
 					InetAddress addr = InetAddress.getByName(host);
 					if (addr.getHostName().equals(host)) {
-						throw new IllegalStateException("LDAP controller host address " + controllerHost
-							+ " is not resolvable by a reverse DNS lookup. Please check your DNS configuration.");
+						throw new ConnectorException("IP " + controllerHost	+ " is not resolvable by a reverse DNS. Check your DNS configuration. "
+							+ "If this error persists try adding an entry for " + controllerHost + " to your system HOSTS file.");
 					}
 				} catch (UnknownHostException e) {
 				}

@@ -28,13 +28,21 @@ public class UnixMD5Encoder extends AbstractEncoder {
 				throw new EncoderException("Encoded data is not in Unix MD5 crypt format");
 			}
 			String encoded = new String(encodedData, charset);
+			if(encoded.equals("*")) {
+				// No login
+				return false;
+			}
+			if(encoded.startsWith("!")) {
+				// Password locked
+				return false;
+			}
 			int sl = saltPrefix.length();
 			int idx = encoded.indexOf('$', sl);
 			if (idx == -1) {
 				throw new EncoderException("Expected end of salt character $");
 			}
-			String salt = encoded.substring(0, idx);
-			return Arrays.equals(encode(unencodedData, salt.getBytes(charset), passphrase, charset), encodedData);
+			String encsalt = encoded.substring(0, idx);
+			return Arrays.equals(encode(unencodedData,  encsalt.getBytes(charset), passphrase, charset), encodedData);
 
 		} catch (UnsupportedEncodingException e) {
 			throw new EncoderException(e);

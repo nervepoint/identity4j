@@ -21,16 +21,29 @@ public class CompoundEncoder extends AbstractEncoder {
 	}
 
 	@Override
-	public byte[] decode(byte[] toDecode, byte[] passphrase, String charset) throws EncoderException {
+	public byte[] decode(byte[] toDecode, byte[] salt, byte[] passphrase, String charset) throws EncoderException {
 		List<Encoder> reverse = new ArrayList<Encoder>(encoders);
 		Collections.reverse(reverse);
 		for (Encoder encoder : reverse) {
-			toDecode = encoder.decode(toDecode, passphrase, charset);
+			toDecode = encoder.decode(toDecode, null, passphrase, charset);
 		}
 		return toDecode;
 	}
 
 	@Override
+    public boolean match(byte[] encodedData, byte[] unencodedData, byte[] passphrase, String charset) {
+        for (int i = encoders.size() - 1 ; i >= 0 ; i--) {
+            Encoder enc = encoders.get(i);
+            if(i == 0)
+                return enc.match(encodedData, unencodedData, passphrase, charset);
+            else {
+                encodedData = enc.decode(encodedData, null, passphrase, charset);
+            }
+        }
+        return false;
+    }
+
+    @Override
 	public byte[] encode(byte[] toEncode, byte[] salt, byte[] passphrase, String charset) throws EncoderException {
 		for (Encoder encoder : encoders) {
 			toEncode = encoder.encode(toEncode, salt, passphrase, charset);
