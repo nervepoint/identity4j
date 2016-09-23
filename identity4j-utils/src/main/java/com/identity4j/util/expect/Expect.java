@@ -1,6 +1,7 @@
 package com.identity4j.util.expect;
 
 import java.io.BufferedInputStream;
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -332,22 +333,31 @@ public class Expect {
 		
 		long startTime = System.currentTimeMillis();
 		
-		if(timeout > 0) {
-			while(isOpen() && in.available()==0 && System.currentTimeMillis() - startTime < timeout) {
-				try {
-					Thread.sleep(10);
-				} catch (InterruptedException e) {
+		try {
+			if(timeout > 0) {
+				while(isOpen() && in.available()==0 && System.currentTimeMillis() - startTime < timeout) {
+					try {
+						Thread.sleep(100);
+					} catch (InterruptedException e) {
+					}
+				}
+				if(in.available()==-1) {
+					return -1;
+				}
+				/**
+				 * What is this? available could easily be zero??????
+				 */
+				if(in.available()==0) {
+					throw new ExpectTimeoutException();
 				}
 			}
-			if(in.available()==-1) {
-				return -1;
-			}
-			if(in.available()==0) {
-				throw new ExpectTimeoutException();
-			}
-		}
+			
+			return in.read();
 		
-		return in.read();
+		} catch(EOFException e) {
+			log.info("Received EOF exception");
+			return -1;
+		}
 		
 	}
 
