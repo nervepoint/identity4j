@@ -14,6 +14,7 @@ public class SshConfiguration extends ScriptConfiguration {
 
 	public static final String SSH_PROXY_SERVER = "ssh.proxyServer";
 	public static final String SSH_OS = "ssh.os";
+	public static final String SSH_CONNECT_TIMEOUT = "ssh.connectTimeout";
 	public static final String SSH_PORT = "ssh.port";
 	public static final String SSH_SERVICE_ACCOUNT_PASSWORD = "ssh.serviceAccountPassword";
 	public static final String SSH_SERVICE_ACCOUNT_PRIVATE_KEY = "ssh.serviceAccountPrivateKey";
@@ -122,5 +123,10 @@ public class SshConfiguration extends ScriptConfiguration {
 
 	public String getServiceAccountPrivateKeyPassphrase() {
 		return  getConfigurationParameters().getStringOrDefault(SSH_SERVICE_ACCOUNT_PRIVATE_KEY_PASSPHRASE, null);
+	}
+
+
+	public int getConnectTimeout() {
+		return getConfigurationParameters().getIntegerOrDefault(SSH_CONNECT_TIMEOUT, 5000);
 	}
 }

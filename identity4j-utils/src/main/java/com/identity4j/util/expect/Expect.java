@@ -355,7 +355,9 @@ public class Expect {
 			return in.read();
 		
 		} catch(EOFException e) {
-			log.info("Received EOF exception");
+			if(log.isDebugEnabled()) {
+				log.debug("Received EOF exception");
+			}
 			return -1;
 		}
 		
