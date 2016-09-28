@@ -1,12 +1,11 @@
 package com.identity4j.connector.script.http;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.URIException;
-import org.apache.commons.httpclient.methods.GetMethod;
-import org.apache.commons.httpclient.methods.PostMethod;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -14,80 +13,59 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
+import com.identity4j.util.http.HttpPair;
+import com.identity4j.util.http.HttpProviderClient;
+import com.identity4j.util.http.HttpResponse;
 
 public class HttpClientWrapper {
 	final static Log LOG = LogFactory.getLog(HttpClientWrapper.class);
 
-	HttpClient client;
+	HttpProviderClient client;
 	HttpConfiguration config;
 
-	public HttpClientWrapper(HttpClient client, HttpConfiguration config) {
+	public HttpClientWrapper(HttpProviderClient client, HttpConfiguration config) {
 		this.client = client;
 		this.config = config;
 	}
 
-	public HttpClientResponseWrapper get(String uri) throws URIException {
-		final GetMethod method = new GetMethod(HttpUtil.concatenateUriParts(config.getUrl(), uri));
-		LOG.info(String.format("HTTP GET %s", method.getURI().toString()));
-		HttpClientResponseWrapper response = new HttpClientResponseWrapper() {
-			@Override
-			public void release() {
-				method.releaseConnection();
-			}
-		};
-		try {
-			response.status = client.executeMethod(method);
-			response.data = method.getResponseBody();
-			return response;
-		} catch (Exception e) {
-			LOG.error("Failed to retrieve HTTP resource.", e);
-		}
-		return null;
+	public HttpClientResponseWrapper get(String uri) throws IOException {
+		return new HttpClientResponseWrapper(client.get(uri));
 	}
 
 	@SuppressWarnings("unchecked")
-	public HttpClientResponseWrapper post(String uri, Object parms) throws URIException {
-		final PostMethod method = new PostMethod(HttpUtil.concatenateUriParts(config.getUrl(), uri));
-		LOG.info(String.format("HTTP POST %s", method.getURI().toString()));
+	public HttpClientResponseWrapper post(String uri, Object parms) throws IOException {
+		List<HttpPair> p = new ArrayList<HttpPair>();
 		if (parms instanceof Map) {
 			if (parms != null) {
-				for (Map.Entry<Object, Object> en : ((Map<Object, Object>)parms).entrySet()) {
-					method.addParameter(String.valueOf(en.getKey()), String.valueOf(en.getValue()));
+				for (Map.Entry<Object, Object> en : ((Map<Object, Object>) parms).entrySet()) {
+					p.add(new HttpPair(String.valueOf(en.getKey()), String.valueOf(en.getValue())));
 				}
 			}
 		}
-		HttpClientResponseWrapper response = new HttpClientResponseWrapper() {
-			@Override
-			public void release() {
-				method.releaseConnection();
-			}
-		};
-		try {
-			response.status = client.executeMethod(method);
-			response.data = method.getResponseBody();
-			return response;
-		} catch (Exception e) {
-			LOG.error("Failed to retrieve HTTP resource.", e);
-		}
-		return null;
+		return new HttpClientResponseWrapper(client.post(uri, p));
 	}
 
-	public abstract class HttpClientResponseWrapper {
+	public class HttpClientResponseWrapper {
 
-		public int status;
-		byte[] data;
+		private HttpResponse resp;
+
+		public HttpClientResponseWrapper(HttpResponse resp) {
+			this.resp = resp;
+		}
 
 		public JsonObject toJSON() throws JsonSyntaxException, UnsupportedEncodingException {
-			String str = new String(data, "UTF-8");
+			String str = new String(resp.content(), "UTF-8");
 			JsonElement parse = new JsonParser().parse(str);
 			JsonObject obj = parse.getAsJsonObject();
 			return obj;
 		}
 
 		public int status() {
-			return status;
+			return resp.status().getCode();
 		}
 
-		public abstract void release();
+		public void release() {
+			resp.release();
+		}
 	}
 }

@@ -51,7 +51,7 @@ public class HttpConfiguration extends ScriptConfiguration {
 	public final String getProxyServer() {
 		return getConfigurationParameters().getString(HTTP_PROXY_SERVER);
 	}
-	
+
 	public boolean isHTTPS() {
 		try {
 			URL url = new URL(getUrl());

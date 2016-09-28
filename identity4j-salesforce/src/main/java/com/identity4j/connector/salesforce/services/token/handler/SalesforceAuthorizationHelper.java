@@ -1,11 +1,7 @@
 package com.identity4j.connector.salesforce.services.token.handler;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
-import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Date;
@@ -15,6 +11,10 @@ import java.util.Map;
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.salesforce.SalesforceConfiguration;
 import com.identity4j.util.StringUtil;
+import com.identity4j.util.http.Http;
+import com.identity4j.util.http.HttpPair;
+import com.identity4j.util.http.HttpProviderClient;
+import com.identity4j.util.http.HttpResponse;
 import com.identity4j.util.xml.XMLDataExtractor;
 import com.identity4j.util.xml.XMLDataExtractor.Node;
 
@@ -26,8 +26,6 @@ import com.identity4j.util.xml.XMLDataExtractor.Node;
  */
 public class SalesforceAuthorizationHelper {
 
-	private static final String POST = "POST";
-	
 	private SalesforceAuthorizationHelper(){}
 	
 	/**
@@ -103,56 +101,39 @@ public class SalesforceAuthorizationHelper {
 	 * @throws IOException
 	 */
 	private Token tokenFetcher(URL url,String data) throws IOException{
-		OutputStreamWriter wr = null;
-		BufferedReader rd = null;
 		try {
-
-			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-			conn.setRequestProperty(SalesforceConfiguration.CONTENT_TYPE, SalesforceConfiguration.contentTypeXML);
-			conn.setRequestProperty(SalesforceConfiguration.SOAP_ACTION, SalesforceConfiguration.soapActionLogin);
-			conn.setConnectTimeout(60000);
-			conn.setRequestMethod(POST);
-
-			conn.setDoOutput(true);
-
-			wr = new OutputStreamWriter(conn.getOutputStream());
-			wr.write(data);
-			wr.flush();
-
-			rd = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-
-			String line, response = "";
-
-			while ((line = rd.readLine()) != null) {
-				response += line;
+			HttpProviderClient client = Http.getProvider().getClient(url.toExternalForm(), null, null, null);
+			client.setConnectTimeout(60000);
+			HttpResponse resp = client.post(null,
+					Arrays.asList(new HttpPair("grant_type", "authorization_code")),
+					new HttpPair(SalesforceConfiguration.CONTENT_TYPE, SalesforceConfiguration.contentTypeXML),
+					new HttpPair(SalesforceConfiguration.SOAP_ACTION, SalesforceConfiguration.soapActionLogin));
+			try {
+				Token token = new Token();
+				Map<String, Node> tokenNodes = XMLDataExtractor.getInstance()
+						.extract(
+								resp.contentString(),
+								new HashSet<String>(Arrays.asList("sessionId","userName",
+										"userEmail", "userId", "sessionSecondsValid")));
+				if(tokenNodes.get("sessionId") == null){
+					throw new IllegalStateException("Session id not found");
+				}
+				token.setIssuedAt(new Date());
+				token.setUserName(tokenNodes.get("userName").getNodeValue());
+				token.setSessionId(tokenNodes.get("sessionId").getNodeValue());
+				token.setUserEmail(tokenNodes.get("userEmail").getNodeValue());
+				token.setUserId(tokenNodes.get("userId").getNodeValue());
+				token.setValidSeconds(Long.parseLong(tokenNodes.get("sessionSecondsValid").getNodeValue()));
+				
+				return token;
+			} finally {
+				resp.release();
 			}
 			
-			Token token = new Token();
-			Map<String, Node> tokenNodes = XMLDataExtractor.getInstance()
-					.extract(
-							response,
-							new HashSet<String>(Arrays.asList("sessionId","userName",
-									"userEmail", "userId", "sessionSecondsValid")));
-			if(tokenNodes.get("sessionId") == null){
-				throw new IllegalStateException("Session id not found");
-			}
-			token.setIssuedAt(new Date());
-			token.setUserName(tokenNodes.get("userName").getNodeValue());
-			token.setSessionId(tokenNodes.get("sessionId").getNodeValue());
-			token.setUserEmail(tokenNodes.get("userEmail").getNodeValue());
-			token.setUserId(tokenNodes.get("userId").getNodeValue());
-			token.setValidSeconds(Long.parseLong(tokenNodes.get("sessionSecondsValid").getNodeValue()));
-			
-			return token;
 
 		} catch (Exception e) {
 			throw new ConnectorException("Error generating token.", e);
-		} finally {
-			if (wr != null)
-				wr.close();
-			if (rd != null)
-				rd.close();
-		}
+		} 
 	}
 	
 	/**

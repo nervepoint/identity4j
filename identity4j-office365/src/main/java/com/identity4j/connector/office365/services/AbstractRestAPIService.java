@@ -3,15 +3,15 @@ package com.identity4j.connector.office365.services;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-
-import org.apache.http.client.methods.HttpRequestBase;
+import java.util.LinkedList;
+import java.util.List;
 
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.office365.Office365Configuration;
 import com.identity4j.connector.office365.services.token.handler.ADToken;
+import com.identity4j.util.http.HttpPair;
+import com.identity4j.util.http.HttpResponse;
 import com.identity4j.util.http.request.HttpRequestHandler;
-import com.identity4j.util.http.request.HttpRequestHandler.HTTPHook;
-import com.identity4j.util.http.response.HttpResponse;
 import com.identity4j.util.json.JsonMapperService;
 
 /**
@@ -27,14 +27,6 @@ public abstract class AbstractRestAPIService {
 	protected Office365Configuration office365Configuration;
 	protected ADToken token;
 	
-	protected final HTTPHook HEADER_HTTP_HOOK = new HTTPHook() {
-		@Override
-		public void apply(HttpRequestBase httpRequestBase) {
-			setAuthHeaders(httpRequestBase);
-			httpRequestBase.setHeader(Office365Configuration.CONTENT_TYPE,Office365Configuration.contentTypeJSON);
-		}
-	};
-	
 	AbstractRestAPIService(ADToken token, HttpRequestHandler httpRequestHandler,Office365Configuration serviceConfiguration){
 		this.httpRequestHandler = httpRequestHandler;
 		this.token = token;
@@ -45,7 +37,8 @@ public abstract class AbstractRestAPIService {
 	 * Utility function to set authorization with current JWT token.
 	 * @param request
 	 */
-	protected void setAuthHeaders(HttpRequestBase request) {
+	protected List<HttpPair> getHeaders() {
+		List<HttpPair> h = new LinkedList<HttpPair>();
 		if(token.willExpireIn(2)){
 			try {
 				TokenHolder.refreshToken(token, office365Configuration);
@@ -53,7 +46,9 @@ public abstract class AbstractRestAPIService {
 				throw new ConnectorException("Problem in getting new token.",e);
 			}
 		}
-		request.setHeader(Office365Configuration.AUTHORIZATION_HEADER,	token.getBearerAccessToken());
+		h.add(new HttpPair(Office365Configuration.AUTHORIZATION_HEADER,	token.getBearerAccessToken()));
+		h.add(new HttpPair(Office365Configuration.CONTENT_TYPE,Office365Configuration.contentTypeJSON));
+		return h;
 	}
 
 	/**
@@ -76,7 +71,7 @@ public abstract class AbstractRestAPIService {
 	 * @param httpResponse
 	 */
 	protected void throwAppException(HttpResponse httpResponse) {
-		AppErrorMessage appErrorMessage = JsonMapperService.getInstance().getObject(AppErrorMessage.class, httpResponse.getData().toString().replaceAll("odata.error", "error"));
+		AppErrorMessage appErrorMessage = JsonMapperService.getInstance().getObject(AppErrorMessage.class, httpResponse.contentString().replaceAll("odata.error", "error"));
 		throw new ConnectorException(appErrorMessage.getError().getCode() + ":" + appErrorMessage.getError().getMessage().getValue());
 	}
 }

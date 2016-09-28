@@ -20,8 +20,9 @@ import com.identity4j.connector.salesforce.entity.Users;
 import com.identity4j.connector.salesforce.services.token.handler.SalesforceAuthorizationHelper;
 import com.identity4j.connector.salesforce.services.token.handler.Token;
 import com.identity4j.util.StringUtil;
+import com.identity4j.util.http.HttpPair;
+import com.identity4j.util.http.HttpResponse;
 import com.identity4j.util.http.request.HttpRequestHandler;
-import com.identity4j.util.http.response.HttpResponse;
 import com.identity4j.util.json.JsonMapperService;
 
 /**
@@ -82,16 +83,20 @@ public class UserService extends AbstractRestAPIService{
 	 * @return
 	 */
 	public User getByGuid(String guid){
-		HttpResponse response = httpRequestHandler.handleRequestGet(constructURI(String.format("User/%s", guid)), HEADER_HTTP_HOOK);
-		
-		if(response.getHttpStatusCodes().getStatusCode().intValue() == 404){
-			throw new PrincipalNotFoundException(guid + " not found.",null,PrincipalType.user);
+		HttpResponse response = httpRequestHandler.handleRequestGet(constructURI(String.format("User/%s", guid)), getHeaders().toArray(new HttpPair[0]));
+		try {
+			if(response.status().getCode() == 404){
+				throw new PrincipalNotFoundException(guid + " not found.",null,PrincipalType.user);
+			}
+			
+			User user =  JsonMapperService.getInstance().getObject(User.class, response.contentString());
+			probeGroupMembers(user);
+			
+			return user;
 		}
-		
-		User user =  JsonMapperService.getInstance().getObject(User.class, response.getData().toString());
-		probeGroupMembers(user);
-		
-		return user;
+		finally {
+			response.release();
+		}
 	}
 	
 	
@@ -109,24 +114,29 @@ public class UserService extends AbstractRestAPIService{
 		HttpResponse response = httpRequestHandler.handleRequestGet(
 				constructSOQLURI(String.format(
 						serviceConfiguration.getGetByNameUserQuery(),
-						USER_ATTRIBUTES, name)), HEADER_HTTP_HOOK);
+						USER_ATTRIBUTES, name)), getHeaders().toArray(new HttpPair[0]));
 		
-		if(response.getHttpStatusCodes().getStatusCode().intValue() == 404){
-			throw new PrincipalNotFoundException(name + " not found.",null,PrincipalType.user);
+		try {		
+			if(response.status().getCode() == 404){
+				throw new PrincipalNotFoundException(name + " not found.",null,PrincipalType.user);
+			}
+			
+			@SuppressWarnings("unchecked")
+			List<String> records = (List<String>) JsonMapperService.getInstance().getJsonProperty(response.contentString(), "records");
+			
+			if(records.isEmpty()){
+				throw new PrincipalNotFoundException(name + " not found.",null,PrincipalType.user);
+			}
+			
+			User user = JsonMapperService.getInstance().convert(records.get(0), User.class);
+			
+			probeGroupMembers(user);
+			
+			return user;
 		}
-		
-		@SuppressWarnings("unchecked")
-		List<String> records = (List<String>) JsonMapperService.getInstance().getJsonProperty(response.getData().toString(), "records");
-		
-		if(records.isEmpty()){
-			throw new PrincipalNotFoundException(name + " not found.",null,PrincipalType.user);
+		finally {
+			response.release();
 		}
-		
-		User user = JsonMapperService.getInstance().convert(records.get(0), User.class);
-		
-		probeGroupMembers(user);
-		
-		return user;
 	}
 	
 	
@@ -140,9 +150,13 @@ public class UserService extends AbstractRestAPIService{
 	public Users all(){
 		HttpResponse response = httpRequestHandler.handleRequestGet(
 				constructSOQLURI(String.format(serviceConfiguration.getGetAllUsers(),
-						USER_ATTRIBUTES)),HEADER_HTTP_HOOK);
-		
-		return JsonMapperService.getInstance().getObject(Users.class, response.getData().toString());
+						USER_ATTRIBUTES)),getHeaders().toArray(new HttpPair[0]));
+		try {
+			return JsonMapperService.getInstance().getObject(Users.class, response.contentString());
+		}
+		finally {
+			response.release();
+		}
 	}
 	
 	/**
@@ -225,15 +239,15 @@ public class UserService extends AbstractRestAPIService{
 			HttpResponse response = httpRequestHandler.handleRequestPatch(
 					constructURI(String.format("User/%s", id)),
 					JsonMapperService.getInstance().getJson(user),
-					HEADER_HTTP_HOOK);
+					getHeaders().toArray(new HttpPair[0]));
 			
-			if(response.getHttpStatusCodes().getStatusCode().intValue() == 404){
+			if(response.status().getCode() == 404){
 				throw new PrincipalNotFoundException(user.getId() + " not found.",null,PrincipalType.user);
 			}
 			
-			if(response.getHttpStatusCodes().getStatusCode().intValue() != 204){
+			if(response.status().getCode() != 204){
 				throw new ConnectorException("Problem in updating user as status code is not 204 is "
-						+ response.getHttpStatusCodes().getStatusCode().intValue() + " : " + response.getData());
+						+ response.status().getCode() + " : " + response.contentString());
 			}
 			
 		} catch (IOException e) {
@@ -257,10 +271,10 @@ public class UserService extends AbstractRestAPIService{
 		String passwordJson = String.format("{\"NewPassword\" : \"%s\"}",user.getPassword());
 		HttpResponse response = httpRequestHandler.handleRequestPost(
 				constructURI(String.format("User/%s/password", user.getId())),
-				passwordJson, HEADER_HTTP_HOOK);
+				passwordJson, getHeaders().toArray(new HttpPair[0]));
 		
-		if(response.getHttpStatusCodes().getStatusCode().intValue() != 204){
-			throw new ConnectorException("Problem in creating principal reason : " + response.getData());
+		if(response.status().getCode() != 204){
+			throw new ConnectorException("Problem in creating principal reason : " + response.contentString());
 		}
 	}
 	
@@ -312,11 +326,10 @@ public class UserService extends AbstractRestAPIService{
 	private void handleUserCreation(User user) throws IOException {
 		HttpResponse response = httpRequestHandler
 				.handleRequestPost(constructURI("User"), JsonMapperService
-						.getInstance().getJson(user), HEADER_HTTP_HOOK);
+						.getInstance().getJson(user), getHeaders().toArray(new HttpPair[0]));
 
 		probeUserCreationException(user, response);
-		
-		String id = JsonMapperService.getInstance().getJsonProperty(response.getData().toString(), "id").toString();
+		String id = JsonMapperService.getInstance().getJsonProperty(response.contentString(), "id").toString();
 		user.setId(id);
 	}
 
@@ -328,16 +341,16 @@ public class UserService extends AbstractRestAPIService{
 	 * @param response
 	 */
 	private void probeUserCreationException(User user, HttpResponse response) {
-		if(response.getHttpStatusCodes().getStatusCode().intValue() != 201){
+		if(response.status().getCode() != 201){
 			List<AppErrorMessage> appErrorMessages = JsonMapperService.getInstance().
-					getObject(new TypeReference<List<AppErrorMessage>>() {}, response.getData().toString());
+					getObject(new TypeReference<List<AppErrorMessage>>() {}, response.contentString());
 			for (AppErrorMessage appErrorMessage : appErrorMessages) {
 				if("DUPLICATE_USERNAME".equals(appErrorMessage.errorCode)){
 					throw new PrincipalAlreadyExistsException("Principal already exists by username " + user.getUsername());
 				}
 			}
 			
-			throw new ConnectorException("Problem in creating principal reason : " + response.getData());
+			throw new ConnectorException("Problem in creating principal reason : " + response.contentString());
 		}
 	}
 	

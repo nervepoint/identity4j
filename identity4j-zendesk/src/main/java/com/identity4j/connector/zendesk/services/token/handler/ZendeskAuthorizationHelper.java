@@ -1,15 +1,14 @@
 package com.identity4j.connector.zendesk.services.token.handler;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.Date;
 
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.zendesk.ZendeskConfiguration;
+import com.identity4j.util.http.Http;
+import com.identity4j.util.http.HttpPair;
+import com.identity4j.util.http.HttpProviderClient;
+import com.identity4j.util.http.HttpResponse;
 import com.identity4j.util.json.JsonMapperService;
 
 
@@ -52,46 +51,27 @@ public class ZendeskAuthorizationHelper {
 	 * @throws IOException
 	 */
 	public Token getOAuthAccessToken(String userName,String password) throws IOException  {
-			
-			OutputStreamWriter wr = null;
-			BufferedReader rd = null;
+		
+		try {
+			HttpProviderClient client = Http.getProvider().getClient(String.format(oAuthUrl, subDomain), null, null, null);
+			client.setConnectTimeout(60000);
+			HttpResponse resp = client.post(null,
+					String.format(passwordAccessJSON, clientId,clientSecret,scope,userName,password),
+					new HttpPair(ZendeskConfiguration.CONTENT_TYPE, ZendeskConfiguration.contentTypeJSON));
 			try {
-				URL url = null;
-				
-				String data = String.format(passwordAccessJSON, clientId,clientSecret,scope,userName,password);
-		            
-				url = new URL(String.format(oAuthUrl, subDomain));
-				
-				HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-				conn.setConnectTimeout(60000);
-				conn.setRequestMethod(ZendeskConfiguration.POST);
-				conn.setRequestProperty(ZendeskConfiguration.CONTENT_TYPE,ZendeskConfiguration.contentTypeJSON);
-				
-				conn.setDoOutput(true);
-				
-				wr = new OutputStreamWriter(conn.getOutputStream());
-				wr.write(data);
-				wr.flush();
-				
-				rd = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-				
-				String line, response = "";
-				
-				while((line=rd.readLine()) != null){
-					response += line;
-				}
-				
-				Token token =  JsonMapperService.getInstance().getObject(Token.class, response);
+				Token token =  JsonMapperService.getInstance().getObject(Token.class, resp.contentString());
 				token.setIssuedAt(new Date());
 				return token;
-				
-			} catch (Exception e) {
-				throw new ConnectorException("Error generating token.", e);
-			} finally{
-				if(wr != null) wr.close();
-				if(rd != null) rd.close();
+			} finally {
+				resp.release();
 			}
-		}
+			
+
+		} catch (Exception e) {
+			throw new ConnectorException("Error generating token.", e);
+		} 
+			
+	}
 
 	public String getClientId() {
 		return clientId;

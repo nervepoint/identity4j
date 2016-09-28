@@ -7,8 +7,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import com.identity4j.util.http.request.HttpRequestHandler.HTTPHook;
-import com.identity4j.util.http.response.HttpResponse;
+import com.identity4j.util.http.HttpResponse;
 
 public class HttpRequestHandlerTest {
 
@@ -19,13 +18,23 @@ public class HttpRequestHandlerTest {
 	
 	@Test
 	public void itShouldFetchDataWithStatusCode200ForValidContent() throws Exception {
-		HttpResponse httpResponse = HTTP_REQUEST_HANDLER.handleRequestGet(new URI("https://www.google.com"), HTTPHook.EMPTY_HOOK);
-		Assert.assertEquals("Should be HTTP status OK", 200,httpResponse.getHttpStatusCodes().getStatusCode().intValue());
+		HttpResponse httpResponse = HTTP_REQUEST_HANDLER.handleRequestGet(new URI("https://www.google.com"));
+		try {
+			Assert.assertEquals("Should be HTTP status OK", 200,httpResponse.status().getCode());
+		}
+		finally {
+			httpResponse.release();
+		}
 	}
 	
 	@Test
 	public void itShouldThrowHttpResponseExceptionWithStatusCode404ForNonExistingContent() throws Exception {
-		HttpResponse httpResponse = HTTP_REQUEST_HANDLER.handleRequestGet(new URI("https://www.google.com/abc"), HTTPHook.EMPTY_HOOK);
-		Assert.assertEquals("Should be HTTP status OK", 404,httpResponse.getHttpStatusCodes().getStatusCode().intValue());
+		HttpResponse httpResponse = HTTP_REQUEST_HANDLER.handleRequestGet(new URI("https://www.google.com/abc"));
+		try {
+			Assert.assertEquals("Should be HTTP status OK", 404,httpResponse.status().getCode());
+		}
+		finally {
+			httpResponse.release();
+		}
 	}
 }

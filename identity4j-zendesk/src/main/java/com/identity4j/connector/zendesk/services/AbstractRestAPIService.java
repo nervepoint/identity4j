@@ -2,16 +2,16 @@ package com.identity4j.connector.zendesk.services;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.LinkedList;
 import java.util.List;
 
-import org.apache.http.client.methods.HttpRequestBase;
 import org.codehaus.jackson.type.TypeReference;
 
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.zendesk.ZendeskConfiguration;
+import com.identity4j.util.http.HttpPair;
+import com.identity4j.util.http.HttpResponse;
 import com.identity4j.util.http.request.HttpRequestHandler;
-import com.identity4j.util.http.request.HttpRequestHandler.HTTPHook;
-import com.identity4j.util.http.response.HttpResponse;
 import com.identity4j.util.json.JsonMapperService;
 
 /**
@@ -25,24 +25,18 @@ public abstract class AbstractRestAPIService {
 
 	protected HttpRequestHandler httpRequestHandler;
 	protected ZendeskConfiguration serviceConfiguration;
-	protected final HTTPHook HEADER_HTTP_HOOK = new HTTPHook() {
-		@Override
-		public void apply(HttpRequestBase httpRequestBase) {
-			setAuthHeaders(httpRequestBase);
-			httpRequestBase.setHeader(ZendeskConfiguration.CONTENT_TYPE,ZendeskConfiguration.contentTypeJSON);
-		}
-	};
 	
 	AbstractRestAPIService(HttpRequestHandler httpRequestHandler,ZendeskConfiguration serviceConfiguration){
 		this.httpRequestHandler = httpRequestHandler;
 		this.serviceConfiguration = serviceConfiguration;
 	}
-	
 	/**
 	 * Utility function to set authorization with current JWT token.
+	 * 
 	 * @param request
 	 */
-	protected void setAuthHeaders(HttpRequestBase request) {
+	protected List<HttpPair> getHeaders() {
+		List<HttpPair> h = new LinkedList<HttpPair>();
 		if(TokenHolder.getInstance().getToken().hasPassed(Integer.parseInt(serviceConfiguration.getOAuthTokenValidMinutes()))){
 			try{
 				TokenHolder.getInstance().initToken(serviceConfiguration);
@@ -50,11 +44,12 @@ public abstract class AbstractRestAPIService {
 				throw new ConnectorException("Problem in getting new token.",e);
 			}
 		}
-		request.setHeader(ZendeskConfiguration.AUTHORIZATION_HEADER,
-				TokenHolder.getInstance().getToken().getBearerAccessToken());
-		request.setHeader(ZendeskConfiguration.ACCEPT,ZendeskConfiguration.contentTypeJSON);
+		h.add(new HttpPair(ZendeskConfiguration.AUTHORIZATION_HEADER,
+				TokenHolder.getInstance().getToken().getBearerAccessToken()));
+		h.add(new HttpPair(ZendeskConfiguration.CONTENT_TYPE, ZendeskConfiguration.contentTypeJSON));
+		return h;
 	}
-
+	
 	/**
 	 * Utility function to construct REST API service urls.
 	 * @param path
@@ -101,7 +96,7 @@ public abstract class AbstractRestAPIService {
 	 */
 	protected void throwAppException(HttpResponse httpResponse) {
 		List<AppErrorMessage> appErrorMessages = JsonMapperService.getInstance().
-				getObject(new TypeReference<List<AppErrorMessage>>() {}, httpResponse.getData().toString());
+				getObject(new TypeReference<List<AppErrorMessage>>() {}, httpResponse.contentString());
 		throw new ConnectorException(appErrorMessages.toString());
 	}
 }
