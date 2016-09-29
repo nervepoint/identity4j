@@ -2,6 +2,8 @@ package com.identity4j.connector.script.ssh.j2ssh;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -12,7 +14,7 @@ import com.identity4j.connector.script.ssh.SshClientWrapper;
 import com.identity4j.connector.script.ssh.SshClientWrapperFactory;
 import com.identity4j.connector.script.ssh.SshConfiguration;
 import com.identity4j.util.StringUtil;
-import com.sshtools.net.SocketTransport;
+import com.sshtools.net.SocketWrapper;
 import com.sshtools.publickey.InvalidPassphraseException;
 import com.sshtools.publickey.SshPrivateKeyFile;
 import com.sshtools.publickey.SshPrivateKeyFileFactory;
@@ -24,6 +26,7 @@ import com.sshtools.ssh.SshClient;
 import com.sshtools.ssh.SshConnector;
 import com.sshtools.ssh.SshException;
 import com.sshtools.ssh.SshIOException;
+import com.sshtools.ssh.SshTransport;
 import com.sshtools.ssh.components.SshKeyPair;
 
 public class DefaultSshClientWrapperFactory implements SshClientWrapperFactory {
@@ -41,7 +44,10 @@ public class DefaultSshClientWrapperFactory implements SshClientWrapperFactory {
 			SshConnector con = SshConnector.createInstance();
 			LOG.info("Making SSH to " + config.getHost() + ":" + config.getPort() + " for user "
 				+ config.getServiceAccountUsername());
-			final SocketTransport socketTransport = new SocketTransport(config.getHost(), config.getPort());
+			Socket socket = new Socket();
+			final SshTransport socketTransport = new SocketWrapper(socket); 
+			
+			socket.connect(new InetSocketAddress(config.getHost(), config.getPort()), config.getConnectTimeout());
 
 			client = con.connect(socketTransport, config.getServiceAccountUsername(), true);
 
