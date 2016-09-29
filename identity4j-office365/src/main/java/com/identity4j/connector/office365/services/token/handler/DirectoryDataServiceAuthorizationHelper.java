@@ -1,15 +1,15 @@
 package com.identity4j.connector.office365.services.token.handler;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.net.URLEncoder;
+import java.util.Arrays;
 
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.office365.Office365Configuration;
+import com.identity4j.util.http.Http;
+import com.identity4j.util.http.HttpPair;
+import com.identity4j.util.http.HttpProviderClient;
+import com.identity4j.util.http.HttpResponse;
 import com.identity4j.util.json.JsonMapperService;
 
 /**
@@ -45,55 +45,30 @@ public class DirectoryDataServiceAuthorizationHelper {
 			String clientKey) throws IOException {
 
 		OutputStreamWriter wr = null;
-		BufferedReader rd = null;
 		try {
 			stsUrl = String.format(stsUrl, tenantName);
-			URL url = null;
+			HttpProviderClient client = Http.getProvider().getClient(stsUrl, null, null, null);
+			client.setConnectTimeout(60000);
+			HttpResponse resp = client.post(null,
+					Arrays.asList(
+							new HttpPair("grant_type", "client_credentials"),
+							new HttpPair("resource", graphPrincipalId), 
+							new HttpPair("client_id", principalId),
+							new HttpPair("client_secret", clientKey)),
+					new HttpPair("Content-Type", "application/x-www-form-urlencoded"));
+			try {
 
-			String data = null;
-
-			data = "grant_type=client_credentials";
-			data += "&resource=" + URLEncoder.encode(graphPrincipalId, "UTF-8");
-			data += "&client_id=" + URLEncoder.encode(principalId, "UTF-8");
-			data += "&client_secret=" + URLEncoder.encode(clientKey, "UTF-8");
-
-			url = new URL(stsUrl);
-
-			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-			conn.setConnectTimeout(60000);
-			conn.setRequestMethod("POST");
-			conn.setRequestProperty("Content-Type",
-					"application/x-www-form-urlencoded");
-
-			conn.setDoOutput(true);
-
-			wr = new OutputStreamWriter(conn.getOutputStream());
-			wr.write(data);
-			wr.flush();
-
-			rd = new BufferedReader(
-					new InputStreamReader(conn.getInputStream()));
-
-			String line, response = "";
-
-			while ((line = rd.readLine()) != null) {
-				response += line;
+				return JsonMapperService.getInstance().getObject(ADToken.class, resp.contentString());
+			} finally {
+				resp.release();
 			}
 
-			return JsonMapperService.getInstance().getObject(ADToken.class,
-					response);
-
 		} catch (Exception e) {
-			throw new ConnectorException(
-					Office365Configuration.ErrorGeneratingToken
-							+ ":"
-							+ Office365Configuration.ErrorGeneratingTokenMessage,
-					e);
+			throw new ConnectorException(Office365Configuration.ErrorGeneratingToken + ":"
+					+ Office365Configuration.ErrorGeneratingTokenMessage, e);
 		} finally {
 			if (wr != null)
 				wr.close();
-			if (rd != null)
-				rd.close();
 		}
 	}
 

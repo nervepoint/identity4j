@@ -1006,7 +1006,7 @@ public class GoogleConnector extends AbstractConnector {
 				// ByteArrayInputStream(json.getBytes("UTF-8")),
 				// createTransport(), JSON_FACTORY);
 				// credential = credential.createScoped(scopes);
-
+ 
 				/*
 				 * Grrr... CANT just use that, because there is no way to
 				 * setServiceAccountUser()! Without this, will not get high
@@ -1016,7 +1016,9 @@ public class GoogleConnector extends AbstractConnector {
 				 */
 
 				JsonObjectParser parser = new JsonObjectParser(JSON_FACTORY);
-				GenericJson fileContents = parser.parseAndClose(new ByteArrayInputStream(json.getBytes("UTF-8")),
+				byte[] jsonStr = json.getBytes("UTF-8");
+				System.out.println(">> " + new String(jsonStr));
+				GenericJson fileContents = parser.parseAndClose(new ByteArrayInputStream(jsonStr),
 						Charset.forName("UTF-8"), GenericJson.class);
 				String fileType = (String) fileContents.get("type");
 				if (fileType == null) {
@@ -1116,9 +1118,11 @@ public class GoogleConnector extends AbstractConnector {
 	}
 
 	public static HttpTransport createTransport() throws GeneralSecurityException, IOException {
-		return "true".equals(System.getProperty("identity4j.google.useApacheTransport"))
-				? new ApacheHttpTransport(ApacheHttpTransport.newDefaultHttpClient())
-				: GoogleNetHttpTransport.newTrustedTransport();
+		return "true".equals(System.getProperty("identity4j.google.useIdentity4JTransport", "true"))
+				? new Identity4JHTTPTransport()
+				: ("true".equals(System.getProperty("identity4j.google.useApacheTransport"))
+						? new ApacheHttpTransport(ApacheHttpTransport.newDefaultHttpClient())
+						: GoogleNetHttpTransport.newTrustedTransport());
 	}
 
 	/**

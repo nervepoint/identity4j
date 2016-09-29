@@ -64,6 +64,9 @@ public static AADJWTToken getOAuthAccessTokenFromACS(String tenantName,String gr
 		BufferedReader rd = null;
 		try {
 			stsUrl = String.format(stsUrl,tenantName);	
+			
+			
+			
 			URL url = null;
 			
 			String data = null;
