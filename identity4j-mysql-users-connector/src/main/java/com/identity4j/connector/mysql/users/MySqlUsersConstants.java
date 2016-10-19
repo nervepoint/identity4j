@@ -6,7 +6,7 @@ public interface MySqlUsersConstants {
 	String EMPTY_STRING = "";
 	
 	//GRANTS access key for attributes map in identity
-	String USER_ACCESS = "USER_ACCESS";
+	String USER_ACCESS = "userAccess";
 	
 	//MY SQL User Table Columns
 	String USER_TABLE_USER_COLUMN = "User";

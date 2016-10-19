@@ -7,6 +7,7 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -17,7 +18,10 @@ import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.exception.PrincipalNotFoundException;
 import com.identity4j.connector.jdbc.JDBCConnector;
 import com.identity4j.connector.jdbc.JDBCIdentity;
+import com.identity4j.connector.principal.AccountStatus;
 import com.identity4j.connector.principal.Identity;
+import com.identity4j.connector.principal.PasswordStatus;
+import com.identity4j.connector.principal.PasswordStatusType;
 import com.identity4j.util.CollectionUtil;
 import com.identity4j.util.StringUtil;
 
@@ -39,6 +43,7 @@ import com.identity4j.util.StringUtil;
  *
  */
 public class MySQLUsersConnector extends JDBCConnector{
+	private final static long DAY = 60000 * 60 * 24;
 	
 	private static Set<ConnectorCapability> capabilities = new HashSet<ConnectorCapability>(Arrays.asList(new ConnectorCapability[] { 
 			ConnectorCapability.passwordChange,
@@ -190,9 +195,33 @@ public class MySQLUsersConnector extends JDBCConnector{
 								.getString(MySqlUsersConstants.USER_TABLE_USER_COLUMN),
 						host);
 		identity = new JDBCIdentity(principalName,principalName);
-		//check identity is enabled or disabled
-		identity.getAccountStatus().setDisabled(resultSet.getString(MySqlUsersConstants.USER_TABLE_HOST_COLUMN).
+		
+		//check identity is enabled or disabled. Later MySQL version support accout_locked too
+		AccountStatus accountStatus = identity.getAccountStatus();
+		accountStatus.setDisabled(resultSet.getString(MySqlUsersConstants.USER_TABLE_HOST_COLUMN).
 				startsWith(getMySQLUserConfiguration().getDisableFlag()));
+		if(hasColumn(resultSet, "account_locked") && resultSet.getString("account_locked").equalsIgnoreCase("y")) {
+			accountStatus.setLocked(new Date(0));
+		}		
+		accountStatus.calculateType();
+		
+		// Password status. Later MySQL has expiry/last change we can get
+		PasswordStatus passwordStatus = identity.getPasswordStatus();
+		if(hasColumn(resultSet, "password_last_changed")) {
+			passwordStatus.setLastChange(resultSet.getTimestamp("password_last_changed"));
+			if(hasColumn(resultSet, "password_lifetime")) {
+				long lifetime = (long)resultSet.getInt("password_lifetime");
+				if(lifetime > 0)
+					passwordStatus.setExpire(new Date(passwordStatus.getLastChange().getTime() + ( DAY * lifetime ) ));
+			}
+		}
+		passwordStatus.calculateType();
+		
+		// Double check password expired. I don't think this be strictly necessary but is worth doing just in case
+		if(hasColumn(resultSet, "password_expired")  && resultSet.getString("password_expired").equalsIgnoreCase("y") && passwordStatus.getType() != PasswordStatusType.expired) {
+			passwordStatus.setExpire(new Date(0));
+			passwordStatus.calculateType();
+		}		
 		
 		//fetch all grants
 		identity.setAttribute(MySqlUsersConstants.USER_ACCESS, fetchGrants(resultSet
