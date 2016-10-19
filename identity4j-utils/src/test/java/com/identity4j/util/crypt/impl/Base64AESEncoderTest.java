@@ -8,9 +8,9 @@ public class Base64AESEncoderTest extends AbstractEncoderTest {
 
     public Base64AESEncoderTest() throws UnsupportedEncodingException {
         super(Base64AESEncoder.ID, true, false);
-        setExpectedHashes(new byte[][] { "AIAEAAAQAAAAAAAAAAAAAAAAAAAAANPDeZLiZid8k0RClKj5s04=".getBytes("UTF-8"),
-                        "AIAEAAAQAAAAAAAAAAAAAAAAAAAAANbbIKN0h0wNA1kR+8Pa/wUw47CYjxfoaIH6wdlJqMPf".getBytes("UTF-8"),
-                        "AIAEAAAQAAAAAAAAAAAAAAAAAAAAAH51lauQf7MOtYe9u2FtPMQpM6ajsPhFLnyTWGVn/WOZIbnPXlU2q1HkXUgKN3DXKA==".getBytes("UTF-8") });
+        setExpectedHashes(new byte[][] { "AIAAAAAABAAAEAAAAAAAAAAAAAAAAAAAAADTw3mS4mYnfJNEQpSo+bNO".getBytes("UTF-8"),
+                        "AIAAAAAABAAAEAAAAAAAAAAAAAAAAAAAAADW2yCjdIdMDQNZEfvD2v8FMOOwmI8X6GiB+sHZSajD3w==".getBytes("UTF-8"),
+                        "AIAAAAAABAAAEAAAAAAAAAAAAAAAAAAAAAB+dZWrkH+zDrWHvbthbTzEKTOmo7D4RS58k1hlZ/1jmSG5z15VNqtR5F1ICjdw1yg=".getBytes("UTF-8") });
         setPassphrases(
             new byte[][] { "password1".getBytes("UTF-8"), "password2".getBytes("UTF-8"), "password3".getBytes("UTF-8") });
         setSalts(new byte[][] { new byte[0], new byte[0], new byte[0] });

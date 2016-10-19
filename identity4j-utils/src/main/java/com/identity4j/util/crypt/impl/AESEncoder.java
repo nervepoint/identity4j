@@ -58,7 +58,7 @@ public class AESEncoder extends RawAESEncoder {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         DataOutputStream dos = new DataOutputStream(baos);
         dos.writeShort(keyLength);
-        dos.writeShort(0); // Old 2 byte iterations count. Zero means next byte is integer iterations
+        dos.writeShort(0); // Old 2 byte iterations count
         dos.writeInt(iterations);
         dos.writeShort(salt.length);
         dos.write(salt);
@@ -75,13 +75,16 @@ public class AESEncoder extends RawAESEncoder {
             ByteArrayInputStream bain = new ByteArrayInputStream(toDecode);
             DataInputStream din = new DataInputStream(bain);
             int keyLength = din.readShort();
+            int offset = 6;
             int iterations = din.readShort();
-            if(iterations == 0)
-            	iterations = din.readInt();
+            if(iterations == 0) {
+                iterations = din.readInt();
+                offset += 4;
+            }
             int saltLen = din.readShort();
             salt = new byte[saltLen];
             din.readFully(salt);
-            byte[] data = new byte[toDecode.length - 6 - saltLen];
+            byte[] data = new byte[toDecode.length - offset - saltLen];
             din.readFully(data);
             SecretKey secret = getSecretKey(new String(passphrase, charset).toCharArray(), salt, keyLength, iterations);
             byte[] iv = new byte[cipher.getBlockSize()];
@@ -100,12 +103,15 @@ public class AESEncoder extends RawAESEncoder {
             DataInputStream din = new DataInputStream(bain);
             int keyLength = din.readShort();
             int iterations = din.readShort();
-            if(iterations == 0)
-            	iterations = din.readInt();
+            int offset = 6;
+            if(iterations == 0) {
+                iterations = din.readInt();
+                offset += 4;
+            }
             int saltLen = din.readShort();
             byte[] salt = new byte[saltLen];
             din.readFully(salt);
-            byte[] data = new byte[encodedData.length - 6 - saltLen];
+            byte[] data = new byte[encodedData.length - offset - saltLen];
             din.readFully(data);
             byte[] newEncoded = super.encode(unencodedData, salt, passphrase, charset, keyLength, iterations);
             return Arrays.equals(data, newEncoded);
