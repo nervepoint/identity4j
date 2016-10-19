@@ -1,6 +1,6 @@
 package com.identity4j.connector;
 
-public interface OAuth2<T extends ConnectorConfigurationParameters> extends WebAuthenticationAPI<T> {
+public interface OAuth2 extends WebAuthenticationAPI {
 	
 	String getAuthorizeUrl();
 }

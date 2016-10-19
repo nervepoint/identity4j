@@ -3,6 +3,9 @@ package com.identity4j.util.http;
 import java.util.Collection;
 
 public interface HttpProviderClient {
+	public enum CertificateRequirements {
+		STRICT,LOOSE,DEFAULT,NONE
+	}
 
 	HttpResponse get(String uri, HttpPair... header) throws HttpException;
 	
@@ -19,6 +22,8 @@ public interface HttpProviderClient {
 	HttpResponse put(String uri, HttpData data, HttpPair... headers);
 
 	HttpResponse delete(String uri, HttpPair... headers);
+	
+	void setCertificateRequirements(CertificateRequirements certRequirments);
 
 	void setSocketTimeout(int ms);
 

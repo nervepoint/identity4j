@@ -265,12 +265,14 @@ public class UserService extends AbstractRestAPIService {
 		GroupsAndRoles groupsAndRoles = new GroupsAndRoles();
 		Map<?, ?> groupsAndRolesMap = JsonMapperService.getInstance().getObject(Map.class, response.contentString());
 		List<?> groupsAndRolesList = (List<?>) groupsAndRolesMap.get("value");
-		for (Object object : groupsAndRolesList) {
-			Object type = ((Map<?, ?>) object).get("objectType");
-			if ("Group".equals(type.toString())) {
-				groupsAndRoles.groups.add(JsonMapperService.getInstance().convert(object, Group.class));
-			} else {
-				groupsAndRoles.roles.add(JsonMapperService.getInstance().convert(object, Role.class));
+		if (groupsAndRolesList != null) {
+			for (Object object : groupsAndRolesList) {
+				Object type = ((Map<?, ?>) object).get("objectType");
+				if ("Group".equals(type.toString())) {
+					groupsAndRoles.groups.add(JsonMapperService.getInstance().convert(object, Group.class));
+				} else {
+					groupsAndRoles.roles.add(JsonMapperService.getInstance().convert(object, Role.class));
+				}
 			}
 		}
 

@@ -387,6 +387,24 @@ public class DirectoryConfiguration extends AbstractConnectorConfiguration {
 	}
 
 	/**
+	 * The attribute name which is used to provide the identities primary role GUID.
+	 * 
+	 * @return identity role guid attribute
+	 */
+	public final String getIdentityRoleGuidAttribute() {
+		return configurationParameters.getStringOrNull("directory.identityRoleGuidAttribute");
+	}
+
+	/**
+	 * The attribute name which is used to provide the identities primary role name.
+	 * 
+	 * @return identity role name attribute
+	 */
+	public final String getIdentityRoleNameAttribute() {
+		return configurationParameters.getStringOrNull("directory.identityRoleNameAttribute");
+	}
+
+	/**
 	 * The attribute name which is used to set the identity password.
 	 * 
 	 * @return password attribute

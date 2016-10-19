@@ -4,6 +4,8 @@ package com.identity4j.connector;
 import java.util.Iterator;
 import java.util.Map;
 
+import javax.net.SocketFactory;
+
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.exception.InvalidLoginCredentialsException;
 import com.identity4j.connector.exception.PasswordChangeRequiredException;
@@ -22,12 +24,17 @@ public abstract class AbstractConnector implements Connector, ValidationContext 
 		throw new UnsupportedOperationException();
 	}
 	
+	@Override
+	public void setSocketFactory(SocketFactory socketFactory) {
+		throw new UnsupportedOperationException();
+	}
+
 	public Iterator<? extends PasswordCharacteristics> getPasswordPolicies() {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public WebAuthenticationAPI<?> startAuthentication() throws ConnectorException {
+	public WebAuthenticationAPI startAuthentication() throws ConnectorException {
 		throw new UnsupportedOperationException("This connector does not support integrated web authentication.");
 	}
 

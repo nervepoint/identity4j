@@ -57,8 +57,15 @@ public class DirectoryDataServiceAuthorizationHelper {
 							new HttpPair("client_secret", clientKey)),
 					new HttpPair("Content-Type", "application/x-www-form-urlencoded"));
 			try {
-
-				return JsonMapperService.getInstance().getObject(ADToken.class, resp.contentString());
+				int res = resp.status().getCode();
+				if(res == 200)
+					return JsonMapperService.getInstance().getObject(ADToken.class, resp.contentString());
+				else if(res == 401)
+					throw new ConnectorException(Office365Configuration.ErrorGeneratingToken + ":"
+							+ Office365Configuration.ErrorAuthenticatingForToken);
+				else
+					throw new ConnectorException(Office365Configuration.ErrorGeneratingToken + ":"
+							+ Office365Configuration.ErrorGeneratingTokenMessage + ". Response code " + res);
 			} finally {
 				resp.release();
 			}

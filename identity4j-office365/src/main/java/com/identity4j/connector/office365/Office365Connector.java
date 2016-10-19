@@ -235,8 +235,8 @@ public class Office365Connector extends AbstractConnector {
 	}
 
 	@Override
-	public WebAuthenticationAPI<?> startAuthentication() throws ConnectorException {
-		return new Office365OAuth();
+	public WebAuthenticationAPI startAuthentication() throws ConnectorException {
+		return new Office365OAuth(configuration);
 	}
 
 	/**

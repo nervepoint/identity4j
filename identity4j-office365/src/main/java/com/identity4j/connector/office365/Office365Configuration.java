@@ -84,7 +84,11 @@ public class Office365Configuration extends AbstractConnectorConfiguration{
     /**
      * The Error Message that would be shown to the User if ErrorConnectingRestService error is encountered.
      */
-    public static final String ErrorGeneratingTokenMessage = "Sorry! Error Generation was not successful. Please try again."; 
+    public static final String ErrorGeneratingTokenMessage = "Sorry! Token generation was not successful. Please try again."; 
+    /**
+     * The Error Message that would be shown to the User if ErrorConnectingRestService error is encountered.
+     */
+    public static final String ErrorAuthenticatingForToken= "Unauthorized. Please check configration, in particular your key, tenant domain and client ID.";
 
     /**
      * HTTP header content type
@@ -187,11 +191,13 @@ public class Office365Configuration extends AbstractConnectorConfiguration{
 	}
 	
 	public Set<String> getIncludedGroups() {
-		return new HashSet<String>(Arrays.asList(configurationParameters.getStringArrayOrDefault(OFFICE365_INCLUDED_GROUPS)));
+		String[] vals = configurationParameters.getStringArrayOrDefault(OFFICE365_INCLUDED_GROUPS);
+		return vals.length == 1 && vals[0].equals("") ? new HashSet<String>() : new HashSet<String>(Arrays.asList(vals));
 	}
 	
 	public Set<String> getExcludedGroups() {
-		return new HashSet<String>(Arrays.asList(configurationParameters.getStringArrayOrDefault(OFFICE365_EXCLUDED_GROUPS)));
+		String[] vals = configurationParameters.getStringArrayOrDefault(OFFICE365_EXCLUDED_GROUPS);
+		return vals.length == 1 && vals[0].equals("") ? new HashSet<String>() : new HashSet<String>(Arrays.asList(vals));
 	}
 
 	/**

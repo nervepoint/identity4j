@@ -19,6 +19,7 @@ import com.sshtools.publickey.InvalidPassphraseException;
 import com.sshtools.publickey.SshPrivateKeyFile;
 import com.sshtools.publickey.SshPrivateKeyFileFactory;
 import com.sshtools.ssh.ChannelOpenException;
+import com.sshtools.ssh.HostKeyVerification;
 import com.sshtools.ssh.PasswordAuthentication;
 import com.sshtools.ssh.PublicKeyAuthentication;
 import com.sshtools.ssh.SshAuthentication;
@@ -28,6 +29,7 @@ import com.sshtools.ssh.SshException;
 import com.sshtools.ssh.SshIOException;
 import com.sshtools.ssh.SshTransport;
 import com.sshtools.ssh.components.SshKeyPair;
+import com.sshtools.ssh.components.SshPublicKey;
 
 public class DefaultSshClientWrapperFactory implements SshClientWrapperFactory {
 
@@ -37,11 +39,19 @@ public class DefaultSshClientWrapperFactory implements SshClientWrapperFactory {
 	}
 
 	@Override
-	public SshClientWrapper createInstance(SshConfiguration config) {
+	public SshClientWrapper createInstance(final SshConfiguration config) {
 		
 		SshClient client = null;
 		try {
 			SshConnector con = SshConnector.createInstance();
+			if(config.getVerifier() != null)
+			con.getContext().setHostKeyVerification(new HostKeyVerification() {
+				
+				@Override
+				public boolean verifyHost(String host, SshPublicKey pk) throws SshException {
+					return config.getVerifier().verifyKey(host, config.getPort(), pk.getAlgorithm(), pk.getBitLength(), pk.getEncoded(), pk.getFingerprint());
+				}
+			});
 			LOG.info("Making SSH to " + config.getHost() + ":" + config.getPort() + " for user "
 				+ config.getServiceAccountUsername());
 			Socket socket = new Socket();

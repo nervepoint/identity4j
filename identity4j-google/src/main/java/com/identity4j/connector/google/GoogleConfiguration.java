@@ -124,7 +124,8 @@ public class GoogleConfiguration extends AbstractConnectorConfiguration{
 	 * @return orgunits to exclude
 	 */
 	public Collection<String> getIncludes() {
-		return Arrays.asList(configurationParameters.getStringArrayOrDefault(GOOGLE_INCLUDE_ORGUNITS, new String[0]));
+		String[] includes = configurationParameters.getStringArrayOrDefault(GOOGLE_INCLUDE_ORGUNITS, new String[0]);
+		return Arrays.asList(includes.length == 1 && includes[0].equals("") ? new String[0] : includes);
 	}
 	
 	/**
@@ -134,7 +135,8 @@ public class GoogleConfiguration extends AbstractConnectorConfiguration{
 	 * @return orgunits to exclude
 	 */
 	public Collection<String> getExcludes() {
-		return Arrays.asList(configurationParameters.getStringArrayOrDefault(GOOGLE_EXCLUDE_ORGUNITS, new String[0]));
+		String[] excludes = configurationParameters.getStringArrayOrDefault(GOOGLE_EXCLUDE_ORGUNITS, new String[0]);
+		return Arrays.asList(excludes.length == 1 && excludes[0].equals("") ? new String[0] : excludes);
 	}
 	
 	/**

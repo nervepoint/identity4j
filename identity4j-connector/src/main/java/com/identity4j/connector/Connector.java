@@ -5,6 +5,8 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
+import javax.net.SocketFactory;
+
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.exception.InvalidLoginCredentialsException;
 import com.identity4j.connector.exception.PrincipalNotFoundException;
@@ -85,7 +87,7 @@ public interface Connector {
 	 *         failure.
 	 * @throws ConnectorException
 	 */
-	WebAuthenticationAPI<? extends ConnectorConfigurationParameters> startAuthentication() throws ConnectorException;
+	WebAuthenticationAPI startAuthentication() throws ConnectorException;
 
 	/**
 	 * Check the given credentials but do not actually logon.
@@ -331,4 +333,12 @@ public interface Connector {
 	 * @throws UnsupportedOperationExcetion if not supported
 	 */
 	void install(Map<String, String> properties) throws Exception;
+
+	/**
+	 * Set the {@link SocketFactory} to use for this connector (if the connector
+	 * uses sockets and supports this feature).
+	 * 
+	 * @param socketFactory socket factory
+	 */
+	void setSocketFactory(SocketFactory socketFactory);
 }

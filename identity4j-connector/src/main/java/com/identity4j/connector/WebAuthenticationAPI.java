@@ -3,7 +3,7 @@ package com.identity4j.connector;
 import java.io.IOException;
 import java.util.Map;
 
-public interface WebAuthenticationAPI<T extends ConnectorConfigurationParameters> {
+public interface WebAuthenticationAPI {
 	public enum Status {
 		STARTED, OPENED, COMPLETE 
 	}
@@ -15,9 +15,11 @@ public interface WebAuthenticationAPI<T extends ConnectorConfigurationParameters
 	
 	String getId();
 	
-	String open(T parameters, String returnTo);
+	String open(String returnTo);
 	
 	String getState();
+	
+	long getCreated();
 	
 	Status getStatus();
 	

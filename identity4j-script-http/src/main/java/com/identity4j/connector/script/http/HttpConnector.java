@@ -35,16 +35,21 @@ public class HttpConnector extends ScriptConnector {
 	protected String getScriptContent() throws IOException {
 		return httpConfiguration.getScriptContent();
 	}
-
-	@Override
 	protected void onOpen(ConnectorConfigurationParameters parameters) {
 		httpConfiguration = (HttpConfiguration) parameters;
 		super.onOpen(parameters);
+	}
+
+	@Override
+	protected void onOpened(ConnectorConfigurationParameters parameters) {
+		httpConfiguration = (HttpConfiguration) parameters;
 		client = Http.getProvider().getClient(httpConfiguration.getUrl(),  
 				httpConfiguration.getServiceAccountUsername(), 
 				httpConfiguration.getServiceAccountPassword() == null ? null : httpConfiguration.getServiceAccountPassword().toCharArray(),
 				httpConfiguration.getServiceAccountRealm());
 		getEngine().put("httpClient", new HttpClientWrapper(client, (HttpConfiguration) getConfiguration()));
+		getEngine().put("httpProvider", Http.getProvider());
+		super.onOpened(parameters);
 
 	}
 

@@ -39,21 +39,25 @@ public class ScriptConnector extends AbstractConnector {
 
 	private Float floatVersion;
 
+	private boolean scriptRoleSupport;
+	private boolean scriptIdentitySupport;
+
 	public ScriptConnector() {
 		manager = new ScriptEngineManager();
 		manager.put("connector", this);
 		manager.put("log", LogFactory.getLog("Script"));
-		
-		// Get a version string. We only really care about one decimal place in the version string
+
+		// Get a version string. We only really care about one decimal place in
+		// the version string
 		String versionString = SystemUtils.JAVA_VERSION;
 		int idx = versionString.indexOf('.');
-		if(idx != -1) {
+		if (idx != -1) {
 			idx = versionString.indexOf('.', idx + 1);
-			if(idx != -1)
+			if (idx != -1)
 				versionString = versionString.substring(0, idx);
 		}
 		floatVersion = Float.valueOf(versionString);
-		
+
 		manager.put("JAVA_RUNTIME_VERSION", floatVersion);
 	}
 
@@ -86,14 +90,15 @@ public class ScriptConnector extends AbstractConnector {
 
 	@Override
 	protected void onOpen(ConnectorConfigurationParameters parameters) {
+		scriptRoleSupport = true;
 		scriptConfiguration = (ScriptConfiguration) parameters;
 		engine = manager.getEngineByMimeType(scriptConfiguration.getScriptMimeType());
 		engine.put("config", scriptConfiguration);
 		engine.put("JAVA_RUNTIME_VERSION", floatVersion);
 		try {
 			String scriptContent = getScriptContent();
-			if(floatVersion >= 1.8f) {
-			    scriptContent = "load('nashorn:mozilla_compat.js');\n" + scriptContent;
+			if (floatVersion >= 1.8f) {
+				scriptContent = "load('nashorn:mozilla_compat.js');\n" + scriptContent;
 			}
 			engine.eval(scriptContent);
 		} catch (Exception e) {
@@ -104,6 +109,17 @@ public class ScriptConnector extends AbstractConnector {
 			}
 		}
 		open = true;
+		onOpened(parameters);
+	}
+
+	protected void onOpened(ConnectorConfigurationParameters parameters) {
+		try {
+			((Invocable) engine).invokeFunction("onOpen", parameters);
+		} catch (ScriptException e) {
+			processScriptExecption(e);
+			throw new ConnectorException("Failed script execution.", e);
+		} catch (NoSuchMethodException e) {
+		}
 	}
 
 	protected String getScriptContent() throws IOException {
@@ -120,9 +136,15 @@ public class ScriptConnector extends AbstractConnector {
 			}
 			return identity;
 		} catch (ScriptException e) {
-			processScriptExecption(e);
-			throw new ConnectorException("Failed script execution.", e);
+			try {
+				processScriptExecption(e);
+				throw new ConnectorException("Failed script execution.", e);
+			} catch (UnsupportedOperationException ueo) {
+				scriptIdentitySupport = false;
+				return super.getIdentityByName(name);
+			}
 		} catch (NoSuchMethodException e) {
+			scriptIdentitySupport = false;
 			return super.getIdentityByName(name);
 		}
 	}
@@ -136,18 +158,25 @@ public class ScriptConnector extends AbstractConnector {
 			}
 			return role;
 		} catch (ScriptException e) {
-			processScriptExecption(e);
+			try {
+				processScriptExecption(e);
+			} catch (UnsupportedOperationException uoe) {
+				scriptRoleSupport = false;
+				return super.getRoleByName(name);
+			}
 			throw new ConnectorException("Failed script execution.", e);
 		} catch (NoSuchMethodException e) {
+			scriptRoleSupport = false;
 			return super.getRoleByName(name);
 		}
 	}
 
 	@Override
-	protected void setPassword(Identity identity, char[] password, boolean forcePasswordChangeAtLogon, PasswordResetType type) throws ConnectorException {
+	protected void setPassword(Identity identity, char[] password, boolean forcePasswordChangeAtLogon,
+			PasswordResetType type) throws ConnectorException {
 		try {
-			final Boolean val = (Boolean) ((Invocable) engine).invokeFunction("setPassword", identity, new String(password),
-				forcePasswordChangeAtLogon);
+			final Boolean val = (Boolean) ((Invocable) engine).invokeFunction("setPassword", identity,
+					new String(password), forcePasswordChangeAtLogon);
 			if (val != null && !val.booleanValue()) {
 				throw new UnsupportedOperationException("Set password is not supported");
 			}
@@ -158,6 +187,7 @@ public class ScriptConnector extends AbstractConnector {
 			super.setPassword(identity, password, forcePasswordChangeAtLogon, type);
 		}
 	}
+
 	/**
 	 * Checks that the supplied credentials are valid for authentication
 	 * 
@@ -168,9 +198,10 @@ public class ScriptConnector extends AbstractConnector {
 	 */
 	protected boolean areCredentialsValid(Identity identity, char[] password) throws ConnectorException {
 		try {
-			final Object obj = ((Invocable) engine).invokeFunction("areCredentialsValid", identity, new String(password));
-			if(obj instanceof PasswordChangeRequiredException) {
-				throw (PasswordChangeRequiredException)obj;
+			final Object obj = ((Invocable) engine).invokeFunction("areCredentialsValid", identity,
+					new String(password));
+			if (obj instanceof PasswordChangeRequiredException) {
+				throw (PasswordChangeRequiredException) obj;
 			}
 			Boolean ok = (Boolean) obj;
 			if (ok && identity.getPasswordStatus().getType().equals(PasswordStatusType.changeRequired)) {
@@ -193,7 +224,8 @@ public class ScriptConnector extends AbstractConnector {
 			processScriptExecption(e);
 			throw new ConnectorException("Failed script execution.", e);
 		} catch (NoSuchMethodException e) {
-			throw new ConnectorException("Missing function in script " + getConfiguration().getScriptResource() + ".", e);
+			throw new ConnectorException("Missing function in script " + getConfiguration().getScriptResource() + ".",
+					e);
 		}
 	}
 
@@ -205,7 +237,8 @@ public class ScriptConnector extends AbstractConnector {
 			processScriptExecption(e);
 			throw new ConnectorException("Failed script execution.", e);
 		} catch (NoSuchMethodException e) {
-			throw new ConnectorException("Missing function in script " + getConfiguration().getScriptResource() + ".", e);
+			throw new ConnectorException("Missing function in script " + getConfiguration().getScriptResource() + ".",
+					e);
 		}
 	}
 
@@ -216,7 +249,8 @@ public class ScriptConnector extends AbstractConnector {
 			processScriptExecption(e);
 			throw new ConnectorException("Failed script execution.", e);
 		} catch (NoSuchMethodException e) {
-			throw new ConnectorException("Missing function in script " + getConfiguration().getScriptResource() + ".", e);
+			throw new ConnectorException("Missing function in script " + getConfiguration().getScriptResource() + ".",
+					e);
 		}
 	}
 
@@ -227,7 +261,8 @@ public class ScriptConnector extends AbstractConnector {
 			processScriptExecption(e);
 			throw new ConnectorException("Failed script execution.", e);
 		} catch (NoSuchMethodException e) {
-			throw new ConnectorException("Missing function in script " + getConfiguration().getScriptResource() + ".", e);
+			throw new ConnectorException("Missing function in script " + getConfiguration().getScriptResource() + ".",
+					e);
 		}
 	}
 
@@ -238,7 +273,8 @@ public class ScriptConnector extends AbstractConnector {
 			processScriptExecption(e);
 			throw new ConnectorException("Failed script execution.", e);
 		} catch (NoSuchMethodException e) {
-			throw new ConnectorException("Missing function in script " + getConfiguration().getScriptResource() + ".", e);
+			throw new ConnectorException("Missing function in script " + getConfiguration().getScriptResource() + ".",
+					e);
 		}
 	}
 
@@ -249,7 +285,8 @@ public class ScriptConnector extends AbstractConnector {
 			processScriptExecption(e);
 			throw new ConnectorException("Failed script execution.", e);
 		} catch (NoSuchMethodException e) {
-			throw new ConnectorException("Missing function in script " + getConfiguration().getScriptResource() + ".", e);
+			throw new ConnectorException("Missing function in script " + getConfiguration().getScriptResource() + ".",
+					e);
 		}
 	}
 
@@ -280,8 +317,8 @@ public class ScriptConnector extends AbstractConnector {
 	@Override
 	public Identity createIdentity(Identity identity, char[] password) throws ConnectorException {
 		try {
-			return ((Identity) ((Invocable) engine).invokeFunction("createIdentity", identity, password == null ? null
-				: new String(password)));
+			return ((Identity) ((Invocable) engine).invokeFunction("createIdentity", identity,
+					password == null ? null : new String(password)));
 		} catch (ScriptException e) {
 			processScriptExecption(e);
 			throw new ConnectorException("Failed script execution.", e);
@@ -317,8 +354,8 @@ public class ScriptConnector extends AbstractConnector {
 	@Override
 	protected void changePassword(Identity identity, char[] oldPassword, char[] password) {
 		try {
-			final Boolean val = (Boolean) ((Invocable) engine).invokeFunction("changePassword", identity, new String(oldPassword),
-				new String(password));
+			final Boolean val = (Boolean) ((Invocable) engine).invokeFunction("changePassword", identity,
+					new String(oldPassword), new String(password));
 			if (!val.booleanValue()) {
 				throw new UnsupportedOperationException("Change password is not supported");
 			}
@@ -359,7 +396,7 @@ public class ScriptConnector extends AbstractConnector {
 	public PasswordCharacteristics getPasswordCharacteristics() {
 		try {
 			PasswordCharacteristics pc = (PasswordCharacteristics) ((Invocable) engine)
-				.invokeFunction("getPasswordCharacteristics");
+					.invokeFunction("getPasswordCharacteristics");
 			return pc;
 		} catch (ScriptException e) {
 			processScriptExecption(e);
@@ -370,6 +407,9 @@ public class ScriptConnector extends AbstractConnector {
 	}
 
 	void processScriptExecption(ScriptException se) {
+		if (se.getMessage() != null && se.getMessage().startsWith("UnsupportedOperationException")) {
+			throw new UnsupportedOperationException();
+		}
 		/*
 		 * JDK6 its impossible to get the underyling exception which is
 		 * absolutely terrible JDK7 the situation seems SLIGHTLY improved in
@@ -379,20 +419,20 @@ public class ScriptConnector extends AbstractConnector {
 		 * -that-causes-scriptexception-using-jsr-223
 		 */
 		if (se.getCause() != null
-			&& se.getCause().getClass().getName().equals("sun.org.mozilla.javascript.JavaScriptException")) {
+				&& se.getCause().getClass().getName().equals("sun.org.mozilla.javascript.JavaScriptException")) {
 			try {
 				Class<?> c = se.getCause().getClass();
 				Object val = c.getMethod("getValue").invoke(se.getCause());
-				if(val.getClass().getName().equals("sun.org.mozilla.javascript.NativeJavaObject")) {
+				if (val.getClass().getName().equals("sun.org.mozilla.javascript.NativeJavaObject")) {
 					c = val.getClass();
 					val = c.getMethod("unwrap").invoke(val);
 				}
-				if (val instanceof  ConnectorException) {
+				if (val instanceof ConnectorException) {
 					throw (ConnectorException) val;
 				}
 			} catch (ConnectorException ce) {
 				throw ce;
-			} catch(Exception e) {
+			} catch (Exception e) {
 			}
 		}
 	}

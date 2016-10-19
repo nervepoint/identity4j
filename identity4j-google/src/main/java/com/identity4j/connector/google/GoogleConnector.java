@@ -478,8 +478,8 @@ public class GoogleConnector extends AbstractConnector {
 	}
 
 	@Override
-	public WebAuthenticationAPI<?> startAuthentication() throws ConnectorException {
-		return new GoogleOAuth();
+	public WebAuthenticationAPI startAuthentication() throws ConnectorException {
+		return new GoogleOAuth(configuration);
 	}
 
 	@Override

@@ -19,6 +19,7 @@ import javax.naming.directory.Attributes;
 import javax.naming.directory.SearchControls;
 import javax.naming.directory.SearchResult;
 import javax.naming.ldap.LdapName;
+import javax.net.SocketFactory;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -51,6 +52,7 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 
 	private DirectoryConfiguration directoryConfiguration;
 	protected LdapService ldapService;
+	protected SocketFactory socketFactory;
 	
 
 	protected static Set<ConnectorCapability> capabilities = new HashSet<ConnectorCapability>(Arrays.asList(new ConnectorCapability[] { 
@@ -68,6 +70,16 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 			ConnectorCapability.tracksLastSignOnDate,
 	}));
 	
+	public SocketFactory getSocketFactory() {
+		return socketFactory;
+	}
+
+	public void setSocketFactory(SocketFactory socketFactory) {
+		this.socketFactory = socketFactory;
+		if(ldapService != null)
+			ldapService.setSocketFactory(socketFactory);
+	}
+
 	@Override
 	public Set<ConnectorCapability> getCapabilities() {
 		return capabilities;
@@ -75,17 +87,12 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 	
 	@Override
 	public boolean isOpen() {
-		try {
-			ldapService = new LdapService();
-			ldapService.init(directoryConfiguration);
-			ldapService.openConnection();
-			return true;
-		} catch(ConnectorException ex) { 
-			throw ex;
-		} catch (Exception nme) {
-			LOG.error("Problen in open connection check.", nme);
-			return false;
-		}
+		return ldapService != null;
+	}
+
+	@Override
+	protected void onClose() {
+		ldapService = null;
 	}
 
 	@Override
@@ -200,10 +207,46 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 	}
 
 	protected Identity mapIdentity(SearchResult result) throws NamingException {
-		String guid = StringUtil.nonNull(result.getAttributes().get(directoryConfiguration.getIdentityGuidAttribute()).get().toString());
-		String identityName = StringUtil.nonNull(result.getAttributes().get(directoryConfiguration.getIdentityNameAttribute()).get().toString());
-		LdapName dn = new LdapName(StringUtil.nonNull(result.getAttributes().get("distinguishedName").get().toString()));
-		return new DirectoryIdentity(guid, identityName,dn);
+		Attributes attributes = result.getAttributes();
+		String guid = StringUtil.nonNull(attributes.get(directoryConfiguration.getIdentityGuidAttribute()).get().toString());
+		String identityName = StringUtil.nonNull(attributes.get(directoryConfiguration.getIdentityNameAttribute()).get().toString());
+		LdapName dn = new LdapName(result.getName().toString());
+		Name base = directoryConfiguration.getBaseDn();
+		for(int i = base.size() - 1 ; i >= 0; i--) {
+			dn.add(0, base.get(i));	
+		}
+		
+		NamingEnumeration<? extends Attribute> ne = attributes.getAll();
+		DirectoryIdentity directoryIdentity = new DirectoryIdentity(guid, identityName,dn);
+		while(ne.hasMoreElements()) {
+			Attribute a = ne.next();
+			if(!a.getID().equals(directoryConfiguration.getIdentityGuidAttribute()) &&
+					!a.getID().equals(directoryConfiguration.getIdentityNameAttribute())) {
+				List<String> vals = new ArrayList<String>();
+				NamingEnumeration<?> ane = a.getAll();
+				while(ane.hasMoreElements()) {
+					Object val = ane.next();					
+					vals.add(val == null ? null : String.valueOf(val));
+				}
+				directoryIdentity.setAttribute(a.getID(), vals.toArray(new String[0]));
+			}
+		}
+		
+		String idRoleAttr = directoryConfiguration.getIdentityRoleGuidAttribute();
+		if(!StringUtil.isNullOrEmpty(idRoleAttr)) {
+			String roleObjectClass = directoryConfiguration.getRoleObjectClass();
+			String roleNameAttribute = directoryConfiguration.getRoleGuidAttribute();
+			String filter = ldapService.buildObjectClassFilter(roleObjectClass, roleNameAttribute, attributes.get(idRoleAttr).get().toString());
+			directoryIdentity.addRole(getPrincipal(filter, getRoles(filter)));
+		}
+		else {
+			idRoleAttr = directoryConfiguration.getIdentityRoleNameAttribute();
+			if(!StringUtil.isNullOrEmpty(idRoleAttr)) {
+				directoryIdentity.addRole(getRoleByName(idRoleAttr));				
+			}	
+		}
+		
+		return directoryIdentity;
 	}
 
 	@Override
@@ -253,10 +296,26 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 	}
 
 	protected Role mapRole(SearchResult result) throws NamingException {
-		String guid = StringUtil.nonNull(result.getAttributes().get(directoryConfiguration.getRoleGuidAttribute()).get().toString());
-		String identityName = StringUtil.nonNull(result.getAttributes().get(directoryConfiguration.getRoleNameAttribute()).get().toString());
-		LdapName dn = new LdapName(StringUtil.nonNull(result.getAttributes().get("distinguishedName").get().toString()));
-		return new DirectoryRole(guid, identityName,dn);
+		Attributes attributes = result.getAttributes();
+		String guid = StringUtil.nonNull(attributes.get(directoryConfiguration.getRoleGuidAttribute()).get().toString());
+		String identityName = StringUtil.nonNull(attributes.get(directoryConfiguration.getRoleNameAttribute()).get().toString());
+		LdapName dn = new LdapName(result.getName().toString());
+		NamingEnumeration<? extends Attribute> ne = attributes.getAll();
+		DirectoryRole directoryRole = new DirectoryRole(guid, identityName,dn);
+		while(ne.hasMoreElements()) {
+			Attribute a = ne.next();
+			if(!a.getID().equals(directoryConfiguration.getIdentityGuidAttribute()) &&
+					!a.getID().equals(directoryConfiguration.getIdentityNameAttribute())) {
+				List<String> vals = new ArrayList<String>();
+				NamingEnumeration<?> ane = a.getAll();
+				while(ane.hasMoreElements()) {
+					Object val = ane.next();					
+					vals.add(val == null ? null : String.valueOf(val));
+				}
+				directoryRole.setAttribute(a.getID(), vals.toArray(new String[0]));
+			}
+		}
+		return directoryRole;
 	}
 
 
@@ -308,14 +367,17 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 		
 		try {
 			ldapService = new LdapService();
+			ldapService.setSocketFactory(socketFactory);
 			ldapService.init(directoryConfiguration);
 			ldapService.openConnection();
 			Name baseDn = directoryConfiguration.getBaseDn();
 			LOG.info("Looking up " + baseDn);
 			
 		} catch(NamingException nme){
+			ldapService = null;
 			processNamingException(nme);
 		} catch (Exception e) {
+			ldapService = null;
 			LOG.error("Problem in opening connector.", e);
 			throw new ConnectorException(e);
 		}
@@ -327,7 +389,7 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 		LOG.error(
 			"Connected OK, but an error occurred retrieving information from the directory server (operationsErrror). "
 				+ message, nme);
-		throw new ConnectorException(message);
+		throw new ConnectorException(message, nme);
 
 	}
 	

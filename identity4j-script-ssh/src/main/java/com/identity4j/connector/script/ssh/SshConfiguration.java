@@ -25,6 +25,7 @@ public class SshConfiguration extends ScriptConfiguration {
 	public static final String SSH_SUDO_PROMPT = "ssh.sudoPrompt";
 
 	SshClientWrapperFactory clientFactory;
+	SshKeyVerifier verifier;
 	
 	/**
 	 * @param configurationParameters
@@ -35,6 +36,16 @@ public class SshConfiguration extends ScriptConfiguration {
 	}
 	
 	
+	public SshKeyVerifier getVerifier() {
+		return verifier;
+	}
+
+
+	public void setVerifier(SshKeyVerifier verifier) {
+		this.verifier = verifier;
+	}
+
+
 	public SshClientWrapperFactory getClientFactory() {
 		return clientFactory;
 	}

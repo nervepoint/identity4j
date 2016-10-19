@@ -85,7 +85,7 @@ public class HttpRequestHandler {
 	}
 
 	protected HttpProviderClient getClient(URI uri) {
-		HttpProviderClient client = Http.getProvider().getClient(uri.toString(), null, null, null);
+		HttpProviderClient client = Http.getProvider().getClient(uri.getScheme() + "://" + uri.getHost() + (uri.getPort() == -1 ? "" : ":" + uri.getPort()), null, null, null);
 		client.setConnectionRequestTimeout(90000);
 		client.setConnectTimeout(90000);
 		client.setSocketTimeout(90000);

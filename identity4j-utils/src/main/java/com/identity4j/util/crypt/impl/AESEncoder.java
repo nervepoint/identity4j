@@ -58,7 +58,8 @@ public class AESEncoder extends RawAESEncoder {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         DataOutputStream dos = new DataOutputStream(baos);
         dos.writeShort(keyLength);
-        dos.writeShort(iterations);
+        dos.writeShort(0); // Old 2 byte iterations count. Zero means next byte is integer iterations
+        dos.writeInt(iterations);
         dos.writeShort(salt.length);
         dos.write(salt);
         dos.write(data);
@@ -75,6 +76,8 @@ public class AESEncoder extends RawAESEncoder {
             DataInputStream din = new DataInputStream(bain);
             int keyLength = din.readShort();
             int iterations = din.readShort();
+            if(iterations == 0)
+            	iterations = din.readInt();
             int saltLen = din.readShort();
             salt = new byte[saltLen];
             din.readFully(salt);
@@ -97,6 +100,8 @@ public class AESEncoder extends RawAESEncoder {
             DataInputStream din = new DataInputStream(bain);
             int keyLength = din.readShort();
             int iterations = din.readShort();
+            if(iterations == 0)
+            	iterations = din.readInt();
             int saltLen = din.readShort();
             byte[] salt = new byte[saltLen];
             din.readFully(salt);

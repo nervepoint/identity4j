@@ -1,6 +1,5 @@
 package com.identity4j.util.http;
 
-import java.net.URLEncoder;
 import java.util.Iterator;
 import java.util.ServiceLoader;
 

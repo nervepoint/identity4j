@@ -19,13 +19,15 @@ import com.identity4j.util.http.HttpProviderClient;
 import com.identity4j.util.http.HttpResponse;
 import com.identity4j.util.json.JsonMapperService;
 
-public class Office365OAuth extends AbstractOAuth2<Office365Configuration> {
+public class Office365OAuth extends AbstractOAuth2 {
 
 	private String state;
 	private String username;
 	private String redirectUri;
+	private Office365Configuration configuration;
 
-	public Office365OAuth() {
+	public Office365OAuth(Office365Configuration configuration) {
+		this.configuration = configuration;
 	}
 
 	@Override

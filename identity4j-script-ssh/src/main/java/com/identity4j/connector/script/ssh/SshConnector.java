@@ -41,21 +41,17 @@ public class SshConnector extends ScriptConnector {
 	protected String getScriptContent() throws IOException {	
 		return sshConfiguration.getScriptContent();
 	}
-
 	@Override
 	protected void onOpen(ConnectorConfigurationParameters parameters) {
 		sshConfiguration = (SshConfiguration) parameters;
 		super.onOpen(parameters);
+	}
+
+	@Override
+	protected void onOpened(ConnectorConfigurationParameters parameters) {
 		client = sshConfiguration.getClientFactory().createInstance(sshConfiguration);
 		getEngine().put("sshClient",client);
-		
-		try {
-			((Invocable) getEngine()).invokeFunction("onOpen", parameters);
-		} catch (ScriptException e) {
-			throw new ConnectorException("Failed script execution.", e);
-		} catch (NoSuchMethodException e) {
-			// Not to worry
-		}
+		super.onOpened(parameters);
 	}
 
 	

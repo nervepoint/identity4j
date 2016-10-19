@@ -58,7 +58,8 @@ public class GroupService extends AbstractRestAPIService{
 	public Groups all() {
 		HttpResponse response = httpRequestHandler.handleRequestGet(constructURI("/groups", null), getHeaders().toArray(new HttpPair[0]));
 		try {
-			return JsonMapperService.getInstance().getObject(Groups.class, response.contentString());
+			String contentString = response.contentString();
+			return JsonMapperService.getInstance().getObject(Groups.class, contentString);
 		}
 		finally {
 			response.release();

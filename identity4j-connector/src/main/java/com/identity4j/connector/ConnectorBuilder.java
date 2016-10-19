@@ -5,6 +5,8 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
 
+import javax.net.SocketFactory;
+
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.util.MultiMap;
 import com.identity4j.util.StringUtil;
@@ -26,6 +28,28 @@ public class ConnectorBuilder {
 	 * implementation to create.
 	 */
 	public static final String CONFIGURATION_CLASS = "i4jConfigurationClass";
+	
+	private SocketFactory socketFactory;
+	
+	/**
+	 * Get the {@link SocketFactory} to use for this connector (if the connector
+	 * uses sockets and supports this feature).
+	 * 
+	 * @param socketFactory socket factory
+	 */
+	public SocketFactory getSocketFactory() {
+		return socketFactory;
+	}
+
+	/**
+	 * Set the {@link SocketFactory} to use for this connector (if the connector
+	 * uses sockets and supports this feature).
+	 * 
+	 * @param socketFactory socket factory
+	 */
+	public void setSocketFactory(SocketFactory socketFactory) {
+		this.socketFactory = socketFactory;
+	}
 
 	/**
 	 * Creates a <tt>Connector</tt> instance from the supplied configuration
@@ -72,6 +96,8 @@ public class ConnectorBuilder {
 		ConnectorConfigurationParameters connectorConfigurationParameters = buildConfiguration(configurationParameters);
 		String connectionClass = configurationParameters.getStringOrFail(CONNECTOR_CLASS);
 		Connector connector = (Connector) createClassInstance(connectionClass, new Class[] {}, new Object[] {});
+		if(socketFactory != null)
+			connector.setSocketFactory(socketFactory);
 		connector.open(connectorConfigurationParameters);
 		return connector;
 	}
@@ -88,6 +114,8 @@ public class ConnectorBuilder {
 	public final Connector buildConnector(ConnectorConfigurationParameters configurationParameters) throws ConnectorException {
 		String connectionClass = configurationParameters.getConfigurationParameters().getStringOrFail(CONNECTOR_CLASS);
 		Connector connector = (Connector) createClassInstance(connectionClass, new Class[] {}, new Object[] {});
+		if(socketFactory != null)
+			connector.setSocketFactory(socketFactory);
 		connector.open(configurationParameters);
 		return connector;
 	}

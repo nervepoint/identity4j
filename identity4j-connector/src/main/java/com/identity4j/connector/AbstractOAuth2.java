@@ -7,8 +7,8 @@ import java.net.URLEncoder;
 import java.security.SecureRandom;
 import java.util.Map;
 
-public abstract class AbstractOAuth2<T extends ConnectorConfigurationParameters>
-		implements OAuth2<T> {
+public abstract class AbstractOAuth2
+		implements OAuth2 {
 	private static SecureRandom random = new SecureRandom();
 
 	protected String authorizeUrl;
@@ -17,9 +17,9 @@ public abstract class AbstractOAuth2<T extends ConnectorConfigurationParameters>
 	protected String responseType = "code";
 
 	protected Status status = Status.STARTED;
-	protected T configuration;
 	protected String id;
 	protected String scope;
+	protected long created = System.currentTimeMillis();
 
 	@Override
 	public Status getStatus() {
@@ -32,15 +32,18 @@ public abstract class AbstractOAuth2<T extends ConnectorConfigurationParameters>
 	}
 
 	@Override
-	public String open(T parameters, String returnTo) {
+	public long getCreated() {
+		return created;
+	}
+
+	@Override
+	public String open(String returnTo) {
 		if(status != Status.STARTED) {
 			throw new IllegalStateException("Already used.");
 		}
 		
 		id = generateUID();
 		
-		
-		this.configuration = parameters;
 		onOpen(returnTo);
 		if (authorizeUrl == null) {
 			throw new IllegalStateException("Authorize URL has not been set.");
