@@ -171,18 +171,22 @@ public class As400Connector extends AbstractConnector {
 	 * 
 	 * @return list of identities
 	 */
+	@Override
 	public Iterator<Identity> allIdentities() throws ConnectorException {
 		final Enumeration<User> users = getUsers(UserList.USER);
 		return new Iterator<Identity>() {
+			@Override
 			public boolean hasNext() {
 				return users.hasMoreElements();
 			}
 
+			@Override
 			public Identity next() {
 				User nextElement = users.nextElement();
 				return mapUserToIdentity(nextElement);
 			}
 
+			@Override
 			public void remove() {
 				throw new UnsupportedOperationException("remove is not supported");
 			}
@@ -261,18 +265,22 @@ public class As400Connector extends AbstractConnector {
 	 * 
 	 * @return all roles
 	 */
+	@Override
 	public Iterator<Role> allRoles() throws ConnectorException {
 		final Enumeration<User> users = getUsers(UserList.GROUP);
 		return new Iterator<Role>() {
+			@Override
 			public boolean hasNext() {
 				return users.hasMoreElements();
 			}
 
+			@Override
 			public Role next() {
 				User nextElement = users.nextElement();
 				return mapRoleToIdentity(nextElement);
 			}
 
+			@Override
 			public void remove() {
 				throw new UnsupportedOperationException("remove is not supported");
 			}
