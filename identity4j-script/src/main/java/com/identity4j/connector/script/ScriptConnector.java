@@ -197,6 +197,7 @@ public class ScriptConnector extends AbstractConnector {
 	 * @throws ConnectorException
 	 */
 	protected boolean areCredentialsValid(Identity identity, char[] password) throws ConnectorException {
+		
 		try {
 			final Object obj = ((Invocable) engine).invokeFunction("areCredentialsValid", identity,
 					new String(password));
@@ -212,8 +213,17 @@ public class ScriptConnector extends AbstractConnector {
 			processScriptExecption(e);
 			throw new ConnectorException("Failed script execution.", e);
 		} catch (NoSuchMethodException e) {
-			return super.areCredentialsValid(identity, password);
+			try {
+				return defaultAreCredentialsValid(identity, password);
+			}
+			catch(UnsupportedOperationException uoe) {			
+				return super.areCredentialsValid(identity, password);
+			}
 		}
+	}
+
+	protected boolean defaultAreCredentialsValid(Identity identity, char[] password) {
+		throw new UnsupportedOperationException();
 	}
 
 	@SuppressWarnings("unchecked")

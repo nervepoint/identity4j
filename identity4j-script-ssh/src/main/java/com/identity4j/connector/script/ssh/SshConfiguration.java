@@ -26,7 +26,7 @@ public class SshConfiguration extends ScriptConfiguration {
 
 	SshClientWrapperFactory clientFactory;
 	SshKeyVerifier verifier;
-	
+
 	/**
 	 * @param configurationParameters
 	 */
@@ -34,17 +34,14 @@ public class SshConfiguration extends ScriptConfiguration {
 		super(configurationParameters);
 		clientFactory = SshClientWrapperFactoryHolder.getClientFactory();
 	}
-	
-	
+
 	public SshKeyVerifier getVerifier() {
 		return verifier;
 	}
 
-
 	public void setVerifier(SshKeyVerifier verifier) {
 		this.verifier = verifier;
 	}
-
 
 	public SshClientWrapperFactory getClientFactory() {
 		return clientFactory;
@@ -67,12 +64,24 @@ public class SshConfiguration extends ScriptConfiguration {
 	}
 
 	/**
-	 * The connector performs all operations on the AS400 using this account.
+	 * 
 	 * 
 	 * @return service account username
 	 */
 	public final String getServiceAccountUsername() {
 		return getConfigurationParameters().getStringOrFail(SSH_SERVICE_ACCOUNT_USERNAME);
+	}
+
+	/**
+	 * 
+	 * 
+	 * @return service account username
+	 */
+	public final void setServiceAccountUsername(String username) {
+		if (username == null)
+			getConfigurationParameters().remove(SSH_SERVICE_ACCOUNT_USERNAME);
+		else
+			getConfigurationParameters().set(SSH_SERVICE_ACCOUNT_USERNAME, username);
 	}
 
 	/**
@@ -85,6 +94,19 @@ public class SshConfiguration extends ScriptConfiguration {
 	}
 
 	/**
+	 * Set The password used for the service account
+	 * 
+	 * @param service
+	 *            account password
+	 */
+	public final void setServiceAccountPassword(String password) {
+		if (password == null)
+			getConfigurationParameters().remove(SSH_SERVICE_ACCOUNT_PASSWORD);
+		else
+			getConfigurationParameters().set(SSH_SERVICE_ACCOUNT_PASSWORD, password);
+	}
+
+	/**
 	 * The private key file used for the service account
 	 * 
 	 * @return file containing private key
@@ -93,6 +115,18 @@ public class SshConfiguration extends ScriptConfiguration {
 	public final InputStream getServiceAccountPrivateKey() throws FileNotFoundException {
 		String str = getConfigurationParameters().getStringOrNull(SSH_SERVICE_ACCOUNT_PRIVATE_KEY);
 		return StringUtils.isBlank(str) ? null : new ByteArrayInputStream(str.getBytes());
+	}
+
+	/**
+	 * Set he private key file used for the service account
+	 * 
+	 * @param key file path containing private key
+	 */
+	public final void setServiceAccountPrivateKey(String key) {
+		if (key == null)
+			getConfigurationParameters().remove(SSH_SERVICE_ACCOUNT_PRIVATE_KEY);
+		else
+			getConfigurationParameters().set(SSH_SERVICE_ACCOUNT_PRIVATE_KEY, key);
 	}
 
 	/**
@@ -131,11 +165,16 @@ public class SshConfiguration extends ScriptConfiguration {
 		return getConfigurationParameters().getStringOrDefault(SSH_SUDO_PROMPT, "[sudo] password for ${username}");
 	}
 
-
 	public String getServiceAccountPrivateKeyPassphrase() {
-		return  getConfigurationParameters().getStringOrDefault(SSH_SERVICE_ACCOUNT_PRIVATE_KEY_PASSPHRASE, null);
+		return getConfigurationParameters().getStringOrDefault(SSH_SERVICE_ACCOUNT_PRIVATE_KEY_PASSPHRASE, null);
 	}
 
+	public void setServiceAccountPrivateKeyPassphrase(String passphrase) {
+		if (passphrase == null)
+			getConfigurationParameters().remove(SSH_SERVICE_ACCOUNT_PRIVATE_KEY_PASSPHRASE);
+		else
+			getConfigurationParameters().set(SSH_SERVICE_ACCOUNT_PRIVATE_KEY_PASSPHRASE, passphrase);
+	}
 
 	public int getConnectTimeout() {
 		return getConfigurationParameters().getIntegerOrDefault(SSH_CONNECT_TIMEOUT, 5000);
