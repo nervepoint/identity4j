@@ -369,17 +369,38 @@ public class ScriptConnector extends AbstractConnector {
 
 	@Override
 	public Role createRole(Role role) throws ConnectorException {
-		throw new UnsupportedOperationException("Role maintenance is not yet supported");
+		try {
+			return ((Role) ((Invocable) engine).invokeFunction("createRole", role));
+		} catch (ScriptException e) {
+			processScriptExecption(e);
+			throw new ConnectorException("Failed script execution.", e);
+		} catch (NoSuchMethodException e) {
+			return super.createRole(role);
+		}
 	}
 
 	@Override
 	public void deleteRole(String principleName) throws ConnectorException {
-		throw new UnsupportedOperationException("Role maintenance is not yet supported");
+		try {
+			((Invocable) engine).invokeFunction("deleteRole", principleName);
+		} catch (ScriptException e) {
+			processScriptExecption(e);
+			throw new ConnectorException("Failed script execution.", e);
+		} catch (NoSuchMethodException e) {
+			super.deleteRole(principleName);
+		}
 	}
 
 	@Override
 	public void updateRole(Role role) throws ConnectorException {
-		throw new UnsupportedOperationException("Role maintenance is not yet supported");
+		try {
+			((Invocable) engine).invokeFunction("updateRole", role);
+		} catch (ScriptException e) {
+			processScriptExecption(e);
+			throw new ConnectorException("Failed script execution.", e);
+		} catch (NoSuchMethodException e) {
+			super.updateRole(role);
+		}
 	}
 
 	protected ScriptEngine getEngine() {

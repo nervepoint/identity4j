@@ -352,7 +352,12 @@ public class Expect {
 				}
 			}
 			
-			return in.read();
+			int read = in.read();
+			
+			if(log.isDebugEnabled())
+				System.err.print((char)read);
+			
+			return read;
 		
 		} catch(EOFException e) {
 			if(log.isDebugEnabled()) {

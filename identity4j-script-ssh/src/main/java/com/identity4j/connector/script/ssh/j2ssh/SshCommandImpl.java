@@ -20,7 +20,7 @@ import com.sshtools.ssh2.Ssh2Session;
 public class SshCommandImpl extends Expect implements SshCommand {
 
 	final static Log LOG = LogFactory.getLog(SshCommandImpl.class);
-
+	
 	private boolean ok;
 	private SshSession session;
 
