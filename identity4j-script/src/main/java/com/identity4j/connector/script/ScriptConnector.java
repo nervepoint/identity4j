@@ -218,11 +218,13 @@ public class ScriptConnector extends AbstractConnector {
 			}
 			catch(UnsupportedOperationException uoe) {			
 				return super.areCredentialsValid(identity, password);
+			} catch (IOException e1) {
+				throw new ConnectorException(e1);
 			}
 		}
 	}
 
-	protected boolean defaultAreCredentialsValid(Identity identity, char[] password) {
+	protected boolean defaultAreCredentialsValid(Identity identity, char[] password) throws IOException {
 		throw new UnsupportedOperationException();
 	}
 

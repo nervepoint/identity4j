@@ -4,9 +4,9 @@ import java.io.UnsupportedEncodingException;
 
 import org.junit.Ignore;
 
-import com.identity4j.connector.unix.UnixSHA512Encoder;
 import com.identity4j.util.crypt.AbstractEncoderTest;
 import com.identity4j.util.crypt.impl.DefaultEncoderManager;
+import com.identity4j.util.crypt.impl.UnixSHA512Encoder;
 
 @Ignore
 // TODO This encoder doesn't work yet

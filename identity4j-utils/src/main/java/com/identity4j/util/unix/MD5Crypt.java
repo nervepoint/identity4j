@@ -9,7 +9,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-package com.identity4j.connector.unix;
+package com.identity4j.util.unix;
 
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;

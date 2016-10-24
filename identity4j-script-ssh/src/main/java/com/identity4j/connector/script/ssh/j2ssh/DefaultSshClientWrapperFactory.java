@@ -18,6 +18,8 @@ import com.sshtools.net.SocketWrapper;
 import com.sshtools.publickey.InvalidPassphraseException;
 import com.sshtools.publickey.SshPrivateKeyFile;
 import com.sshtools.publickey.SshPrivateKeyFileFactory;
+import com.sshtools.publickey.SshPublicKeyFile;
+import com.sshtools.publickey.SshPublicKeyFileFactory;
 import com.sshtools.ssh.ChannelOpenException;
 import com.sshtools.ssh.HostKeyVerification;
 import com.sshtools.ssh.PasswordAuthentication;
@@ -40,23 +42,30 @@ public class DefaultSshClientWrapperFactory implements SshClientWrapperFactory {
 
 	@Override
 	public SshClientWrapper createInstance(final SshConfiguration config) {
-		
+
 		SshClient client = null;
 		try {
 			SshConnector con = SshConnector.createInstance();
-			if(config.getVerifier() != null)
-			con.getContext().setHostKeyVerification(new HostKeyVerification() {
-				
-				@Override
-				public boolean verifyHost(String host, SshPublicKey pk) throws SshException {
-					return config.getVerifier().verifyKey(host, config.getPort(), pk.getAlgorithm(), pk.getBitLength(), pk.getEncoded(), pk.getFingerprint());
-				}
-			});
-			LOG.info("Making SSH to " + config.getHost() + ":" + config.getPort() + " for user "
-				+ config.getServiceAccountUsername());
+			if (config.getVerifier() != null)
+				con.getContext().setHostKeyVerification(new HostKeyVerification() {
+
+					@Override
+					public boolean verifyHost(String host, SshPublicKey pk) throws SshException {
+						try {
+							SshPublicKeyFile pkf = SshPublicKeyFileFactory.create(pk, "IdentityJ",
+									SshPublicKeyFileFactory.OPENSSH_FORMAT);
+							return config.getVerifier().verifyKey(host, config.getPort(), pk.getAlgorithm(),
+									pk.getBitLength(), pk.getEncoded(), pk.getFingerprint(), pkf.getFormattedKey());
+						} catch (IOException ioe) {
+							throw new SshException(ioe);
+						}
+					}
+				});
+			LOG.info("Making SSH connection to " + config.getHost() + ":" + config.getPort() + " for user "
+					+ config.getServiceAccountUsername());
 			Socket socket = new Socket();
-			final SshTransport socketTransport = new SocketWrapper(socket); 
-			
+			final SshTransport socketTransport = new SocketWrapper(socket);
+
 			socket.connect(new InetSocketAddress(config.getHost(), config.getPort()), config.getConnectTimeout());
 
 			client = con.connect(socketTransport, config.getServiceAccountUsername(), true);
@@ -64,12 +73,12 @@ public class DefaultSshClientWrapperFactory implements SshClientWrapperFactory {
 			InputStream in = config.getServiceAccountPrivateKey();
 			if (in != null) {
 				try {
-					
+
 					try {
 						SshPrivateKeyFile pkf = SshPrivateKeyFileFactory.parse(in);
 						PublicKeyAuthentication pka = new PublicKeyAuthentication();
 						SshKeyPair keyPair;
-						if(pkf.isPassphraseProtected()) {
+						if (pkf.isPassphraseProtected()) {
 							keyPair = pkf.toKeyPair(config.getServiceAccountPrivateKeyPassphrase());
 						} else {
 							keyPair = pkf.toKeyPair(null);
@@ -78,8 +87,7 @@ public class DefaultSshClientWrapperFactory implements SshClientWrapperFactory {
 						pka.setPublicKey(keyPair.getPublicKey());
 						checkAuth(client, config, pka);
 						return new SshClientWrapperImpl(client, config);
-					}
-					catch(IOException ex) {
+					} catch (IOException ex) {
 						throw new ConnectorException(ex.getMessage());
 					}
 				} finally {
@@ -104,8 +112,9 @@ public class DefaultSshClientWrapperFactory implements SshClientWrapperFactory {
 			throw new ConnectorException("Failed to open SSH connection.", e);
 		}
 	}
-	
-	protected void checkAuth(SshClient client, ConnectorConfigurationParameters parameters, SshAuthentication pwd) throws SshException, SshIOException, ChannelOpenException, IOException {
+
+	protected void checkAuth(SshClient client, ConnectorConfigurationParameters parameters, SshAuthentication pwd)
+			throws SshException, SshIOException, ChannelOpenException, IOException {
 		if (client.authenticate(pwd) == SshAuthentication.COMPLETE) {
 			LOG.info("Authenticated OK");
 		} else {
@@ -121,6 +130,5 @@ public class DefaultSshClientWrapperFactory implements SshClientWrapperFactory {
 			client = null;
 		}
 	}
-	
 
 }

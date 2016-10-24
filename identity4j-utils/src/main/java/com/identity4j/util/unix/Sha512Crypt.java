@@ -41,7 +41,7 @@
 
 */
 
-package com.identity4j.connector.unix;
+package com.identity4j.util.unix;
 
 import java.security.MessageDigest;
 

@@ -11,6 +11,10 @@ import com.identity4j.connector.script.ScriptConfiguration;
 import com.identity4j.util.MultiMap;
 
 public class SshConfiguration extends ScriptConfiguration {
+	
+	public enum AuthenticationMethod {
+		passwd,ssh,su
+	}
 
 	public static final String SSH_PROXY_SERVER = "ssh.proxyServer";
 	public static final String SSH_OS = "ssh.os";
@@ -20,9 +24,13 @@ public class SshConfiguration extends ScriptConfiguration {
 	public static final String SSH_SERVICE_ACCOUNT_PRIVATE_KEY = "ssh.serviceAccountPrivateKey";
 	public static final String SSH_SERVICE_ACCOUNT_PRIVATE_KEY_PASSPHRASE = "ssh.serviceAccountPrivateKeyPassphrase";
 	public static final String SSH_SERVICE_ACCOUNT_USERNAME = "ssh.serviceAccountUsername";
+	public static final String SSH_USER_AUTHENTICATION_METHOD = "ssh.userAuthenticationMethod";
 	public static final String SSH_HOSTNAME = "ssh.hostname";
 	public static final String SSH_SUDO_COMMAND = "ssh.sudoCommand";
 	public static final String SSH_SUDO_PROMPT = "ssh.sudoPrompt";
+	public static final String SSH_USE_KBI_FOR_SSH_AUTHENTICATION = "ssh.useKBIForSSHAuthentication";
+	public static final String SSH_AUTHENTICATION_PASSWORD_PATTERN = "ssh.authenticationPasswordPattern";
+	public static final String SSH_AUTHENTICATION_NEW_PASSWORD_PATTERN = "ssh.authenticationNewPasswordPattern";
 
 	SshClientWrapperFactory clientFactory;
 	SshKeyVerifier verifier;
@@ -73,6 +81,16 @@ public class SshConfiguration extends ScriptConfiguration {
 	}
 
 	/**
+	 * Get the authentication method to use. If the sccript supplies an areCredentialsValid
+	 * function that will be used instead.
+	 * 
+	 * @return user authentication method
+	 */
+	public final AuthenticationMethod getUserAuthenticationMethod() {
+		return AuthenticationMethod.valueOf(getConfigurationParameters().getStringOrDefault(SSH_USER_AUTHENTICATION_METHOD, AuthenticationMethod.passwd.name()));
+	}
+
+	/**
 	 * 
 	 * 
 	 * @return service account username
@@ -82,6 +100,14 @@ public class SshConfiguration extends ScriptConfiguration {
 			getConfigurationParameters().remove(SSH_SERVICE_ACCOUNT_USERNAME);
 		else
 			getConfigurationParameters().set(SSH_SERVICE_ACCOUNT_USERNAME, username);
+	}
+	
+	public final String getAuthenticationPasswordPattern() {
+		return getConfigurationParameters().getStringOrDefault(SSH_AUTHENTICATION_PASSWORD_PATTERN, "password.*:.*");
+	}
+	
+	public final String getAuthenticationNewPasswordPattern() {
+		return getConfigurationParameters().getStringOrDefault(SSH_AUTHENTICATION_NEW_PASSWORD_PATTERN, "new password.*:.*");
 	}
 
 	/**
@@ -167,6 +193,14 @@ public class SshConfiguration extends ScriptConfiguration {
 
 	public String getServiceAccountPrivateKeyPassphrase() {
 		return getConfigurationParameters().getStringOrDefault(SSH_SERVICE_ACCOUNT_PRIVATE_KEY_PASSPHRASE, null);
+	}
+
+	public boolean isUseKBIForSSHAuthentication() {
+		return getConfigurationParameters().getBooleanOrDefault(SSH_USE_KBI_FOR_SSH_AUTHENTICATION, false);
+	}
+
+	public void setUseKBIForSSHAuthentication(boolean useKBI) {
+		getConfigurationParameters().set(SSH_USE_KBI_FOR_SSH_AUTHENTICATION, String.valueOf(useKBI));
 	}
 
 	public void setServiceAccountPrivateKeyPassphrase(String passphrase) {

@@ -5,6 +5,7 @@ import java.io.IOException;
 import com.identity4j.util.expect.ExpectTimeoutException;
 
 public interface SshCommand {
+	boolean expect(String pattern, boolean consumeRemainingLine, long timeout) throws ExpectTimeoutException, IOException;
 
 	int drainAndWaitForExit() throws IOException;
 
@@ -17,5 +18,7 @@ public interface SshCommand {
 	int read() throws IOException, ExpectTimeoutException;
 	
 	int read(long timeout) throws IOException, ExpectTimeoutException;
+
+	void typeAndReturn(String text) throws IOException;
 
 }

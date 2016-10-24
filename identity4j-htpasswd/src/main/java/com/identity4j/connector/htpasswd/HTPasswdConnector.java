@@ -4,11 +4,11 @@ import java.io.UnsupportedEncodingException;
 
 import com.identity4j.connector.flatfile.FlatFileConnector;
 import com.identity4j.connector.unix.UnixConnector;
-import com.identity4j.connector.unix.UnixDESEncoder;
 import com.identity4j.util.crypt.Encoder;
 import com.identity4j.util.crypt.impl.DefaultEncoderManager;
 import com.identity4j.util.crypt.impl.PlainEncoder;
 import com.identity4j.util.crypt.impl.SHAStringEncoder;
+import com.identity4j.util.crypt.impl.UnixDESEncoder;
 
 public class HTPasswdConnector extends FlatFileConnector {
     

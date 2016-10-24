@@ -1,5 +1,7 @@
 package com.identity4j.util.crypt.impl;
 
+import java.io.IOException;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -34,14 +36,22 @@ public class DefaultEncoderManager extends EncoderManager {
 			addEncoder(new PBEWithMD5AndDESEncoder());
 			addEncoder(new Base64PBEWithMD5AndDESEncoder());
             addEncoder(new Drupal7Encoder());
+            addEncoder(new UnixBlowfishEncoder());
+            addEncoder(new UnixDESEncoder());
+            addEncoder(new UnixMD5Encoder());
+            addEncoder(new UnixSHA256Encoder());
+            addEncoder(new UnixSHA512Encoder());
             
             try {
                 NssTokenDatabase ntdp = NssTokenDatabase.getInstance();
                 addEncoder(new FIPSEncoder(ntdp));
                 addEncoder(new Base64FIPSEncoder(ntdp));
             }
+            catch(IOException e) {
+                log.info("Failed to initialize Nss. No FIPS encoders registered.");
+            }
             catch(Exception e) {
-                log.warn("No FIPS encoder.", e);
+                log.warn("Failed to initialize FIPS encoder.", e);
             }
 		} catch (Exception e) {
 			throw new RuntimeException(e);

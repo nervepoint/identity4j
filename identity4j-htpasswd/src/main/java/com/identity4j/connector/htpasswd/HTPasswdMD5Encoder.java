@@ -1,6 +1,6 @@
 package com.identity4j.connector.htpasswd;
 
-import com.identity4j.connector.unix.UnixMD5Encoder;
+import com.identity4j.util.crypt.impl.UnixMD5Encoder;
 
 public class HTPasswdMD5Encoder extends UnixMD5Encoder {
 

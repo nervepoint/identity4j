@@ -17,7 +17,7 @@ import com.sshtools.ssh.SshIOException;
 import com.sshtools.ssh.SshSession;
 import com.sshtools.ssh2.Ssh2Session;
 
-public class SshCommandImpl extends Expect implements SshCommand {
+public class SshCommandImpl extends Expect implements SshCommand { 
 
 	final static Log LOG = LogFactory.getLog(SshCommandImpl.class);
 	

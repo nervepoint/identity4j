@@ -1,6 +1,8 @@
-package com.identity4j.connector.unix;
+package com.identity4j.util.crypt.impl;
 
 import java.io.UnsupportedEncodingException;
+
+import com.identity4j.util.unix.Sha256Crypt;
 
 public class UnixSHA256Encoder extends AbstractUnixSHAEncoder {
 

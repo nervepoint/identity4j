@@ -1,4 +1,4 @@
-package com.identity4j.connector.unix;
+package com.identity4j.util.unix;
 
 // Copyright (c) 2006 Damien Miller <djm@mindrot.org>
 //
