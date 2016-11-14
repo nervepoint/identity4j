@@ -5,15 +5,11 @@ import java.io.UnsupportedEncodingException;
 import org.junit.Ignore;
 
 import com.identity4j.util.crypt.AbstractEncoderTest;
-import com.identity4j.util.crypt.impl.DefaultEncoderManager;
 import com.identity4j.util.crypt.impl.UnixSHA512Encoder;
 
 @Ignore
 // TODO This encoder doesn't work yet
 public class UnixSHA512EncoderTest extends AbstractEncoderTest {
-	static {
-		DefaultEncoderManager.getInstance().addEncoder(new UnixSHA512Encoder());
-	}
 
 	final static String PW1 = "Hello world!";
 	final static String HASH1 = "$6$saltstring$svn8UoSVapNtMuq1ukKS4tPQd8iKwSMHWjl/O817G3uBnIFNjnQJuesI68u4OTLiBFdcbYEdFCoEOfaS35inz1";

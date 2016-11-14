@@ -72,14 +72,6 @@ public class UnixConnector extends FlatFileConnector {
 	static final String ATTR_DAYS_AFTER_PASSWORD_EXPIRES_THAT_ACCOUNT_IS_DISABLED = "daysAfterPasswordExpiresThatAccountIsDisabled";
 	static final String ATTR_DAYS_SINCE_ACCOUNT_WAS_DISABLED = "daysSinceAccountWasDisabled";
 
-	static {
-		DefaultEncoderManager.getInstance().addEncoder(new UnixMD5Encoder());
-		DefaultEncoderManager.getInstance().addEncoder(new UnixDESEncoder());
-		DefaultEncoderManager.getInstance().addEncoder(new UnixBlowfishEncoder());
-		DefaultEncoderManager.getInstance().addEncoder(new UnixSHA256Encoder());
-		DefaultEncoderManager.getInstance().addEncoder(new UnixSHA512Encoder());
-	}
-
 	private final static Log LOG = LogFactory.getLog(UnixConnector.class);
 
 	private LocalDelimitedFlatFile groupFlatFile;
