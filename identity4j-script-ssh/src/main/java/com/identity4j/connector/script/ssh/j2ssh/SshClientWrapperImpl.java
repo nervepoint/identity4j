@@ -34,13 +34,7 @@ public class SshClientWrapperImpl implements SshClientWrapper {
 	 */
 	@Override
 	public SshCommand executeCommand(String cmd) throws IOException, ExpectTimeoutException {
-		try {
-			return new SshCommandImpl(client, cmd);
-		} catch (SshException e) { 
-			throw new IOException(e);
-		} catch(ChannelOpenException e) {
-			throw new IOException(e);
-		}
+		return sudoCommand(cmd);
 	}
 
 	/* (non-Javadoc)
@@ -49,7 +43,11 @@ public class SshClientWrapperImpl implements SshClientWrapper {
 	@Override
 	public SshCommand sudoCommand(String cmd) throws IOException, ExpectTimeoutException {
 		try {
-			return new SshCommandImpl(client, cmd, config.getSudoCommand(), config.getSudoPrompt(), config.getServiceAccountPassword());
+			return new SshCommandImpl(client, 
+					cmd, 
+					config.getSudoCommand(), 
+					config.getSudoPrompt(), 
+					config.getServiceAccountPassword());
 		} catch (SshException e) { 
 			throw new IOException(e);
 		} catch(ChannelOpenException e) {
