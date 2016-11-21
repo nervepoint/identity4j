@@ -16,7 +16,7 @@ public class SshClientWrapperFactoryHolder {
 								"identity4j.ssh.clientFactory", 
 								"com.identity4j.connector.script.ssh.j2ssh.DefaultSshClientWrapperFactory")).newInstance();
 			} catch (Throwable e) {
-				throw new IllegalStateException(e);
+				throw new IllegalStateException(e.getMessage(), e);
 			}
 		}
 		return clientFactory;

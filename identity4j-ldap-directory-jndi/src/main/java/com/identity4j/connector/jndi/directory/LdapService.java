@@ -274,10 +274,10 @@ public class LdapService {
 					}
 				} catch (NamingException e) {
 					LOG.error("Failed to get results", e);
-					throw new IllegalStateException(e);
+					throw new IllegalStateException(e.getMessage(), e);
 				} catch (IOException e) {
 					LOG.error("Failed to get results", e);
-					throw new IllegalStateException(e);
+					throw new IllegalStateException(e.getMessage(), e);
 				}
 			}
 
@@ -303,10 +303,10 @@ public class LdapService {
 				return getNextElement();
 			} catch (NamingException e) {
 				LOG.error("Failed to get results", e);
-				throw new IllegalStateException(e);
+				throw new IllegalStateException(e.getMessage(), e);
 			} catch (IOException e) {
 				LOG.error("Failed to get results", e);
-				throw new IllegalStateException(e);
+				throw new IllegalStateException(e.getMessage(), e);
 			}
 		}
 
