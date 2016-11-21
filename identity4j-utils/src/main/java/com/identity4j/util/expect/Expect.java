@@ -265,54 +265,59 @@ public class Expect {
 		
 		while (System.currentTimeMillis() - time < timeout || timeout == 0) {
 
-			if (maxLines > 0 && lines >= maxLines)
-				return null;
-
-			int ch = read(timeout);
-			if (ch == -1) {
-				open = false;
-				
-				if(line.length() > 0 && matches(line.toString(), pattern)) {
-					return line.toString();
-				} else {
+			try {
+				if (maxLines > 0 && lines >= maxLines)
 					return null;
-				}
-			}
-			else if(ch == Integer.MIN_VALUE) {
-				// Timeout
-				continue;
-			}
-			
-			if (ch != '\n' && ch != '\r') {
-				line.append((char) ch);
-			}
 
-			if (log.isDebugEnabled()) {
-				log.debug("Checking if '" + line + "' is '" + pattern + "'");
-			}
-			if (matches(line.toString(), pattern)) {
-				if (log.isDebugEnabled()) {
-					log.debug("Matched: [" + pattern + "] " + line.toString());
+				int ch = read(timeout);
+				if (ch == -1) {
+					open = false;
+					
+					if(line.length() > 0 && matches(line.toString(), pattern)) {
+						return line.toString();
+					} else {
+						return null;
+					}
 				}
-				if (consumeRemainingLine && ch != '\n' && ch != -1) {
-					do {
+				else if(ch == Integer.MIN_VALUE) {
+					// Timeout
+					continue;
+				}
+				
+				if (ch != '\n' && ch != '\r') {
+					line.append((char) ch);
+				}
 
-					} while (ch != '\n' && ch != -1);
-				}
 				if (log.isDebugEnabled()) {
-					log.debug("Matched shell output: " + line.toString());
+					log.debug("Checking if '" + line + "' is '" + pattern + "'");
 				}
-				return line.toString();
-			}
+				if (matches(line.toString(), pattern)) {
+					if (log.isDebugEnabled()) {
+						log.debug("Matched: [" + pattern + "] " + line.toString());
+					}
+					if (consumeRemainingLine && ch != '\n' && ch != -1) {
+						do {
 
-			if (ch == '\n') {
-				if(!ignoreEmptyLines) { 
-					lines++;
+						} while (ch != '\n' && ch != -1);
+					}
+					if (log.isDebugEnabled()) {
+						log.debug("Matched shell output: " + line.toString());
+					}
+					return line.toString();
 				}
-				if (log.isDebugEnabled()) {
-					log.debug("Unmatched shell output: " + line.toString());
+
+				if (ch == '\n') {
+					if(!ignoreEmptyLines) { 
+						lines++;
+					}
+					if (log.isDebugEnabled()) {
+						log.debug("Unmatched shell output: " + line.toString());
+					}
+					line.delete(0, line.length());
 				}
-				line.delete(0, line.length());
+			} catch (IOException e) {
+				open = false;
+				throw e;
 			}
 		}
 
@@ -353,10 +358,7 @@ public class Expect {
 			}
 			
 			int read = in.read();
-			
-			if(log.isDebugEnabled())
-				System.err.print((char)read);
-			
+
 			return read;
 		
 		} catch(EOFException e) {
