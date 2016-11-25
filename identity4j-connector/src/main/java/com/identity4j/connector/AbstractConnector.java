@@ -1,6 +1,7 @@
 /* HEADER */
 package com.identity4j.connector;
 
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
@@ -19,7 +20,8 @@ import com.identity4j.util.validator.ValidationContext;
 public abstract class AbstractConnector implements Connector, ValidationContext {
 
 	private ConnectorConfigurationParameters parameters;
-
+	private Map<String,Object> attributes = new HashMap<String,Object>();
+	
 	public PasswordCharacteristics getPasswordCharacteristics() {
 		throw new UnsupportedOperationException();
 	}
@@ -317,5 +319,13 @@ public abstract class AbstractConnector implements Connector, ValidationContext 
 	@Override
 	public void install(Map<String, String> properties) throws Exception {
 		throw new UnsupportedOperationException();
+	}
+	
+	public Object getAttribute(String name) {
+		return attributes.get(name);
+	}
+	
+	public void setAttribute(String name, Object val) {
+		attributes.put(name, val);
 	}
 }

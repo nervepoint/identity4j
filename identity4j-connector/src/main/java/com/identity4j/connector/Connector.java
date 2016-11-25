@@ -341,4 +341,18 @@ public interface Connector {
 	 * @param socketFactory socket factory
 	 */
 	void setSocketFactory(SocketFactory socketFactory);
+	
+	/**
+	 * Get an attribute previously set on this connector.
+	 * @param name
+	 * @return
+	 */
+	Object getAttribute(String name);
+	
+	/**
+	 * Store a value against the connector.
+	 * @param name
+	 * @param value
+	 */
+	void setAttribute(String name, Object value);
 }
