@@ -239,7 +239,7 @@ public class Expect {
 			return matched;
 		} catch (ExpectTimeoutException e) {
 			in.reset();
-			throw e;
+			return false;
 		}
 	}
 	/**
