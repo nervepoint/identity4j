@@ -320,7 +320,11 @@ public class DirectoryConfiguration extends AbstractConnectorConfiguration {
 		Collection<Name> names = new ArrayList<Name>();
 		for (String value : values) {
 			if(StringUtils.isNotBlank(value)) {
-				names.add(new LdapName(value).addAll(0, getBaseDn()));
+				LdapName name = new LdapName(value);
+				if(!name.startsWith(getBaseDn())) {
+					name.addAll(0, getBaseDn());
+				}
+				names.add(name);
 			}
 		}
 		return names;
