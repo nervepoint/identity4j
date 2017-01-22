@@ -186,9 +186,13 @@ public class Expect {
 	 */
 	public synchronized boolean expect(String pattern, boolean consumeRemainingLine, long timeout, long maxLines)
 			throws ExpectTimeoutException, IOException {
-		String chat = chat(pattern, consumeRemainingLine, timeout, maxLines, false);
-		boolean matched = chat != null;
-		return matched;
+		try {
+			String chat = chat(pattern, consumeRemainingLine, timeout, maxLines, false);
+			boolean matched = chat != null;
+			return matched;
+		} catch (EOFException e) {
+			return false;
+		}
 	}
 
 	public synchronized boolean maybeExpectNextLine(String pattern, boolean consumeRemainingLine, long timeout)
@@ -229,7 +233,7 @@ public class Expect {
 
 	public synchronized boolean maybeExpect(String pattern, boolean consumeRemainingLine, long timeout, long maxLines)
 			throws ExpectTimeoutException, IOException {
-		in.mark(1024);
+		in.mark(32768);
 		try {
 			String chat = chat(pattern, consumeRemainingLine, timeout, maxLines, false);
 			boolean matched = chat != null;
@@ -237,6 +241,9 @@ public class Expect {
 				in.reset();
 			}
 			return matched;
+		} catch (EOFException e) {
+			in.reset();
+			return false;
 		} catch (ExpectTimeoutException e) {
 			in.reset();
 			return false;
@@ -271,12 +278,12 @@ public class Expect {
 
 				int ch = read(timeout);
 				if (ch == -1) {
-					open = false;
-					
+										
 					if(line.length() > 0 && matches(line.toString(), pattern)) {
+						open = false;
 						return line.toString();
 					} else {
-						return null;
+						throw new EOFException();
 					}
 				}
 				else if(ch == Integer.MIN_VALUE) {
