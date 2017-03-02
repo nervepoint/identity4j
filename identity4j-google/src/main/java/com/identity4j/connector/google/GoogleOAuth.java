@@ -18,7 +18,6 @@ import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.oauth2.Oauth2;
 import com.google.api.services.oauth2.model.Userinfoplus;
 import com.identity4j.connector.AbstractOAuth2;
-import com.identity4j.connector.WebAuthenticationAPI.ReturnStatus;
 import com.identity4j.connector.exception.ConnectorException;
 
 public class GoogleOAuth extends AbstractOAuth2 {

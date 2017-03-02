@@ -98,7 +98,7 @@ public interface Connector {
 	 *         failure.
 	 * @throws ConnectorException
 	 */
-	boolean checkCredentials(String username, char[] password) throws ConnectorException;
+	boolean checkCredentials(String username, char[] password, IdentityProcessor... processors) throws ConnectorException;
 
 	/**
 	 * Change your password. This method is used by an identity to change their

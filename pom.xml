@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.nervepoint</groupId>
 	<artifactId>identity4j</artifactId>
-	<version>1.0.2</version>
+	<version>1.0.3-SNAPSHOT</version>
 	<name>Identity4J</name>
 	<description>A suite of Java Identity and Authentication Connectors.</description>
 	<url>http://www.nervepoint.com</url>

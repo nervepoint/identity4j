@@ -37,7 +37,6 @@ import com.identity4j.util.StringUtil;
 import com.identity4j.util.Util;
 import com.identity4j.util.crypt.Encoder;
 import com.identity4j.util.crypt.EncoderException;
-import com.identity4j.util.crypt.impl.DefaultEncoderManager;
 import com.identity4j.util.crypt.impl.UnixBlowfishEncoder;
 import com.identity4j.util.crypt.impl.UnixDESEncoder;
 import com.identity4j.util.crypt.impl.UnixMD5Encoder;

@@ -75,12 +75,23 @@ public abstract class AbstractConnector implements Connector, ValidationContext 
 		}
 	}
 
-	public final boolean checkCredentials(String username, char[] password) throws ConnectorException {
-		if (!isIdentityNameInUse(username)) {
+	public final boolean checkCredentials(String username, char[] password, IdentityProcessor... processors) throws ConnectorException {
+		
+		/**
+		 * Optimised by LDP to only retrieve Identity once.
+		 */
+		try {
+			Identity identity = getIdentityByName(username);
+			boolean valid = areCredentialsValid(identity, password);
+			if(valid) {
+				for(IdentityProcessor processor : processors) {
+					processor.processIdentity(identity, this);
+				}
+			}
+			return valid;
+		} catch (PrincipalNotFoundException e) {
 			return false;
 		}
-		Identity identity = getIdentityByName(username);
-		return areCredentialsValid(identity, password);
 	}
 
 	/**

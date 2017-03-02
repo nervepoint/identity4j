@@ -43,11 +43,8 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 	protected static final Iterator<Role> ROLE_ITERATOR = CollectionUtil.emptyIterator(Role.class);
 	
 	final static Log LOG = LogFactory.getLog(DirectoryConnector.class);
-	/**
-     */
+
 	public static final String WILDCARD_SEARCH = "*";
-	/**
-     */
 	public static final String OBJECT_CLASS_ATTRIBUTE = "objectClass";
 
 	private DirectoryConfiguration directoryConfiguration;
@@ -218,6 +215,7 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 		
 		NamingEnumeration<? extends Attribute> ne = attributes.getAll();
 		DirectoryIdentity directoryIdentity = new DirectoryIdentity(guid, identityName,dn);
+		directoryIdentity.setAttribute("dn", dn.toString());
 		while(ne.hasMoreElements()) {
 			Attribute a = ne.next();
 			if(!a.getID().equals(directoryConfiguration.getIdentityGuidAttribute()) &&
