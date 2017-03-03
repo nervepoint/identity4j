@@ -42,17 +42,7 @@ public class DefaultEncoderManager extends EncoderManager {
             addEncoder(new UnixSHA256Encoder());
             addEncoder(new UnixSHA512Encoder());
             
-            try {
-                NssTokenDatabase ntdp = NssTokenDatabase.getInstance();
-                addEncoder(new FIPSEncoder(ntdp));
-                addEncoder(new Base64FIPSEncoder(ntdp));
-            }
-            catch(IOException e) {
-                log.info("Failed to initialize Nss. No FIPS encoders registered.");
-            }
-            catch(Exception e) {
-                log.warn("Failed to initialize FIPS encoder.", e);
-            }
+
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}

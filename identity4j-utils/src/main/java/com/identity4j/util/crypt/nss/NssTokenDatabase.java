@@ -7,6 +7,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.math.BigInteger;
 import java.security.InvalidKeyException;
 import java.security.KeyStore;
@@ -43,16 +45,6 @@ public class NssTokenDatabase {
 	private byte[] passphrase;
 	private String keyName = "nam";
 
-	private static NssTokenDatabase instance;
-
-	public static NssTokenDatabase getInstance() throws KeyStoreException, NoSuchAlgorithmException,
-			CertificateException, IOException, InterruptedException {
-		if (instance == null)
-			throw new IOException(
-					"State NssTokenDatabase not initialized, please construct an instance once to register an instance.");
-		return instance;
-	}
-
 	public NssTokenDatabase() throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException,
 			InterruptedException {
 		this(new File(getNssConfigurationDirectory()));
@@ -78,7 +70,6 @@ public class NssTokenDatabase {
 	}
 
 	public NssTokenDatabase(File dbDir, byte[] noise, byte[] passphrase) {
-		instance = this;
 		this.noise = noise;
 		this.passphrase = passphrase;
 		this.dbDir = dbDir;
@@ -146,7 +137,6 @@ public class NssTokenDatabase {
 		return new String(text);
 	}
 
-	@SuppressWarnings("restriction")
 	private void openDatabase(File keyFile)
 			throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException {
 
@@ -187,11 +177,18 @@ public class NssTokenDatabase {
 			log.info(p.getName());
 		}
 
-		cryptoProvider = new sun.security.pkcs11.SunPKCS11(configFile.getAbsolutePath());
-		dbPassword = IOUtils.toString(new FileInputStream(keyFile), "US-ASCII");
-		char[] nssDBPassword = dbPassword.toCharArray();
-		keystore = KeyStore.getInstance("PKCS11", cryptoProvider);
-		keystore.load(null, nssDBPassword);
+		try {
+			Class<?> clz = Class.forName("sun.security.pkcs11.SunPKCS11");
+			Constructor<?> constructor = clz.getConstructor(String.class);
+			cryptoProvider = (Provider) constructor.newInstance(configFile.getAbsolutePath());
+			dbPassword = IOUtils.toString(new FileInputStream(keyFile), "US-ASCII");
+			char[] nssDBPassword = dbPassword.toCharArray();
+			keystore = KeyStore.getInstance("PKCS11", cryptoProvider);
+			keystore.load(null, nssDBPassword);
+		} catch (Throwable e) {
+			log.error("Could not initialise SunPKCS11", e);
+		} 
+		
 
 	}
 
