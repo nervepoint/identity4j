@@ -57,7 +57,7 @@ public class MySQLUsersConfiguration extends JDBCConfiguration{
 	
 	public String getSelectIdentitySQL() {
 		return configurationParameters.getStringOrDefault(SQL_IDENTITY_TABLE_SELECT,
-				"SELECT * FROM mysql.user WHERE CONCAT(User,'@',Host) = ? or CONCAT(User,'@',Host) = ?");
+				"SELECT * FROM mysql.user WHERE ( User = ? or User = ? ) and Host = ?");
 	}
 	
 	@Override

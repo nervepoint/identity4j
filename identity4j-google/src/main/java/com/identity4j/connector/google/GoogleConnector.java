@@ -265,9 +265,19 @@ public class GoogleConnector extends AbstractConnector {
 			log.warn("Updating google identity " + identity.getPrincipalName());
 		}
 		try {
-			String userKey = identity.getPrincipalName();
+			String userKey = identity.getGuid();
+			if(userKey == null)
+			    throw new PrincipalNotFoundException("Only users with an ID may be updated.", null, PrincipalType.user);
 			checkRequestInterval();
-			directory.users().update(userKey, GoogleModelConvertor.googleIdentityToUser(identity)).execute();
+			directory.users().patch(userKey, GoogleModelConvertor.googleIdentityToUser(identity)).execute();
+			
+			/* I know ... But there IS a delay, and Google says it can be up to 10 minutes. In practice
+			 * though it doesn't seem to be more than 1 minute.  */
+			try {
+                Thread.sleep(1000 * 60 * 2);
+            } catch (InterruptedException e) {
+            }
+			
 			if (configuration.getFetchRoles()) {
 				adjustAdditionRemovalOfRoleOnIdentityUpdate(identity);
 			}
@@ -312,8 +322,8 @@ public class GoogleConnector extends AbstractConnector {
 	 */
 	@Override
 	public Identity getIdentityByName(String name) throws PrincipalNotFoundException, ConnectorException {
-		if (log.isWarnEnabled()) {
-			log.warn("Get google identity " + name);
+		if (log.isInfoEnabled()) {
+			log.info("Get google identity " + name);
 		}
 		try {
 			checkRequestInterval();
@@ -538,11 +548,11 @@ public class GoogleConnector extends AbstractConnector {
 		}
 		try {
 			User user = new User();
+			user.setId(identity.getGuid());
 			user.setPassword(new String(password));
-			user.setPrimaryEmail(identity.getPrincipalName());
 			user.setChangePasswordAtNextLogin(forcePasswordChangeAtLogon);
 			checkRequestInterval();
-			directory.users().update(identity.getPrincipalName(), user).execute();
+			directory.users().patch(identity.getGuid(), user).execute();
 		} catch (IOException e) {
 			log.error("Problem in set password " + e.getMessage(), e);
 			throw new ConnectorException(e.getMessage(), e);
@@ -1141,10 +1151,11 @@ public class GoogleConnector extends AbstractConnector {
 	private void identitySuspensionHelper(Identity identity, boolean suspension) {
 		try {
 			User user = new User();
+			user.setId(identity.getGuid());
 			user.setSuspended(suspension);
 			user.setSuspensionReason("ADMIN");
 			checkRequestInterval();
-			directory.users().update(identity.getPrincipalName(), user).execute();
+			directory.users().patch(identity.getGuid(), user).execute();
 			// set the state in passed identity instance
 			identity.getAccountStatus().setDisabled(suspension);
 		} catch (GoogleJsonResponseException e) {

@@ -94,12 +94,24 @@ class GoogleModelConvertor {
 		
 		user.setId(googleIdentity.getGuid());
 		
-		user.setPrimaryEmail(googleIdentity.getPrincipalName()).
+		String givenName = googleIdentity.getAttribute("givenName");
+        String surname = googleIdentity.getAttribute("surname");
+        String fullName = googleIdentity.getFullName();
+        
+        if(StringUtil.isNullOrEmpty(surname) || StringUtil.isNullOrEmpty(givenName)) {
+            givenName = StringUtil.getBefore(fullName, " ");
+            String sn = StringUtil.getAfter(fullName, " ");
+            if(!sn.equals(fullName))
+                surname = sn;
+        }
+        
+        String principalName = googleIdentity.getPrincipalName();
+        user.setPrimaryEmail(principalName).
 					setName(new UserName().
-					setGivenName(googleIdentity.getAttribute("givenName")).
-					setFamilyName(googleIdentity.getAttribute("surname")).
-					setFullName(googleIdentity.getFullName())).
-					setEmails(Arrays.asList(new UserEmail().setAddress(googleIdentity.getPrincipalName()).
+					setGivenName(givenName).
+					setFamilyName(surname).
+					setFullName(fullName)).
+					setEmails(Arrays.asList(new UserEmail().setAddress(principalName).
 					setPrimary(true)));
 		
 		if(googleIdentity.getAddress(Media.mobile) != null)

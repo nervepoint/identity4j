@@ -14,13 +14,13 @@
 		<dependency>
 			<groupId>com.google.apis</groupId>
 			<artifactId>google-api-services-admin-directory</artifactId>
-			<version>directory_v1-rev68-1.22.0</version>
+			<version>directory_v1-rev77-1.22.0</version>
 		</dependency>
 
 		<dependency>
 			<groupId>com.google.apis</groupId>
 			<artifactId>google-api-services-oauth2</artifactId>
-			<version>v2-rev112-1.22.0</version>
+			<version>v2-rev124-1.22.0</version>
 		</dependency>
 
 		<dependency>

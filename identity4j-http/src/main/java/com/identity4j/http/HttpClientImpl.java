@@ -17,6 +17,7 @@ import javax.net.ssl.SSLSession;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.Header;
+import org.apache.http.HttpEntity;
 import org.apache.http.NameValuePair;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -147,7 +148,12 @@ public class HttpClientImpl implements HttpProviderClient {
 		@Override
 		public InputStream contentStream() throws IOException {
 			checkDone();
-			return response != null ? response.getEntity().getContent() : null;
+			if(response != null) {
+	            HttpEntity entity = response.getEntity();
+	            if(entity != null)
+	                return entity.getContent();
+			}
+            return null;
 		}
 
 	}

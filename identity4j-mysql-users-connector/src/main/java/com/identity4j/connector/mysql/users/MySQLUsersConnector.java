@@ -42,7 +42,7 @@ import com.identity4j.util.StringUtil;
  * @author gaurav
  *
  */
-public class MySQLUsersConnector extends JDBCConnector{
+public class MySQLUsersConnector extends JDBCConnector {
 	private final static long DAY = 60000 * 60 * 24;
 	
 	private static Set<ConnectorCapability> capabilities = new HashSet<ConnectorCapability>(Arrays.asList(new ConnectorCapability[] { 
@@ -143,9 +143,11 @@ public class MySQLUsersConnector extends JDBCConnector{
 		return jdbcAction(getMySQLUserConfiguration()
 					.getSelectIdentitySQL(), new Object[]{
 			//check for the user actually the way mysql stores
-			name,
+			userHost.user,
 			//check for the user in case disable flag is appended to it
-			getMySQLUserConfiguration().getDisabledIdentityPrincipalName(userHost.user, userHost.host)},
+			getMySQLUserConfiguration().getDisabledIdentityPrincipalName(userHost.user, userHost.host),
+			userHost.host
+			},
 			new JDBCResultsetBlock<Identity>() {
 
 				@Override
@@ -558,12 +560,8 @@ public class MySQLUsersConnector extends JDBCConnector{
 		 * @return
 		 */
 		private static String[] parseIdentity(String name) {
-			String[] userAndHost = name.split("@");
-			
-			if(userAndHost.length != 2){
-				throw new IllegalArgumentException("User and Host could not be resolved from principal name " + name);
-			}
-			return userAndHost;
+		    int idx = name.indexOf('@');
+		    return new String[] { idx == -1 ? name : name.substring(0, idx), idx == -1 ? "" : name.substring(idx +  1)  };
 		}
 
 		@Override

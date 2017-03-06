@@ -200,6 +200,7 @@ public abstract class AbstractConnector implements Connector, ValidationContext 
 	public Identity getIdentityByName(String name) throws PrincipalNotFoundException, ConnectorException {
 		for (Iterator<Identity> identityIterator = allIdentities(); identityIterator.hasNext();) {
 			Identity identity = identityIterator.next();
+			System.out.println(">> " + identity.getPrincipalName() + "/" + identity.getGuid() + " against " + name);
 			if (identity.getPrincipalName().equals(name)) {
 				return identity;
 			}
