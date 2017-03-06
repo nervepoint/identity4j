@@ -6,6 +6,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.identity4j.util.crypt.EncoderManager;
+import com.identity4j.util.crypt.nss.DefaultNssTokenDatabase;
 import com.identity4j.util.crypt.nss.FIPSEncoder;
 import com.identity4j.util.crypt.nss.NssTokenDatabase;
 
@@ -41,8 +42,19 @@ public class DefaultEncoderManager extends EncoderManager {
             addEncoder(new UnixMD5Encoder());
             addEncoder(new UnixSHA256Encoder());
             addEncoder(new UnixSHA512Encoder());
-            
 
+            try {
+                NssTokenDatabase ntdp = DefaultNssTokenDatabase.getInstance();
+                addEncoder(new FIPSEncoder(ntdp));
+                addEncoder(new Base64FIPSEncoder(ntdp));
+            }
+            catch(IOException e) {
+                log.info("Failed to initialize Nss. No FIPS encoders registered.");
+            }
+            catch(Throwable e) {
+                log.warn("Failed to initialize FIPS encoder.", e);
+            }
+            
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
