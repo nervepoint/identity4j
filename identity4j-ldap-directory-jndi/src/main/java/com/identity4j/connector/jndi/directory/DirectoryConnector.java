@@ -236,8 +236,7 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 			String roleNameAttribute = directoryConfiguration.getRoleGuidAttribute();
 			String filter = ldapService.buildObjectClassFilter(roleObjectClass, roleNameAttribute, attributes.get(idRoleAttr).get().toString());
 			directoryIdentity.addRole(getPrincipal(filter, getRoles(filter)));
-		}
-		else {
+		} else {
 			idRoleAttr = directoryConfiguration.getIdentityRoleNameAttribute();
 			if(!StringUtil.isNullOrEmpty(idRoleAttr)) {
 				directoryIdentity.addRole(getRoleByName(idRoleAttr));				

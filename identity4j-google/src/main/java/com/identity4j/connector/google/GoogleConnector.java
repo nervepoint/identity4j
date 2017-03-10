@@ -1032,7 +1032,7 @@ public class GoogleConnector extends AbstractConnector {
 						Charset.forName("UTF-8"), GenericJson.class);
 				String fileType = (String) fileContents.get("type");
 				if (fileType == null) {
-					throw new IOException("Error reading credentials from stream, 'type' field not specified.");
+					throw new ConnectorException("The JSON data provided does not appear to be the service_account type.");
 				}
 				if (!"service_account".equals(fileType)) {
 					throw new ConnectorException("The JSON data provided is not for the service_account type.");

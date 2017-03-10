@@ -13,7 +13,6 @@ import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 
 import org.apache.commons.lang3.SystemUtils;
-import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.identity4j.connector.AbstractConnector;
@@ -28,8 +27,6 @@ import com.identity4j.connector.principal.Role;
 import com.identity4j.util.passwords.PasswordCharacteristics;
 
 public class ScriptConnector extends AbstractConnector {
-
-	private final static Log log = LogFactory.getLog(ScriptConnector.class);
 
 	private ScriptConfiguration scriptConfiguration;
 	private final ScriptEngineManager manager;
