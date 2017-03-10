@@ -9,6 +9,8 @@ public interface SshCommand {
 
 	int drainAndWaitForExit() throws IOException;
 
+    int closeAndExit() throws IOException;
+
 	void ctrlD() throws IOException;
 
 	int getExitCode();
