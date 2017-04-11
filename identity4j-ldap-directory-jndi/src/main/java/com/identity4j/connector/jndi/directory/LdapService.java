@@ -121,6 +121,7 @@ public class LdapService {
 				LOG.error(account + " attempted to login but account reports as locked");
 				throw new IOException("Account is locked");
 			}
+			LOG.info(account + " attempted login but directory reported: " + nme.getMessage());
 			return false;
 		}
 		return true;
