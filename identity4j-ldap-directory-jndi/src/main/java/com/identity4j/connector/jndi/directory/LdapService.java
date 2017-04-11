@@ -116,6 +116,7 @@ public class LdapService {
 			// http://stackoverflow.com/questions/2672125/what-does-sub-error-code-568-mean-for-ldap-error-49-with-active-directory
 			DirectoryExceptionParser dep = new DirectoryExceptionParser(nme);
 			if ("773".equals(dep.getData())) {
+				LOG.error(account + " requires password change");
 				throw new PasswordChangeRequiredException();
 			} else if ("775".equals(dep.getData())) {
 				LOG.error(account + " attempted to login but account reports as locked");
