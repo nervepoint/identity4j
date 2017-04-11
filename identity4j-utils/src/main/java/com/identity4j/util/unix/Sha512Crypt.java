@@ -452,7 +452,6 @@ public final class Sha512Crypt
 
     for (int t=0; t<(msgs.length/3); t++)
       {
-        String saltPrefix = msgs[t*3];
         String plainText = msgs[t*3+1];
         String cryptText = msgs[t*3+2];
 
