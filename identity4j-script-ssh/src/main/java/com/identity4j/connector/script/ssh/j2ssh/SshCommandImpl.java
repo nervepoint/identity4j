@@ -1,7 +1,6 @@
 package com.identity4j.connector.script.ssh.j2ssh;
 
 import java.io.IOException;
-import java.util.concurrent.Semaphore;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -10,11 +9,8 @@ import com.identity4j.connector.script.ssh.SshCommand;
 import com.identity4j.util.expect.Expect;
 import com.identity4j.util.expect.ExpectTimeoutException;
 import com.identity4j.util.expect.RegularExpressionExpectMatcher;
-import com.sshtools.ssh.ChannelAdapter;
-import com.sshtools.ssh.ChannelEventListener;
 import com.sshtools.ssh.ChannelOpenException;
 import com.sshtools.ssh.PseudoTerminalModes;
-import com.sshtools.ssh.SshChannel;
 import com.sshtools.ssh.SshClient;
 import com.sshtools.ssh.SshException;
 import com.sshtools.ssh.SshIOException;
