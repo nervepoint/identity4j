@@ -75,6 +75,14 @@ public abstract class AbstractConnector implements Connector, ValidationContext 
 		}
 	}
 
+	public boolean supportsOptimisedCheckCredentials() {
+		return false;
+	}
+	
+	public boolean checkCredentialsOptimised(String remoteIdentifier, char[] password) throws ConnectorException {
+		throw new UnsupportedOperationException();
+	}
+	
 	public final boolean checkCredentials(String username, char[] password, IdentityProcessor... processors) throws ConnectorException {
 		
 		/**

@@ -102,6 +102,20 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 	}
 
 	
+	
+	@Override
+	public boolean supportsOptimisedCheckCredentials() {
+		return true;
+	}
+
+	@Override
+	public boolean checkCredentialsOptimised(String remoteIdentifier, char[] password) throws ConnectorException {
+		try {
+			return ldapService.authenticate(remoteIdentifier, new String(password));
+		} catch (IOException e) {
+			return false;
+		}
+	}
 
 	@Override
 	protected final boolean areCredentialsValid(Identity identity, char[] password) throws ConnectorException {
