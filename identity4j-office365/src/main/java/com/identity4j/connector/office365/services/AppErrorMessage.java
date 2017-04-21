@@ -1,7 +1,7 @@
 package com.identity4j.connector.office365.services;
 
-import org.codehaus.jackson.annotate.JsonIgnore;
-import org.codehaus.jackson.annotate.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * Class encapsulates error messages sent by Active Directory Graph API.

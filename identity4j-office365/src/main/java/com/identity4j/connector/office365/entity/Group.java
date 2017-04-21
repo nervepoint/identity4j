@@ -1,6 +1,6 @@
 package com.identity4j.connector.office365.entity;
 
-import org.codehaus.jackson.annotate.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 /**
  * This class represents a Group Object of the WAAD top level entity Group. Also this class gives a publicly available

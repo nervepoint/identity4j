@@ -3,9 +3,10 @@ package com.identity4j.util.json;
 import java.io.IOException;
 import java.util.Map;
 
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.map.SerializationConfig;
-import org.codehaus.jackson.type.TypeReference;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationConfig;
 
 /**
  * This singleton class is responsible for handling serialization/deserialization of POJOs into JSON.
@@ -20,11 +21,10 @@ import org.codehaus.jackson.type.TypeReference;
 public class JsonMapperService{
     private final ObjectMapper objectMapper = new ObjectMapper();
     
-    @SuppressWarnings("deprecation")
 	private JsonMapperService() {
     	//not to include null properties in JSON generated
-        //objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-    	objectMapper.configure(SerializationConfig.Feature.WRITE_NULL_PROPERTIES, false);
+        objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+//    	objectMapper.configure(SerializationConfig.Feature.WRITE_NULL_PROPERTIES, false);
     }
     
     /**
