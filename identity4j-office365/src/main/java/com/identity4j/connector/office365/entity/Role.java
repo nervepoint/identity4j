@@ -1,6 +1,6 @@
 package com.identity4j.connector.office365.entity;
 
-import org.codehaus.jackson.annotate.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 /**
  * 

@@ -7,8 +7,8 @@ import java.util.Arrays;
 import java.util.Map;
 
 import org.apache.commons.codec.binary.Base64;
-import org.codehaus.jackson.map.ObjectMapper;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.identity4j.connector.AbstractOAuth2;
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.office365.services.token.handler.ADToken;
