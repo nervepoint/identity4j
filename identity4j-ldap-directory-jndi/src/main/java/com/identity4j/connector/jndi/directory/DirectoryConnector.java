@@ -166,7 +166,7 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 			public boolean isApplyFilters() {
 				return true;
 			}
-		});
+		}, ldapService.getSearchControls());
 	}
 	
 	@Override
@@ -207,7 +207,7 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 				public boolean isApplyFilters() {
 					return true;
 				}
-			});
+			}, configureSearchControls(ldapService.getSearchControls()));
 		} catch (NamingException e) {
 			LOG.error("Problem in getting identities.", e);
 		} catch (IOException e) {
@@ -297,7 +297,7 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 				public boolean isApplyFilters() {
 					return true;
 				}
-			});
+			}, configureRoleSearchControls(ldapService.getSearchControls()));
 		} catch (NamingException e) {
 			LOG.error("Problem in getting roles.", e);
 		} catch (IOException e) {
@@ -501,7 +501,7 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 				public boolean isApplyFilters() {
 					return true;
 				}
-			});
+			}, ldapService.getSearchControls());
 			 
 			 return nodes.hasNext() ? nodes.next().iterator() : new ArrayList<BrowseNode>().iterator(); 
 		} catch (NamingException e) {

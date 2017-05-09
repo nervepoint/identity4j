@@ -190,16 +190,16 @@ public class LdapService {
 		});
 	}
 
-	public <T> Iterator<T> search(String filter, ResultMapper<T> resultMapper) throws NamingException, IOException {
-		return search(configuration.getBaseDn(), filter, resultMapper);
+	public <T> Iterator<T> search(String filter, ResultMapper<T> resultMapper, SearchControls searchControls) throws NamingException, IOException {
+		return search(configuration.getBaseDn(), filter, resultMapper, searchControls);
 	}
 
-	public <T> Iterator<T> search(final Name baseDN, final String filter, final ResultMapper<T> resultMapper)
+	public <T> Iterator<T> search(final Name baseDN, final String filter, final ResultMapper<T> resultMapper, final SearchControls searchControls)
 			throws NamingException, IOException {
 		return processBlock(new Block<Iterator<T>>() {
 
 			public Iterator<T> apply(LdapContext context) throws IOException, NamingException {
-				return new SearchResultIterator<T>(baseDN, context, filter, resultMapper);
+				return new SearchResultIterator<T>(baseDN, context, filter, resultMapper, searchControls);
 			}
 		});
 	}
@@ -211,13 +211,15 @@ public class LdapService {
 		T nextElement;
 		byte[] cookie = null;
 		LdapContext context;
+		SearchControls searchControls;
 		Name baseDN;
 		String filter;
 
-		SearchResultIterator(Name baseDN, LdapContext context, String filter, ResultMapper<T> resultMapper)
+		SearchResultIterator(Name baseDN, LdapContext context, String filter, ResultMapper<T> resultMapper, SearchControls searchControls)
 				throws NamingException, IOException {
 			this.resultMapper = resultMapper;
 			this.baseDN = baseDN;
+			this.searchControls = searchControls;
 			this.context = context;
 			this.filter = filter;
 			buildResults();
@@ -232,7 +234,7 @@ public class LdapService {
 				context.setRequestControls(
 						new Control[] { new PagedResultsControl(configuration.getMaxPageSize(), Control.CRITICAL) });
 			}
-			results = context.search(baseDN, filter, getSearchControls());
+			results = context.search(baseDN, filter, searchControls);
 
 		}
 

@@ -92,6 +92,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 	public static final String PWD_PROPERTIES_ATTRIBUTE = "pwdProperties";
 	public static final String OU_ATTRIBUTE = "ou";
 	public static final String PASSWORD_POLICY_APPLIES = "msDS-PSOApplied";
+	public static final String PASSWORD_EXPIRY_COMPUTED = "msDS-UserPasswordExpiryTimeComputed";
 	
 	/**
 	 * This is a special attribute we add to mimic the Office365 ImmutableID
@@ -150,7 +151,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 					PWD_PROPERTIES_ATTRIBUTE, MAIL_ATTRIBUTE,
 					PHONE_NUMBER_ATTRIBUTE, MOBILE_PHONE_NUMBER_ATTRIBUTE,
 					OTHER_PHONE_NUMBER_ATTRIBUTE, OU_ATTRIBUTE,
-					DISTINGUISHED_NAME_ATTRIBUTE });
+					DISTINGUISHED_NAME_ATTRIBUTE, PASSWORD_EXPIRY_COMPUTED });
 
 	private static Collection<String> CORE_IDENTITY_ATTRIBUTES = Arrays.asList(new
 	 String[] { COMMON_NAME_ATTRIBUTE, SAM_ACCOUNT_NAME_ATTRIBUTE, 
@@ -882,7 +883,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 				public boolean isApplyFilters() {
 					return true;
 				}
-			});
+			}, configureRoleSearchControls(ldapService.getSearchControls()));
 		} catch (NamingException e) {
 			LOG.error("Problem in getting roles", e);
 		} catch (IOException e) {
@@ -908,7 +909,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 				public boolean isApplyFilters() {
 					return false;
 				}
-			});
+			}, ldapService.getSearchControls());
 		} catch (NamingException e) {
 			LOG.error("Problem in getting PSOs", e);
 		} catch (IOException e) {
@@ -917,6 +918,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 		
 		return CollectionUtil.emptyIterator(ADPasswordCharacteristics.class);
 	}
+	
 	@Override
 	protected SearchControls configureSearchControls(
 			SearchControls searchControls) {
@@ -1146,7 +1148,10 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			return ldapService.search(filter, new ResultMapper<Identity>() {
 
 				private boolean isAttributeMapped(Attribute attribute) {
-					return true;
+					if(LOG.isInfoEnabled()) {
+						LOG.info(String.format("REMOVEME: Processing attribute %s", attribute.getID()));
+					}
+ 					return true;
 				}
 
 				@Override
@@ -1242,10 +1247,16 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 						passwordStatus.setUnlocked(getAgedDate(
 								minimumPasswordAge, passwordLastSet));
 					}
-					if (!isPasswordNeverExpire(result)
-							&& passwordLastSet != null) {
-						passwordStatus.setExpire(getAgedDate(
-								maximumPasswordAge, passwordLastSet));
+					
+					if (!isPasswordNeverExpire(result)) {
+						String passwordexpiryComputed = directoryIdentity.getAttribute(PASSWORD_EXPIRY_COMPUTED);
+						if(passwordexpiryComputed!=null) {
+							passwordStatus.setExpire(ActiveDirectoryDateUtil
+							.adTimeToJavaDate(Long.parseLong(passwordexpiryComputed)));
+						} else if(passwordLastSet != null) {
+							passwordStatus.setExpire(getAgedDate(
+									maximumPasswordAge, passwordLastSet));
+						}
 					}
 
 					String userDn = ActiveDirectoryConfiguration.buildUsername(
@@ -1254,11 +1265,9 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 					if (userDn.equalsIgnoreCase(getConfiguration()
 							.getServiceAccountDn())) {
 						// Do not allow the service account password to be reset
-						passwordStatus
-								.setType(PasswordStatusType.noChangeAllowed);
+						passwordStatus.setType(PasswordStatusType.noChangeAllowed);
 					} else if (isPasswordChangeRequired(result)) {
-						passwordStatus
-								.setType(PasswordStatusType.changeRequired);
+						passwordStatus.setType(PasswordStatusType.changeRequired);
 					} else {
 						passwordStatus.calculateType();
 					}
@@ -1374,7 +1383,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 				public boolean isApplyFilters() {
 					return true;
 				}
-			});
+			}, configureSearchControls(ldapService.getSearchControls()));
 		} catch (NamingException e) {
 			LOG.error("Problem in fetching identity", e);
 		} catch (IOException e) {
@@ -1648,7 +1657,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			public boolean isApplyFilters() {
 				return true;
 			}
-		});
+		}, configureRoleSearchControls(ldapService.getSearchControls()));
 
 	}
 
