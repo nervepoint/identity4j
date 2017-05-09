@@ -55,12 +55,16 @@
 		<developer>
 			<id>lee</id>
 			<name>Lee David Painter</name>
-			<email>lee@nervepoint.com</email>
+			<email>lee@hypersocket.com</email>
+			<organization>Hypersock</organization>
+			<url>http://www.hypersocket.com</url>
 		</developer>
 		<developer>
 			<id>brett</id>
 			<name>Brett Smith</name>
-			<email>brett@nervepoint.com</email>
+			<email>brett@hypersocket.com</email>
+			<organization>Hypersock</organization>
+			<url>http://www.hypersocket.com</url>
 		</developer>
 	</developers>
 	<modules>
