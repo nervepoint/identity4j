@@ -36,8 +36,6 @@ public class ScriptConnector extends AbstractConnector {
 
 	private Float floatVersion;
 
-	private boolean scriptRoleSupport;
-	private boolean scriptIdentitySupport;
 
 	public ScriptConnector() {
 		manager = new ScriptEngineManager();
@@ -87,7 +85,7 @@ public class ScriptConnector extends AbstractConnector {
 
 	@Override
 	protected void onOpen(ConnectorConfigurationParameters parameters) {
-		scriptRoleSupport = true;
+
 		scriptConfiguration = (ScriptConfiguration) parameters;
 		engine = manager.getEngineByMimeType(scriptConfiguration.getScriptMimeType());
 		engine.put("config", scriptConfiguration);
@@ -137,11 +135,9 @@ public class ScriptConnector extends AbstractConnector {
 				processScriptExecption(e);
 				throw new ConnectorException("Failed script execution.", e);
 			} catch (UnsupportedOperationException ueo) {
-				scriptIdentitySupport = false;
 				return super.getIdentityByName(name);
 			}
 		} catch (NoSuchMethodException e) {
-			scriptIdentitySupport = false;
 			return super.getIdentityByName(name);
 		}
 	}
@@ -158,12 +154,10 @@ public class ScriptConnector extends AbstractConnector {
 			try {
 				processScriptExecption(e);
 			} catch (UnsupportedOperationException uoe) {
-				scriptRoleSupport = false;
 				return super.getRoleByName(name);
 			}
 			throw new ConnectorException("Failed script execution.", e);
 		} catch (NoSuchMethodException e) {
-			scriptRoleSupport = false;
 			return super.getRoleByName(name);
 		}
 	}

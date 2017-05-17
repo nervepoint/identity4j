@@ -2,7 +2,6 @@
 package com.identity4j.connector.as400;
 
 import java.io.IOException;
-import java.net.InetAddress;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashSet;
@@ -404,18 +403,15 @@ public class As400Connector extends AbstractConnector {
 	protected void onOpen(ConnectorConfigurationParameters parameters) throws ConnectorException {
 		as400Configuration = (As400Configuration) parameters;
 		try {
-			if (InetAddress.getByName(as400Configuration.getControllerHost()).isReachable(10000)) {
-				AS400 as400 = as400Configuration.buildConnection();
-				if (as400.isConnected()) {
-					this.as400 = as400;
-				} else {
-					throw new IOException("Not connected.");
+				this.as400 = as400Configuration.buildConnection();
+				if(!as400.authenticate(as400Configuration.getServiceAccountUsername(), 
+						as400Configuration.getServiceAccountPassword())) {
+					throw new IOException("Invalid credentials");
 				}
-			} else {
-				throw new IOException("Failed to reach host.");
-			}
 		} catch (IOException e) {
 			throw new ConnectorException("Failed to connect.", e);
+		} catch (AS400SecurityException e) {
+			throw new ConnectorException(e.getMessage(), e);
 		}
 	}
 

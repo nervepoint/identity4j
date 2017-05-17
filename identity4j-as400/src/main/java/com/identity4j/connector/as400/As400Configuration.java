@@ -1,7 +1,10 @@
 /* HEADER */
 package com.identity4j.connector.as400;
 
+import java.io.IOException;
+
 import com.ibm.as400.access.AS400;
+import com.ibm.as400.access.AS400SecurityException;
 import com.identity4j.connector.AbstractConnectorConfiguration;
 import com.identity4j.util.MultiMap;
 import com.identity4j.util.StringUtil;
@@ -59,13 +62,19 @@ public class As400Configuration extends AbstractConnectorConfiguration {
      * Create connection to remote system.
      * 
      * @return
+     * @throws IOException 
+     * @throws AS400SecurityException 
      */
-    public final AS400 buildConnection() {
-        if (StringUtil.isNullOrEmpty(getProxyServer())) {
-            return buildConnection(getServiceAccountUsername(), getServiceAccountPassword());
-        } else {
-            return buildConnection(getServiceAccountUsername(), getServiceAccountPassword(), getProxyServer());
-        }
+    public final AS400 buildConnection() throws IOException {
+        try {
+			if (StringUtil.isNullOrEmpty(getProxyServer())) {
+			    return buildConnection(getServiceAccountUsername(), getServiceAccountPassword());
+			} else {
+			    return buildConnection(getServiceAccountUsername(), getServiceAccountPassword(), getProxyServer());
+			}
+		} catch (AS400SecurityException e) {
+			throw new IOException(e);
+		}
     }
 
     /**
@@ -75,9 +84,11 @@ public class As400Configuration extends AbstractConnectorConfiguration {
      * @param password
      * @param proxy
      * @return
+     * @throws IOException 
+     * @throws AS400SecurityException 
      */
-    private AS400 buildConnection(String username, String password, String proxy) {
-        return new AS400(getControllerHost(), username, password, proxy);
+    private AS400 buildConnection(String username, String password, String proxy) throws AS400SecurityException, IOException {
+       return new AS400(getControllerHost(), username, password, proxy);
     }
 
     /**
@@ -86,9 +97,11 @@ public class As400Configuration extends AbstractConnectorConfiguration {
      * @param username
      * @param password
      * @return
+     * @throws IOException 
+     * @throws AS400SecurityException 
      */
-    public final AS400 buildConnection(String username, String password) {
-        return new AS400(getControllerHost(), username, password);
+    public final AS400 buildConnection(String username, String password) throws AS400SecurityException, IOException {
+       return new AS400(getControllerHost(), username, password);
     }
 
 	@Override
