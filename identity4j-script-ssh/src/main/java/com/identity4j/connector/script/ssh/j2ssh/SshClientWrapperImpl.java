@@ -49,9 +49,9 @@ public class SshClientWrapperImpl implements SshClientWrapper {
 					config.getSudoPrompt(), 
 					config.getServiceAccountPassword());
 		} catch (SshException e) { 
-			throw new IOException(e);
+			throw new IOException(e.getMessage(), e);
 		} catch(ChannelOpenException e) {
-			throw new IOException(e);
+			throw new IOException(e.getMessage(), e);
 		}
 	}
 
@@ -69,17 +69,17 @@ public class SshClientWrapperImpl implements SshClientWrapper {
 					try {
 						c.exit();
 					} catch (SshException e) {
-						throw new IOException(e);
+						throw new IOException(e.getMessage(), e);
 					}
 				}
 
 			};
 		} catch (SshException e) { 
-			throw new IOException(e);
+			throw new IOException(e.getMessage(), e);
 		} catch (SftpStatusException e) { 
-			throw new IOException(e);
+			throw new IOException(e.getMessage(), e);
 		} catch(ChannelOpenException e) {
-			throw new IOException(e);
+			throw new IOException(e.getMessage(), e);
 		}
 	}
 

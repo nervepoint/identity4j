@@ -73,7 +73,7 @@ public class As400Configuration extends AbstractConnectorConfiguration {
 			    return buildConnection(getServiceAccountUsername(), getServiceAccountPassword(), getProxyServer());
 			}
 		} catch (AS400SecurityException e) {
-			throw new IOException(e);
+			throw new IOException(e.getMessage(), e);
 		}
     }
 

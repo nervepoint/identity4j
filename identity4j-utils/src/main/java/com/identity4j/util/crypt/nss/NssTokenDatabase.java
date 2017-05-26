@@ -201,11 +201,11 @@ public class NssTokenDatabase {
 					new KeyStore.PasswordProtection(dbPassword.toCharArray()));
 			keystore.store(null, dbPassword.toCharArray());
 		} catch (NoSuchAlgorithmException e) {
-			throw new IOException(e);
+			throw new IOException(e.getMessage(), e);
 		} catch (KeyStoreException e) {
-			throw new IOException(e);
+			throw new IOException(e.getMessage(), e);
 		} catch (CertificateException e) {
-			throw new IOException(e);
+			throw new IOException(e.getMessage(), e);
 		}
 	}
 
@@ -213,11 +213,11 @@ public class NssTokenDatabase {
 		try {
 			return (SecretKey) keystore.getKey(reference, dbPassword.toCharArray());
 		} catch (UnrecoverableKeyException e) {
-			throw new IOException(e);
+			throw new IOException(e.getMessage(), e);
 		} catch (KeyStoreException e) {
-			throw new IOException(e);
+			throw new IOException(e.getMessage(), e);
 		} catch (NoSuchAlgorithmException e) {
-			throw new IOException(e);
+			throw new IOException(e.getMessage(), e);
 		}
 	}
 
