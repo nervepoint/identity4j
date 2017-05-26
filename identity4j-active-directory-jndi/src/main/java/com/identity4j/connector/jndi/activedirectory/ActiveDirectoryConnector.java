@@ -1250,7 +1250,10 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 					
 					if (!isPasswordNeverExpire(result)) {
 						String passwordexpiryComputed = directoryIdentity.getAttribute(PASSWORD_EXPIRY_COMPUTED);
-						if(passwordexpiryComputed!=null) {
+						if(LOG.isInfoEnabled()) {
+							LOG.info(String.format("%s's computed password expiry is %s", userPrincipalName, passwordexpiryComputed));
+						}
+						if(passwordexpiryComputed!=null && StringUtils.isNotBlank(passwordexpiryComputed)) {
 							passwordStatus.setExpire(ActiveDirectoryDateUtil
 							.adTimeToJavaDate(Long.parseLong(passwordexpiryComputed)));
 						} else if(passwordLastSet != null) {
