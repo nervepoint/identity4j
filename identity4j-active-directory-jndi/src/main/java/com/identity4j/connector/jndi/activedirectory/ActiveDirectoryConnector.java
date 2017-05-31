@@ -803,6 +803,10 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 
 			ldapService.update(((DirectoryIdentity) identity).getDn(),
 					items.toArray(new ModificationItem[items.size()]));
+			
+			directoryIdentity.getAccountStatus().setDisabled(false);
+			directoryIdentity.getAccountStatus().calculateType();
+			
 		} catch (NamingException e) {
 			LOG.error("Problem in enable identity", e);
 		} catch (IOException e) {
