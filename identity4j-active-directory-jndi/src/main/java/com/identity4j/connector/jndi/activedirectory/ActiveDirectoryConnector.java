@@ -67,6 +67,26 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 	final static Log LOG = LogFactory.getLog(ActiveDirectoryConnector.class);
 
 	public static final String SAM_ACCOUNT_NAME_ATTRIBUTE = "sAMAccountName";
+	public static final String DISPLAY_NAME_ATTRIBUTE = "displayName";
+	public static final String GIVEN_NAME_ATTRIBUTE = "givenName";
+	public static final String SURNAME_ATTRIBUTE = "sn";
+	public static final String INITIALS_ATTRIBUTE = "initials";
+	public static final String DESCRIPTION_ATTRIBUTE = "description";
+	public static final String OFFICE_ATTRIBUTE = "physicalDeliveryOfficeName";
+	public static final String HOME_PAGE_ATTRIBUTE = "wWWHomePage";
+	public static final String PROFILE_PATH_ATTRIBUTE = "profilePath";
+	public static final String SCRIPT_PATH_ATTRIBUTE = "scriptPath";
+	public static final String HOME_DIR_ATTRIBUTE = "homeDirectory";
+	public static final String HOME_DRIVE_ATTRIBUTE = "homeDrive";
+	public static final String HOME_PHONE_ATTRIBUTE = "homePhone";
+	public static final String PAGER_ATTRIBUTE = "pager";
+	public static final String FAX_ATTRIBUTE = "facsimileTelephoneNumber";
+	public static final String IPPHONE_ATTRIBUTE = "ipPhone";
+	public static final String INFO_ATTRIBUTE = "info";
+	public static final String TITLE_ATTRIBUTE = "title";
+	public static final String DEPARTMENT_ATTRIBUTE = "department";
+	public static final String COMPANY_ATTRIBUTE = "company";
+	public static final String MANAGER_ATTRIBUTE = "manager";
 	public static final String USER_PRINCIPAL_NAME_ATTRIBUTE = "userPrincipalName";
 	public static final String OBJECT_GUID_ATTRIBUTE = "objectGUID";
 	public static final String USER_ACCOUNT_CONTROL_ATTRIBUTE = "userAccountControl";
@@ -93,6 +113,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 	public static final String OU_ATTRIBUTE = "ou";
 	public static final String PASSWORD_POLICY_APPLIES = "msDS-PSOApplied";
 	public static final String PASSWORD_EXPIRY_COMPUTED = "msDS-UserPasswordExpiryTimeComputed";
+	
 	
 	/**
 	 * This is a special attribute we add to mimic the Office365 ImmutableID
@@ -151,7 +172,17 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 					PWD_PROPERTIES_ATTRIBUTE, MAIL_ATTRIBUTE,
 					PHONE_NUMBER_ATTRIBUTE, MOBILE_PHONE_NUMBER_ATTRIBUTE,
 					OTHER_PHONE_NUMBER_ATTRIBUTE, OU_ATTRIBUTE,
-					DISTINGUISHED_NAME_ATTRIBUTE, PASSWORD_EXPIRY_COMPUTED });
+					DISTINGUISHED_NAME_ATTRIBUTE, PASSWORD_EXPIRY_COMPUTED,
+					GIVEN_NAME_ATTRIBUTE, SURNAME_ATTRIBUTE,
+					INITIALS_ATTRIBUTE, DESCRIPTION_ATTRIBUTE,
+					OFFICE_ATTRIBUTE, HOME_PAGE_ATTRIBUTE,
+					PROFILE_PATH_ATTRIBUTE, SCRIPT_PATH_ATTRIBUTE,
+					HOME_DIR_ATTRIBUTE, HOME_DRIVE_ATTRIBUTE,
+					HOME_PHONE_ATTRIBUTE, PAGER_ATTRIBUTE ,
+					FAX_ATTRIBUTE, IPPHONE_ATTRIBUTE,
+					INFO_ATTRIBUTE, TITLE_ATTRIBUTE,
+					DEPARTMENT_ATTRIBUTE, COMPANY_ATTRIBUTE,
+					MANAGER_ATTRIBUTE, DISPLAY_NAME_ATTRIBUTE});
 
 	private static Collection<String> CORE_IDENTITY_ATTRIBUTES = Arrays.asList(new
 	 String[] { COMMON_NAME_ATTRIBUTE, SAM_ACCOUNT_NAME_ATTRIBUTE, 
@@ -1152,9 +1183,6 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			return ldapService.search(filter, new ResultMapper<Identity>() {
 
 				private boolean isAttributeMapped(Attribute attribute) {
-					if(LOG.isInfoEnabled()) {
-						LOG.info(String.format("REMOVEME: Processing attribute %s", attribute.getID()));
-					}
  					return true;
 				}
 
