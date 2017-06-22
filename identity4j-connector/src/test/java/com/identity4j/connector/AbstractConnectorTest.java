@@ -13,15 +13,18 @@ import static org.junit.matchers.JUnitMatchers.hasItem;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Properties;
 
+import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.PropertyConfigurator;
 import org.junit.After;
 import org.junit.Assert;
@@ -39,10 +42,14 @@ import com.identity4j.connector.principal.IdentityImpl;
 import com.identity4j.connector.principal.PasswordStatusType;
 import com.identity4j.connector.principal.Principal;
 import com.identity4j.connector.principal.Role;
+import com.identity4j.connector.principal.RoleImpl;
 import com.identity4j.util.MultiMap;
 import com.identity4j.util.StringUtil;
 import com.identity4j.util.TestUtils;
+import com.identity4j.util.passwords.DefaultPasswordCharacteristics;
+import com.identity4j.util.passwords.PasswordAnalyser;
 import com.identity4j.util.passwords.PasswordCharacteristics;
+import com.identity4j.util.passwords.PasswordGenerator;
 
 /**
  * Convenience class that performs tests for all abstract connecter methods. Any
@@ -51,12 +58,18 @@ import com.identity4j.util.passwords.PasswordCharacteristics;
 public abstract class AbstractConnectorTest {
 
 	static {
-		PropertyConfigurator.configure(AbstractConnectorTest.class
-				.getResource("/test-log4j.properties"));
+		URL resource = AbstractConnectorTest.class
+				.getResource("/test-log4j.properties");
+		if(resource == null)
+			BasicConfigurator.configure();
+		else
+			PropertyConfigurator.configure(resource);
 	}
 
 	protected final String identityName;
 	protected final String identityPassword;
+	protected final String roleAttributeName;
+	protected final String roleAttributeValue;
 	protected final String newPassword;
 	protected final String invalidPassword;
 	protected final String roleName;
@@ -64,6 +77,7 @@ public abstract class AbstractConnectorTest {
 
 	protected String identityGuid;
 	protected Identity identity;
+	protected Role role;
 	protected Connector connector;
 	protected Boolean checkOldCredentials;
 
@@ -110,6 +124,12 @@ public abstract class AbstractConnectorTest {
 		// The connector may not support roles
 		roleName = configurationParameters.getStringOrDefault(
 				"connector.validRoleName", "");
+		roleAttributeName = configurationParameters.getStringOrDefault(
+				"connector.validRoleAttributeName", "");
+		roleAttributeValue = configurationParameters.getStringOrDefault(
+				"connector.validRoleAttributeValue", "");
+		
+		
 	}
 
 	private MultiMap loadConfigurationParameters(String propertiesFile) {
@@ -163,6 +183,10 @@ public abstract class AbstractConnectorTest {
 		return identity;
 	}
 
+	protected final Role getRole() {
+		return role;
+	}
+
 	/**
 	 * Create a new user ready for use by each test
 	 */
@@ -179,6 +203,9 @@ public abstract class AbstractConnectorTest {
 		assertTrue("Connector must be open.", connector.isOpen());
 		identity = connector.getIdentityByName(identityName);
 		identityGuid = identity.getGuid();
+		if(!StringUtil.isNullOrEmpty(roleName)) {
+			role = connector.getRoleByName(roleName);
+		}
 	}
 
 	protected void beforeSetUp() throws Exception {
@@ -253,16 +280,37 @@ public abstract class AbstractConnectorTest {
 
 		Assume.assumeTrue(connector.getCapabilities().contains(
 				ConnectorCapability.passwordChange));
+		
+		String actualNewPassword = getActualNewPassword();
 
 		try {
 			connector.changePassword(identityName, identityGuid,
-					identityPassword.toCharArray(), newPassword.toCharArray());
-			assertPasswordChange(identityName, identityPassword, newPassword);
+					identityPassword.toCharArray(), actualNewPassword.toCharArray());
+			assertPasswordChange(identityName, identityPassword, actualNewPassword);
 		} finally {
 			// reset to original password
 			connector.setPassword(identityName, identityGuid,
 					identityPassword.toCharArray(), false);
 		}
+	}
+
+	protected String getActualNewPassword() {
+		String actualNewPassword = this.newPassword;
+		if(actualNewPassword.equals("*")) {
+			actualNewPassword = generateRandomPassword(connector, identityName);
+		}
+		return actualNewPassword;
+	}
+
+	protected String generateRandomPassword(Connector connector, String username) {
+		PasswordCharacteristics pc = connector.getPasswordCharacteristics();
+		if(pc == null) {
+			pc = new DefaultPasswordCharacteristics();
+		}
+		
+		PasswordGenerator gen = new PasswordGenerator(new PasswordAnalyser(), pc);
+		return new String(gen.generate(Locale.getDefault(), username));
+		
 	}
 
 	@Test(expected = PrincipalNotFoundException.class)
@@ -273,7 +321,7 @@ public abstract class AbstractConnectorTest {
 
 		final String invalidGuid = identityGuid + identityGuid;
 		connector.changePassword(identityName, invalidGuid,
-				identityPassword.toCharArray(), newPassword.toCharArray());
+				identityPassword.toCharArray(), getActualNewPassword().toCharArray());
 	}
 
 	@Test(expected = PrincipalNotFoundException.class)
@@ -281,14 +329,14 @@ public abstract class AbstractConnectorTest {
 		Assume.assumeTrue(connector.getCapabilities().contains(
 				ConnectorCapability.passwordChange));
 		connector.changePassword(getTestPrincipalName(), identityGuid,
-				identityPassword.toCharArray(), newPassword.toCharArray());
+				identityPassword.toCharArray(), getActualNewPassword().toCharArray());
 	}
 
 	@Test(expected = InvalidLoginCredentialsException.class)
 	public final void changePasswordWithInvalidPassword() {
 		Assume.assumeTrue(connector.getCapabilities().contains(
 				ConnectorCapability.passwordChange));
-		connector.changePassword(identityName, identityGuid, TestUtils.randomValue().toCharArray(), newPassword.toCharArray());
+		connector.changePassword(identityName, identityGuid, TestUtils.randomValue().toCharArray(), getActualNewPassword().toCharArray());
 	}
 
 	@Test(expected = ConnectorException.class)
@@ -313,12 +361,13 @@ public abstract class AbstractConnectorTest {
 		Assume.assumeTrue(connector.getCapabilities().contains(
 				ConnectorCapability.passwordSet));
 		try {
+			String actualNewPassword = getActualNewPassword();
 			final boolean forcePasswordChangeAtLogon = false;
 			connector.setPassword(identityName, identityGuid,
-					newPassword.toCharArray(), forcePasswordChangeAtLogon);
+					actualNewPassword.toCharArray(), forcePasswordChangeAtLogon);
 			try {
 				assertPasswordChange(identityName, identityPassword,
-						newPassword);
+						actualNewPassword);
 			} finally {
 				// reset to original password
 				try {
@@ -373,12 +422,13 @@ public abstract class AbstractConnectorTest {
 				ConnectorCapability.forcePasswordChange));
 		final boolean forcePasswordChangeAtLogon = true;
 
+		String actualNewPassword = getActualNewPassword();
 		connector.setPassword(identityName, identityGuid,
-				newPassword.toCharArray(), forcePasswordChangeAtLogon);
+				actualNewPassword.toCharArray(), forcePasswordChangeAtLogon);
 		try {
 			try {
 				assertPasswordChange(identityName, identityPassword,
-						newPassword);
+						actualNewPassword);
 				throw new IllegalStateException(
 						"Expected a PasswordChangeRequiredException");
 			} catch (PasswordChangeRequiredException pcre) {
@@ -404,7 +454,7 @@ public abstract class AbstractConnectorTest {
 
 		final boolean forcePasswordChangeAtLogon = false;
 		connector.setPassword(getTestPrincipalName(), identityGuid,
-				newPassword.toCharArray(), forcePasswordChangeAtLogon);
+				getActualNewPassword().toCharArray(), forcePasswordChangeAtLogon);
 	}
 
 	protected void assertPasswordChange(String identityName, String oldPassword,
@@ -496,14 +546,14 @@ public abstract class AbstractConnectorTest {
 			Iterator<Role> allRoles = connector.allRoles();
 			assertNotNull(allRoles);
 			assertTrue("Roles should be found", allRoles.hasNext());
-			Role roleByName = connector.getRoleByName(roleName);
+
 			List<Role> roles = new ArrayList<Role>();
-			
 			Iterator<Role> it = connector.allRoles();
 			while(it.hasNext()) {
 				Role r = it.next();
 				roles.add(r);
 			}
+			Role roleByName = connector.getRoleByName(roleName);
 			
 			assertTrue(roles.contains(roleByName));
 		}
@@ -623,16 +673,54 @@ public abstract class AbstractConnectorTest {
 	public final void createRole() {
 		Assume.assumeTrue(connector.getCapabilities().contains(
 				ConnectorCapability.createRole));
-		throw new UnsupportedOperationException(
-				"Create role test has not been implemented");
+
+		String newPrincipalName = roleName + "2";
+		Role newIdentity = new RoleImpl(null, newPrincipalName);
+		String valToTest = null;
+		if(!StringUtil.isNullOrEmpty(roleAttributeName)) {
+			newIdentity.setAttribute(roleAttributeName, roleAttributeValue);
+			valToTest = roleAttributeValue;
+		}
+		connector.createRole(newIdentity);
+		try {
+			newIdentity = connector.getRoleByName(newPrincipalName);
+			assertEquals("Expect principal name to be the same.", newPrincipalName,
+					newIdentity.getPrincipalName());
+
+			if(!StringUtil.isNullOrEmpty(roleAttributeName)) 
+				assertEquals("Expect attribute value to be the same.", valToTest,
+						newIdentity.getAttribute(roleAttributeName));
+
+		} finally {
+			connector.deleteRole(newPrincipalName);
+		}
 	}
 
 	@Test
 	public final void updateRole() {
 		Assume.assumeTrue(connector.getCapabilities().contains(
 				ConnectorCapability.updateRole));
-		throw new UnsupportedOperationException(
-				"Update role test has not been implemented");
+		Map<String, String[]> currentAttributes = new HashMap<String, String[]>(
+				role.getAttributes());
+		try {
+			Map<String, String[]> attributes = new HashMap<String, String[]>(
+					currentAttributes);
+			updateRoleAttributes(role, attributes);
+			role.setAttributes(attributes);
+			connector.updateRole(role);
+			Role newRole = connector.getRoleByName(role
+					.getPrincipalName());
+			assertUpdatedRoleAttributes(role, attributes, newRole,
+					newRole.getAttributes());
+		} finally {
+			role.setAttributes(currentAttributes);
+			try {
+				connector.updateRole(role);
+			} catch (Exception e) {
+				System.err
+						.println("Could not revert original attributes. State of test role is incorrect and future tests may fail.");
+			}
+		}
 	}
 
 	protected void assertUpdatedAttributes(Identity identity,
@@ -643,6 +731,19 @@ public abstract class AbstractConnectorTest {
 	}
 
 	protected void updateAttributes(Identity identity2,
+			Map<String, String[]> attributes) {
+		throw new UnsupportedOperationException(
+				"The connector test implementation must provide some attributes to update");
+	}
+	
+	protected void assertUpdatedRoleAttributes(Role role,
+			Map<String, String[]> attributes, Role newRole,
+			Map<String, String[]> newAttributes) {
+		throw new UnsupportedOperationException(
+				"The connector test implementation must assert the changes attributes are correct");
+	}
+
+	protected void updateRoleAttributes(Role role,
 			Map<String, String[]> attributes) {
 		throw new UnsupportedOperationException(
 				"The connector test implementation must provide some attributes to update");
@@ -689,4 +790,5 @@ public abstract class AbstractConnectorTest {
 	protected String getTestPrincipalName() {
 		return TestUtils.randomValue();
 	}
+	
 }

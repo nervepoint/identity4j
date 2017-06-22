@@ -8,6 +8,7 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.math.BigInteger;
 import java.security.InvalidKeyException;
 import java.security.KeyStore;
@@ -176,17 +177,30 @@ public class NssTokenDatabase {
 			log.info(p.getName());
 		}
 
-		try {
-			Class<?> clz = Class.forName("sun.security.pkcs11.SunPKCS11");
-			Constructor<?> constructor = clz.getConstructor(String.class);
-			cryptoProvider = (Provider) constructor.newInstance(configFile.getAbsolutePath());
-			dbPassword = IOUtils.toString(new FileInputStream(keyFile), "US-ASCII");
-			char[] nssDBPassword = dbPassword.toCharArray();
-			keystore = KeyStore.getInstance("PKCS11", cryptoProvider);
-			keystore.load(null, nssDBPassword);
-		} catch (Throwable e) {
-			log.error("Could not initialise SunPKCS11", e);
-		} 
+        Class<?> clz;
+        try {
+            clz = Class.forName("sun.security.pkcs11.SunPKCS11");
+            Constructor<?> constructor = clz.getConstructor(String.class);
+            cryptoProvider = (Provider) constructor.newInstance(configFile.getAbsolutePath());
+            dbPassword = IOUtils.toString(new FileInputStream(keyFile), "US-ASCII");
+            char[] nssDBPassword = dbPassword.toCharArray();
+            keystore = KeyStore.getInstance("PKCS11", cryptoProvider);
+            keystore.load(null, nssDBPassword);
+        } catch (ClassNotFoundException e) {
+            throw new KeyStoreException("No SunPKCS11 provider on classpath.", e);
+        } catch (InstantiationException e) {
+            throw new KeyStoreException("SunPKCS11 could not be instantiated.", e);
+        } catch (IllegalArgumentException e) {
+            throw e;
+        } catch (InvocationTargetException e) {
+            throw new KeyStoreException("SunPKCS11 could not be started.", e);
+        } catch (NoSuchMethodException e) {
+            throw new KeyStoreException("SunPKCS11 did not conform to expected API.", e);
+        } catch (SecurityException e) {
+            throw e;
+        } catch (IllegalAccessException e) {
+            throw new KeyStoreException("SunPKCS11 could not be accessed.", e);
+        }
 		
 
 	}

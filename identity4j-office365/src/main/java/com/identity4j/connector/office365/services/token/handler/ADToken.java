@@ -20,31 +20,16 @@ public class ADToken {
 	 */
 	private static final String bearerTokenPrefix = "Bearer ";
 
-	@JsonProperty("token_type")
+
+    @JsonProperty("token_type")
 	private String tokenType;
-
-	@JsonProperty("access_token")
 	private String accessToken;
-
-	@JsonProperty("not_before")
 	private Long notBefore;
-
-	@JsonProperty("expires_on")
 	private Long expiresOn;
-
-	@JsonProperty("expires_in")
 	private Long expiresIn;
-
-	@JsonProperty("resource")
 	private String resource;
-
-	@JsonProperty("scope")
 	private String scope;
-
-	@JsonProperty("refresh_token")
 	private String refreshToken;
-
-	@JsonProperty("id_token")
 	private String idToken;
 
 	public void from(ADToken aadjwtToken) {
@@ -59,6 +44,7 @@ public class ADToken {
 		notBefore = aadjwtToken.notBefore;
 	}
 
+    @JsonProperty("scope")
 	public String getScope() {
 		return scope;
 	}
@@ -67,10 +53,12 @@ public class ADToken {
 		return refreshToken;
 	}
 
+    @JsonProperty("refresh_token")
 	public void setRefreshToken(String refreshToken) {
 		this.refreshToken = refreshToken;
 	}
 
+    @JsonProperty("id_token")
 	public String getIdToken() {
 		return idToken;
 	}
@@ -83,14 +71,18 @@ public class ADToken {
 		this.scope = scope;
 	}
 
+    @JsonProperty("token_type")
 	public String getTokenType() {
 		return tokenType;
 	}
 
+
+    @JsonProperty("token_type")
 	public void setTokenType(String tokenType) {
 		this.tokenType = tokenType;
 	}
 
+    @JsonProperty("access_token")
 	public String getAccessToken() {
 		return accessToken;
 	}
@@ -99,6 +91,7 @@ public class ADToken {
 		this.accessToken = accessToken;
 	}
 
+    @JsonProperty("not_before")
 	public Long getNotBefore() {
 		return notBefore;
 	}
@@ -107,6 +100,7 @@ public class ADToken {
 		this.notBefore = notBefore;
 	}
 
+    @JsonProperty("expires_on")
 	public Long getExpiresOn() {
 		return expiresOn;
 	}
@@ -115,6 +109,7 @@ public class ADToken {
 		this.expiresOn = expiresOn;
 	}
 
+    @JsonProperty("expires_in")
 	public Long getExpiresIn() {
 		return expiresIn;
 	}
@@ -123,6 +118,7 @@ public class ADToken {
 		this.expiresIn = expiresIn;
 	}
 
+    @JsonProperty("resource")
 	public String getResource() {
 		return resource;
 	}

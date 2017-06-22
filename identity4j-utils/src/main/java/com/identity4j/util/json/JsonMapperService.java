@@ -5,6 +5,7 @@ import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
@@ -23,6 +24,7 @@ public class JsonMapperService{
 	private JsonMapperService() {
     	//not to include null properties in JSON generated
         objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 //    	objectMapper.configure(SerializationConfig.Feature.WRITE_NULL_PROPERTIES, false);
     }
     
