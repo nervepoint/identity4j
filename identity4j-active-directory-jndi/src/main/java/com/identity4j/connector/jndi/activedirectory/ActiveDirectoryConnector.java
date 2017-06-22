@@ -1056,20 +1056,20 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			throw new ConnectorException(
 					"Not permitted to logon at this workstation");
 		} else if (reason.equals("80090308") && "532".equals(dep.getData())) {
-			throw new ConnectorException(
-					"The password has expired");
+			throw new PasswordChangeRequiredException(
+					"Your password has expired");
 		} else if (reason.equals("80090308") && "533".equals(dep.getData())) {
 			throw new ConnectorException(
-					"Account disabled");
+					"Your account is disabled");
 		} else if (reason.equals("80090308") && "534".equals(dep.getData())) {
 			throw new ConnectorException(
 					"The user has not been granted the requested logon type at this machine");
 		} else if (reason.equals("80090308") && "701".equals(dep.getData())) {
 			throw new ConnectorException(
-					"Account expired");
+					"Your account has expired");
 		} else if (reason.equals("80090308") && "775".equals(dep.getData())) {
 			throw new ConnectorException(
-					"User account is locked");
+					"Your account is locked");
 		} else if(reason.equals("00000005") && "0".equals(dep.getData())) {
 			throw new ConnectorException("The administrator does not allow you to change your password.");
 		}

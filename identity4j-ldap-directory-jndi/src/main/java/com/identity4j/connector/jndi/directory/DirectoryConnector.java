@@ -111,19 +111,31 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 	@Override
 	public boolean checkCredentialsOptimised(String remoteIdentifier, char[] password) throws ConnectorException {
 		try {
-			return ldapService.authenticate(remoteIdentifier, new String(password));
+			ldapService.authenticate(remoteIdentifier, new String(password));
+			return true;
 		} catch (IOException e) {
+			return false;
+		} catch (NamingException e) {
+			checkNamingException(e);
 			return false;
 		}
 	}
 
+	protected void checkNamingException(NamingException e) {
+
+	}
+	
 	@Override
 	protected final boolean areCredentialsValid(Identity identity, char[] password) throws ConnectorException {
 
 		DirectoryIdentity directoryIdentity = (DirectoryIdentity) identity;
 		try {
-			return ldapService.authenticate(directoryIdentity.getDn().toString(), new String(password));
+			ldapService.authenticate(directoryIdentity.getDn().toString(), new String(password));
+			return true;
 		} catch (IOException e) {
+			return false;
+		} catch (NamingException e) {
+			checkNamingException(e);
 			return false;
 		}
 	}

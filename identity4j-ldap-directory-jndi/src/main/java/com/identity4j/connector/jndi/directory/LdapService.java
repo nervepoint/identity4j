@@ -109,25 +109,10 @@ public class LdapService {
 
 	}
 
-	public boolean authenticate(String account, String password) throws IOException {
-		try {
+	public void authenticate(String account, String password) throws IOException, NamingException {
 			getConnection(account, password);
-		} catch (NamingException nme) {
-			// http://stackoverflow.com/questions/2672125/what-does-sub-error-code-568-mean-for-ldap-error-49-with-active-directory
-			DirectoryExceptionParser dep = new DirectoryExceptionParser(nme);
-			if ("773".equals(dep.getData())) {
-				LOG.error(account + " requires password change");
-				throw new PasswordChangeRequiredException();
-			} else if ("775".equals(dep.getData())) {
-				LOG.error(account + " attempted to login but account reports as locked");
-				throw new IOException("Account is locked");
-			}
-			LOG.info(account + " attempted login but directory reported: " + nme.getMessage());
-			return false;
-		}
-		return true;
 	}
-
+	
 	public void setPassword(final String account, final char[] newPassword) throws NamingException, IOException {
 		processBlock(new Block<Void>() {
 
