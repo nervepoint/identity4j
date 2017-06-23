@@ -256,6 +256,23 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			LOG.error("Problem in delete identity", e);
 		}
 	}
+	
+	@Override
+	public void deleteRole(String roleName) throws ConnectorException {
+		try {
+			Role role = getRoleByName(roleName);
+			String roleOU = role
+					.getAttribute(DISTINGUISHED_NAME_ATTRIBUTE);
+
+			ldapService.unbind(new LdapName(roleOU));
+		} catch (InvalidNameException e) {
+			LOG.error("Problem in delete role", e);
+		} catch (NamingException e) {
+			LOG.error("Problem in delete role", e);
+		} catch (IOException e) {
+			LOG.error("Problem in delete role", e);
+		}
+	}
 
 	private void assignRole(LdapName userDn, Role role) throws NamingException, IOException {
 		
