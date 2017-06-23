@@ -33,7 +33,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.identity4j.connector.exception.ConnectorException;
-import com.identity4j.connector.exception.PasswordChangeRequiredException;
 import com.identity4j.util.crypt.impl.DefaultEncoderManager;
 
 public class LdapService {
