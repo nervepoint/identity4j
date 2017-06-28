@@ -137,4 +137,8 @@ public enum ConnectorCapability {
 	 * The connector supports a web based authentication API such as OAuth
 	 */
 	webAuthentication,
+	/**
+	 * The connector supports roles within roles
+	 */
+	childRoles,
 }

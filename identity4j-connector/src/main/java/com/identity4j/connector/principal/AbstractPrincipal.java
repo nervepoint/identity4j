@@ -8,11 +8,12 @@ import com.identity4j.util.MultiMap;
 public class AbstractPrincipal implements Principal {
 
 	private static final long serialVersionUID = 3312929553688315012L;
-	
+
 	private final String guid;
     private final String principalName;
     private final MultiMap attributes = new MultiMap();
     private boolean system;
+    private Role[] roles = new Role[0];
 
     /**
      * @param guid
@@ -85,4 +86,14 @@ public class AbstractPrincipal implements Principal {
     public final int compareTo(Role role) {
         return getPrincipalName().compareTo(role.getPrincipalName());
     }
+
+	@Override
+	public Role[] getRoles() {
+		return roles;
+	}
+
+	@Override
+	public void setRoles(Role[] roles) {
+		this.roles = roles;		
+	}
 }

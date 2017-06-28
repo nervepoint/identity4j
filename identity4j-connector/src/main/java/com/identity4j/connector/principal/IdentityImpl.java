@@ -85,6 +85,16 @@ public class IdentityImpl extends AbstractPrincipal implements Identity {
 	}
 
 	/**
+	 * @param role
+	 */
+	public final void removeRole(Role role) {
+		if (role == null) {
+			throw new IllegalArgumentException("May not remove null role");
+		}
+		roles.remove(role);
+	}
+
+	/**
 	 * Set the roles
 	 * 
 	 * @param roles roles

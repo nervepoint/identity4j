@@ -83,4 +83,18 @@ public interface Principal extends Serializable {
      * @return
      */
     Map<String, String[]> getAttributes();
+
+    /**
+     * Get a list of all the roles the principal is assigned
+     * 
+     * @return roles
+     */
+    Role[] getRoles();
+
+    /**
+     * Set the roles this identity is assigned to
+     * 
+     * @param roles
+     */
+    void setRoles(Role[] roles);
 }

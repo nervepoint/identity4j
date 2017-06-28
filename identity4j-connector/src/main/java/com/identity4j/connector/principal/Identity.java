@@ -61,6 +61,13 @@ public interface Identity extends Comparable<Identity>, Principal {
     void addRole(Role role);
 
     /**
+     * Adds a role from this identity.
+     * 
+     * @param role
+     */
+    void removeRole(Role role);
+
+    /**
      * Returns <tt>true</tt> if the supplied role is assigned to the identity
      * 
      * @param role

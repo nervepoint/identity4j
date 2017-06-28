@@ -48,8 +48,8 @@ public class As400Connector extends AbstractConnector {
 					ConnectorCapability.roles, ConnectorCapability.authentication, ConnectorCapability.requireGUID,
 					ConnectorCapability.createIdentityGUID, ConnectorCapability.identities,
 					ConnectorCapability.forcePasswordChange, ConnectorCapability.hasPasswordPolicy,
-					ConnectorCapability.createRole, ConnectorCapability.updateRole,
-					ConnectorCapability.deleteRole }));
+					ConnectorCapability.createRole, ConnectorCapability.updateRole, ConnectorCapability.deleteRole,
+					ConnectorCapability.childRoles }));
 
 	private As400Configuration as400Configuration;
 	private AS400 as400;
@@ -252,9 +252,9 @@ public class As400Connector extends AbstractConnector {
 		return new As400Callback<Identity>() {
 			@Override
 			protected Identity executeInCallback() throws Exception {
-				if(user.getGroupID() != 0)
+				if (user.getGroupID() != 0)
 					throw new IllegalArgumentException("This user is a  group.");
-				
+
 				String guid = String.valueOf(user.getUserID());
 				As400Identity identity = new As400Identity(user, guid, user.getName());
 
@@ -394,7 +394,7 @@ public class As400Connector extends AbstractConnector {
 				// if failure of command exception is thrown from method
 				validateSuccessStatus(msgs, CREATE_PROFILE_SUCCESS);
 
-				As400Identity identity = (As400Identity)getIdentityByName(id.getPrincipalName());
+				As400Identity identity = (As400Identity) getIdentityByName(id.getPrincipalName());
 
 				// Details
 				identity.getNativeUser().setDescription(id.getFullName());
@@ -402,6 +402,9 @@ public class As400Connector extends AbstractConnector {
 
 				// set password
 				setPassword(identity, password, false, PasswordResetType.USER);
+
+				setupGroups(id, identity);
+
 				return identity;
 			}
 
@@ -440,9 +443,9 @@ public class As400Connector extends AbstractConnector {
 			@Override
 			protected void executeInCallbackWithoutResult() throws Exception {
 				/* Make sure this actually IS a role */
-				if(getIdentityByName(principalName) == null)
+				if (getIdentityByName(principalName) == null)
 					throw new Exception("No such identity.");
-				
+
 				// delete user
 				String command = "DLTUSRPRF USRPRF" + "(" + principalName + ")";
 				List<AS400Message> msgs = runCommandCall(command);
@@ -502,13 +505,13 @@ public class As400Connector extends AbstractConnector {
 			protected Role executeInCallback() throws Exception {
 				// create user
 				// CRTUSRPRF USRPRF(JJADAMS) PASSWORD(S1CR2T)
-				String command = "CRTUSRPRF USRPRF(" + role.getPrincipalName() + ") " 
+				String command = "CRTUSRPRF USRPRF(" + role.getPrincipalName() + ") "
 						+ "GID(*GEN) STATUS(*ENABLED) USRCLS(*USER)";
 				List<AS400Message> msgs = runCommandCall(command);
 				// if failure of command exception is thrown from method
 				validateSuccessStatus(msgs, CREATE_PROFILE_SUCCESS);
 
-				As400Role nativeRole = (As400Role)getRoleByName(role.getPrincipalName());
+				As400Role nativeRole = (As400Role) getRoleByName(role.getPrincipalName());
 
 				// Details
 				nativeRole.getNativeUser().setDescription(role.getAttributeOrDefault("description", ""));
@@ -527,9 +530,9 @@ public class As400Connector extends AbstractConnector {
 			@Override
 			protected void executeInCallbackWithoutResult() throws Exception {
 				/* Make sure this actually IS a role */
-				if(getRoleByName(principalName) == null)
+				if (getRoleByName(principalName) == null)
 					throw new Exception("No such role.");
-				
+
 				// delete user
 				String command = "DLTUSRPRF USRPRF" + "(" + principalName + ")";
 				List<AS400Message> msgs = runCommandCall(command);
@@ -543,7 +546,7 @@ public class As400Connector extends AbstractConnector {
 		new As400CallbackWithoutResult() {
 			@Override
 			protected void executeInCallbackWithoutResult() throws Exception {
-				As400Role old = (As400Role)getRoleByName(role.getPrincipalName());
+				As400Role old = (As400Role) getRoleByName(role.getPrincipalName());
 				old.getNativeUser().setDescription(role.getAttributeOrDefault("description", ""));
 				updateUserProfile(old, role.getAttributes());
 			}
@@ -560,18 +563,45 @@ public class As400Connector extends AbstractConnector {
 		new As400CallbackWithoutResult() {
 			@Override
 			protected void executeInCallbackWithoutResult() throws Exception {
-				As400Identity old = (As400Identity)getIdentityByName(identity.getPrincipalName());
-				if(!Objects.equals(identity.getFullName(), old.getFullName())) {
+				As400Identity old = (As400Identity) getIdentityByName(identity.getPrincipalName());
+				if (!Objects.equals(identity.getFullName(), old.getFullName())) {
 					old.getNativeUser().setDescription(identity.getFullName());
 				}
+
+				setupGroups(identity, old);
+
 				updateUserProfile(old, identity.getAttributes());
 			}
 		}.execute();
 	}
 
+	protected void setupGroups(final Identity identity, As400Identity nativeUser)
+			throws AS400SecurityException, ErrorCompletingRequestException, InterruptedException, IOException {
+		String wantPrimaryGroup = User.NONE;
+		String[] wantSupGroups = new String[] { User.NONE };
+
+		Role[] idRoles = identity.getRoles();
+		if (idRoles.length != 0) {
+			wantPrimaryGroup = idRoles[0].getPrincipalName();
+			if (idRoles.length > 1) {
+				wantSupGroups = new String[idRoles.length - 1];
+				for (int i = 1; i < idRoles.length; i++) {
+					wantSupGroups[i - 1] = idRoles[i].getPrincipalName();
+				}
+			}
+		}
+
+		if (!nativeUser.getNativeUser().getGroupProfileName().equals(wantPrimaryGroup)) {
+			nativeUser.getNativeUser().setGroupProfileName(wantPrimaryGroup);
+		}
+		if (!Arrays.equals(nativeUser.getNativeUser().getSupplementalGroups(), wantSupGroups)) {
+			nativeUser.getNativeUser().setSupplementalGroups(wantSupGroups);
+		}
+	}
+
 	protected void updateUserProfile(As400Principal identity, Map<String, String[]> map)
 			throws AS400SecurityException, ErrorCompletingRequestException, InterruptedException, IOException {
-		
+
 		String[] attr = map.get("accountingCode");
 		if (!Objects.equals(identity.getAttribute("accountingCode"), StringUtil.toDefaultString(attr)) && attr != null
 				&& attr.length > 0) {
@@ -605,7 +635,7 @@ public class As400Connector extends AbstractConnector {
 		attr = map.get("currentLibraryName");
 		if (!Objects.equals(identity.getAttribute("currentLibraryName"), StringUtil.toDefaultString(attr))
 				&& attr != null && attr.length > 0) {
-			identity.getNativeUser().setCurrentLibraryName(attr[0]);
+			identity.getNativeUser().setCurrentLibraryName(attr[0].equals("*CRTDFT") ? "" : attr[0]);
 		}
 		attr = map.get("displaySignOnInformation");
 		if (!Objects.equals(identity.getAttribute("displaySignOnInformation"), StringUtil.toDefaultString(attr))
@@ -742,6 +772,11 @@ public class As400Connector extends AbstractConnector {
 				&& attr.length > 0) {
 			identity.getNativeUser().setUserOptions(attr);
 		}
+		attr = map.get("userActionAuditLevel");
+		if (!Objects.equals(identity.getAttribute("userActionAuditLevel"), StringUtil.toDefaultString(attr))
+				&& attr != null) {
+			identity.getNativeUser().setUserActionAuditLevel(attr);
+		}
 	}
 
 	protected void mapProfile(final User user, As400Principal identity) {
@@ -751,7 +786,7 @@ public class As400Connector extends AbstractConnector {
 		identity.setAttribute("ccsid", String.valueOf(user.getCCSID()));
 		identity.setAttribute("chridControl", user.getCHRIDControl());
 		identity.setAttribute("countryID", user.getCountryID());
-		identity.setAttribute("currentLibraryName", user.getCurrentLibraryName());
+		identity.setAttribute("currentLibraryName", user.getCurrentLibraryName().equals("") ? "*CRTDFT" : user.getCurrentLibraryName());
 		identity.setAttribute("displaySignOnInformation", user.getDisplaySignOnInformation());
 		identity.setAttribute("groupAuthority", user.getGroupAuthority());
 		identity.setAttribute("groupAuthorityType", user.getGroupAuthorityType());
@@ -764,7 +799,7 @@ public class As400Connector extends AbstractConnector {
 		identity.setAttribute("languageID", user.getLanguageID());
 		identity.setAttribute("limitCapabilites", user.getLimitCapabilities());
 		identity.setAttribute("limitDeviceSessions", user.getLimitDeviceSessions());
-		identity.setAttribute("localeJobAttributes", StringUtil.toDefaultString(user.getLocaleJobAttributes()));
+		identity.setAttribute("localeJobAttributes", user.getLocaleJobAttributes());
 		identity.setAttribute("localePathName", user.getLocalePathName());
 		identity.setAttribute("maximumStorageAllowed", String.valueOf(user.getMaximumStorageAllowed()));
 		identity.setAttribute("messageQueue", user.getMessageQueue());
@@ -775,12 +810,12 @@ public class As400Connector extends AbstractConnector {
 		identity.setAttribute("owner", user.getOwner());
 		identity.setAttribute("printDevice", user.getPrintDevice());
 		identity.setAttribute("sortSequenceTable", user.getSortSequenceTable());
-		identity.setAttribute("specialAuthority", StringUtil.toDefaultString(user.getSpecialAuthority()));
+		identity.setAttribute("specialAuthority", user.getSpecialAuthority());
 		identity.setAttribute("specialEnvironment", user.getSpecialEnvironment());
 		identity.setAttribute("storageUsed", String.valueOf(user.getStorageUsedInLong()));
-		identity.setAttribute("userActionAuditLevel", String.valueOf(user.getUserActionAuditLevel()));
+		identity.setAttribute("userActionAuditLevel",user.getUserActionAuditLevel());
 		identity.setAttribute("userClassName", user.getUserClassName());
 		identity.setAttribute("userExpirationAction", user.getUserExpirationAction());
-		identity.setAttribute("userOptions", StringUtil.toDefaultString(user.getUserOptions()));
+		identity.setAttribute("userOptions", user.getUserOptions());
 	}
 }

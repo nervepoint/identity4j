@@ -74,6 +74,8 @@ public abstract class AbstractConnectorTest {
 	protected final String invalidPassword;
 	protected final String roleName;
 	protected final MultiMap configurationParameters;
+	protected final String newRoleName;
+	protected final List<String> newRoleUsers;
 
 	protected String identityGuid;
 	protected Identity identity;
@@ -128,6 +130,10 @@ public abstract class AbstractConnectorTest {
 				"connector.validRoleAttributeName", "");
 		roleAttributeValue = configurationParameters.getStringOrDefault(
 				"connector.validRoleAttributeValue", "");
+		newRoleName = configurationParameters.getStringOrDefault(
+				"connector.newRoleName", roleName + "2");
+		newRoleUsers = Arrays.asList(configurationParameters.getStringOrDefault(
+				"connector.newRoleUsers", identityName).split(","));
 		
 		
 	}
@@ -668,30 +674,60 @@ public abstract class AbstractConnectorTest {
 		}
 	}
 
-
 	@Test
-	public final void createRole() {
+	public final void createRoleWithAttribute() {
 		Assume.assumeTrue(connector.getCapabilities().contains(
 				ConnectorCapability.createRole));
 
-		String newPrincipalName = roleName + "2";
-		Role newIdentity = new RoleImpl(null, newPrincipalName);
+		String newPrincipalName = newRoleName;
+		Role newRole = new RoleImpl(null, newPrincipalName);
 		String valToTest = null;
 		if(!StringUtil.isNullOrEmpty(roleAttributeName)) {
-			newIdentity.setAttribute(roleAttributeName, roleAttributeValue);
+			newRole.setAttribute(roleAttributeName, roleAttributeValue);
 			valToTest = roleAttributeValue;
 		}
-		connector.createRole(newIdentity);
+		connector.createRole(newRole);
 		try {
-			newIdentity = connector.getRoleByName(newPrincipalName);
+			newRole = connector.getRoleByName(newPrincipalName);
 			assertEquals("Expect principal name to be the same.", newPrincipalName,
-					newIdentity.getPrincipalName());
+					newRole.getPrincipalName());
 
 			if(!StringUtil.isNullOrEmpty(roleAttributeName)) 
 				assertEquals("Expect attribute value to be the same.", valToTest,
-						newIdentity.getAttribute(roleAttributeName));
+						newRole.getAttribute(roleAttributeName));
 
 		} finally {
+			connector.deleteRole(newPrincipalName);
+		}
+	}
+
+	@Test
+	public final void createRoleWithUsers() {
+		Assume.assumeTrue(connector.getCapabilities().contains(
+				ConnectorCapability.createRole));
+
+		String newPrincipalName = newRoleName;
+		Role newRole = new RoleImpl(null, newPrincipalName);
+		
+		connector.createRole(newRole);
+		try {
+			newRole = connector.getRoleByName(newPrincipalName);
+			
+			for(String u : newRoleUsers) {
+				Identity user = connector.getIdentityByName(u);
+				user.addRole(newRole);
+				connector.updateIdentity(user);
+
+				user = connector.getIdentityByName(u);
+				Assert.assertTrue("Identity should be attached to new role.", Arrays.asList(user.getRoles()).contains(newRole));
+			}
+
+		} finally {
+			for(String u : newRoleUsers) {
+				Identity user = connector.getIdentityByName(u);
+				user.removeRole(newRole);
+				connector.updateIdentity(user);
+			}
 			connector.deleteRole(newPrincipalName);
 		}
 	}
