@@ -25,13 +25,17 @@ public class MySQLConfiguration extends JDBCConfiguration {
 	}
 
 	@Override
-	public String getJDBUrlProperties() {
+	public String getJDBUrlProperties(boolean safe) {
 		StringBuilder buf = new StringBuilder();
 		buf.append("user=");
 		buf.append(configurationParameters.getString(JDBC_USERNAME));
 		buf.append("&");
 		buf.append("password=");
-		buf.append(configurationParameters.getString(JDBC_PASSWORD));
+		if(safe) {
+			buf.append("********");
+		} else {
+			buf.append(configurationParameters.getString(JDBC_PASSWORD));
+		}
 		return buf.toString();
 	}
 

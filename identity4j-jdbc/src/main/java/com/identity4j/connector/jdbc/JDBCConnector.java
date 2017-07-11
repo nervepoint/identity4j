@@ -350,7 +350,7 @@ public abstract class JDBCConnector extends AbstractConnector {
             connect = DriverManager.getConnection(configuration.generateJDBCUrl());
 
         } catch (Exception e) {
-            log.error("Failed to open JDBC connection " + configuration.generateJDBCUrl(), e);
+            log.error("Failed to open JDBC connection " + configuration.generateSafeJDBCUrl(), e);
             close();
         }
 

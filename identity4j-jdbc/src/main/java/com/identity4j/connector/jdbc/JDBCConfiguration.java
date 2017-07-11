@@ -189,11 +189,27 @@ public abstract class JDBCConfiguration extends AbstractConnectorConfiguration {
         buf.append("/");
         buf.append(configurationParameters.getString(JDBC_DATABASE));
         buf.append("?");
-        buf.append(getJDBUrlProperties());
+        buf.append(getJDBUrlProperties(false));
         return buf.toString();
     }
 
-    public abstract String getJDBUrlProperties();
+    public String generateSafeJDBCUrl() {
+
+        StringBuilder buf = new StringBuilder();
+        buf.append("jdbc:");
+        buf.append(getJDBCDriverName());
+        buf.append("://");
+        buf.append(configurationParameters.getString(JDBC_HOSTNAME));
+        buf.append(":");
+        buf.append(configurationParameters.getIntegerOrDefault(JDBC_PORT, getDefaultPort()));
+        buf.append("/");
+        buf.append(configurationParameters.getString(JDBC_DATABASE));
+        buf.append("?");
+        buf.append(getJDBUrlProperties(true));
+        return buf.toString();
+    }
+    
+    public abstract String getJDBUrlProperties(boolean safe);
 
     public abstract String getJDBCDriverName();
 
