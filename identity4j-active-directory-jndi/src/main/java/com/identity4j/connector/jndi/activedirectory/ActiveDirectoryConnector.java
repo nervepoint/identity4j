@@ -111,7 +111,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 	public static final String OBJECT_SID_ATTRIBUTE = "objectSID";
 	public static final String PWD_PROPERTIES_ATTRIBUTE = "pwdProperties";
 	public static final String OU_ATTRIBUTE = "ou";
-	public static final String PASSWORD_POLICY_APPLIES = "msDS-PSOApplied";
+	public static final String PASSWORD_POLICY_APPLIES = "msDS-ResultantPSO";
 	public static final String PASSWORD_EXPIRY_COMPUTED = "msDS-UserPasswordExpiryTimeComputed";
 	
 	
@@ -182,7 +182,8 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 					FAX_ATTRIBUTE, IPPHONE_ATTRIBUTE,
 					INFO_ATTRIBUTE, TITLE_ATTRIBUTE,
 					DEPARTMENT_ATTRIBUTE, COMPANY_ATTRIBUTE,
-					MANAGER_ATTRIBUTE, DISPLAY_NAME_ATTRIBUTE});
+					MANAGER_ATTRIBUTE, DISPLAY_NAME_ATTRIBUTE,
+					PASSWORD_POLICY_APPLIES});
 
 	private static Collection<String> CORE_IDENTITY_ATTRIBUTES = Arrays.asList(new
 	 String[] { COMMON_NAME_ATTRIBUTE, SAM_ACCOUNT_NAME_ATTRIBUTE, 
@@ -190,7 +191,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 
 	private static Collection<String> ALL_ROLE_ATTRIBUTES = Arrays
 			.asList(new String[] { OBJECT_SID_ATTRIBUTE, OBJECT_GUID_ATTRIBUTE,
-					COMMON_NAME_ATTRIBUTE, DISTINGUISHED_NAME_ATTRIBUTE });
+					COMMON_NAME_ATTRIBUTE, DISTINGUISHED_NAME_ATTRIBUTE, PASSWORD_POLICY_APPLIES });
 
 	public static final int CHANGE_PASSWORD_AT_NEXT_LOGON_FLAG = 0;
 	public static final int CHANGE_PASSWORD_AT_NEXT_LOGON_CANCEL_FLAG = -1;
@@ -715,14 +716,14 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			ldapService.bind(userDn, attributes.toArray(new Attribute[0]));
 			ldapService.setPassword(userDn.toString(), password);
 
+			for(Role r : identity.getRoles()) {
+				assignRole(userDn, r);
+			}
+			
 			DirectoryIdentity directoryIdentity = (DirectoryIdentity) getIdentityByName(upn);
 			setForcePasswordChangeAtNextLogon(directoryIdentity, false);
 			enableIdentity(directoryIdentity);
 
-			for(Role r : identity.getRoles()) {
-				assignRole(usersDn, r);
-			}
-			
 			return directoryIdentity;
 
 		} catch (InvalidNameException e) {
@@ -971,12 +972,21 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 		return CollectionUtil.emptyIterator(ADPasswordCharacteristics.class);
 	}
 	
+	
 	@Override
 	protected SearchControls configureSearchControls(
 			SearchControls searchControls) {
 		searchControls = super.configureSearchControls(searchControls);
 		List<String> attr = new ArrayList<String>(identityAttributesToRetrieve);
 		attr.addAll(DEFAULT_USER_ATTRIBUTES);
+		searchControls.setReturningAttributes(attr.toArray(new String[0]));
+		return searchControls;
+	}
+	
+	protected SearchControls configurePSOSearchControls(
+			SearchControls searchControls) {
+		searchControls = super.configureSearchControls(searchControls);
+		List<String> attr = new ArrayList<String>(Arrays.asList("cn", "msDS-PSOAppliesTo"));
 		searchControls.setReturningAttributes(attr.toArray(new String[0]));
 		return searchControls;
 	}
