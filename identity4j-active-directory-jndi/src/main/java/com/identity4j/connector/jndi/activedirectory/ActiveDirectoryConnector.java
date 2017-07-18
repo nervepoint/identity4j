@@ -113,6 +113,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 	public static final String OU_ATTRIBUTE = "ou";
 	public static final String PASSWORD_POLICY_APPLIES = "msDS-ResultantPSO";
 	public static final String PASSWORD_EXPIRY_COMPUTED = "msDS-UserPasswordExpiryTimeComputed";
+	public static final String PROXY_ADDRESSES = "proxyAddresses";
 	
 	
 	/**
@@ -183,7 +184,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 					INFO_ATTRIBUTE, TITLE_ATTRIBUTE,
 					DEPARTMENT_ATTRIBUTE, COMPANY_ATTRIBUTE,
 					MANAGER_ATTRIBUTE, DISPLAY_NAME_ATTRIBUTE,
-					PASSWORD_POLICY_APPLIES});
+					PASSWORD_POLICY_APPLIES, PROXY_ADDRESSES});
 
 	private static Collection<String> CORE_IDENTITY_ATTRIBUTES = Arrays.asList(new
 	 String[] { COMMON_NAME_ATTRIBUTE, SAM_ACCOUNT_NAME_ATTRIBUTE, 
@@ -1310,7 +1311,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 					if (!isPasswordNeverExpire(result)) {
 						String passwordexpiryComputed = directoryIdentity.getAttribute(PASSWORD_EXPIRY_COMPUTED);
 						if(LOG.isInfoEnabled()) {
-							LOG.info(String.format("%s's computed password expiry is %s", userPrincipalName, passwordexpiryComputed));
+							LOG.info(String.format("%s's computed password expiry is %s", username, passwordexpiryComputed));
 						}
 						if(passwordexpiryComputed!=null && StringUtils.isNotBlank(passwordexpiryComputed)) {
 							passwordStatus.setExpire(ActiveDirectoryDateUtil
