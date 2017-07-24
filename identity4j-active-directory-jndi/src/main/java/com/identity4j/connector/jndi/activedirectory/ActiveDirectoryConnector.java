@@ -965,12 +965,11 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 				}
 			}, ldapService.getSearchControls());
 		} catch (NamingException e) {
-			LOG.error("Problem in getting PSOs", e);
+			processNamingException(e);
+			throw new IllegalStateException("Unreachable code");
 		} catch (IOException e) {
-			LOG.error("Problem in getting PSOs", e);
+			throw new ConnectorException(e.getMessage(), e);
 		}
-		
-		return CollectionUtil.emptyIterator(ADPasswordCharacteristics.class);
 	}
 	
 	
@@ -1101,8 +1100,13 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 		} else if(reason.equals("00000005") && "0".equals(dep.getData())) {
 			throw new ConnectorException("The administrator does not allow you to change your password.");
 		}
-		LOG.error(nme.getMessage() + ". Reason code give was " + reason, nme);
 		
+		/**
+		 * Errors are typically thrown up and logged so this causes additional spam in logs.
+		 */
+		if(LOG.isDebugEnabled()) {
+			LOG.debug(nme.getMessage() + ". Reason code give was " + reason, nme);
+		}
 		super.processNamingException(nme);
 		
 		return reason;

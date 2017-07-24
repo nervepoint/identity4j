@@ -221,12 +221,11 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 				}
 			}, configureSearchControls(ldapService.getSearchControls()));
 		} catch (NamingException e) {
-			LOG.error("Problem in getting identities.", e);
+			processNamingException(e);
+			throw new IllegalStateException("Unreachable code");
 		} catch (IOException e) {
-			LOG.error("Problem in getting identities.", e);
+			throw new ConnectorException(e.getMessage(), e);
 		}
-		
-		return IDENTITY_ITERATOR;
 	}
 
 	protected Identity mapIdentity(SearchResult result) throws NamingException {
@@ -310,12 +309,14 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 					return true;
 				}
 			}, configureRoleSearchControls(ldapService.getSearchControls()));
+			
 		} catch (NamingException e) {
-			LOG.error("Problem in getting roles.", e);
+			processNamingException(e);
+			throw new IllegalStateException("Unreachable code");
 		} catch (IOException e) {
-			LOG.error("Problem in getting roles.", e);
+			throw new ConnectorException(e.getMessage(), e);
 		}
-		return ROLE_ITERATOR;
+		
 	}
 
 	protected Role mapRole(SearchResult result) throws NamingException {
@@ -401,7 +402,6 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 			processNamingException(nme);
 		} catch (Exception e) {
 			ldapService = null;
-			LOG.error("Problem in opening connector.", e);
 			throw new ConnectorException(e);
 		}
 	}
@@ -409,11 +409,7 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 	protected String processNamingException(NamingException nme) {
 		DirectoryExceptionParser dep = new DirectoryExceptionParser(nme);
 		String message = dep.getMessage();
-		LOG.error(
-			"Connected OK, but an error occurred retrieving information from the directory server (operationsErrror). "
-				+ message, nme);
 		throw new ConnectorException(message, nme);
-
 	}
 	
 	protected String getReason(NamingException nme) {
