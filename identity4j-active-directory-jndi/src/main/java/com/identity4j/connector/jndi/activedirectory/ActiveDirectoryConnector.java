@@ -250,12 +250,11 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 					.getAttribute(DISTINGUISHED_NAME_ATTRIBUTE);
 
 			ldapService.unbind(new LdapName(identityOU));
-		} catch (InvalidNameException e) {
-			LOG.error("Problem in delete identity", e);
 		} catch (NamingException e) {
-			LOG.error("Problem in delete identity", e);
+			processNamingException(e, "Delete Identitiy");
+			throw new IllegalStateException("Unreachable code");
 		} catch (IOException e) {
-			LOG.error("Problem in delete identity", e);
+			throw new ConnectorException(e.getMessage(), e);
 		}
 	}
 	
@@ -267,12 +266,11 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 					.getAttribute(DISTINGUISHED_NAME_ATTRIBUTE);
 
 			ldapService.unbind(new LdapName(roleOU));
-		} catch (InvalidNameException e) {
-			LOG.error("Problem in delete role", e);
 		} catch (NamingException e) {
-			LOG.error("Problem in delete role", e);
+			processNamingException(e, "Delete Role");
+			throw new IllegalStateException("Unreachable code");
 		} catch (IOException e) {
-			LOG.error("Problem in delete role", e);
+			throw new ConnectorException(e.getMessage(), e);
 		}
 	}
 
@@ -404,9 +402,10 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			}
 
 		} catch (NamingException e) {
-			LOG.error("Problem in update role", e);
+			processNamingException(e, "Update Role");
+			throw new IllegalStateException("Unreachable code");
 		} catch (IOException e) {
-			LOG.error("Problem in update role", e);
+			throw new ConnectorException(e.getMessage(), e);
 		}
 	}
 	
@@ -490,11 +489,10 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			}
 
 		} catch (NamingException e) {
-			LOG.error("Problem in update identity", e);
-			throw new ConnectorException(e);
+			processNamingException(e, "Update Identity");
+			throw new IllegalStateException("Unreachable code");
 		} catch (IOException e) {
-			LOG.error("Problem in update identity", e);
-			throw new ConnectorException(e);
+			throw new ConnectorException(e.getMessage(), e);
 		}
 
 	}
@@ -579,15 +577,11 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			
 			return getRoleByName(role.getPrincipalName());
 
-		} catch (InvalidNameException e) {
-			LOG.error("Problem in create group", e);
-			throw new ConnectorException("Failed to create group; " + e.getMessage(), e);
 		} catch (NamingException e) {
-			LOG.error("Problem in create group", e);
-			throw new ConnectorException("Failed to create group; " + e.getMessage(), e);
+			processNamingException(e, "Create Role");
+			throw new IllegalStateException("Unreachable code");
 		} catch (IOException e) {
-			LOG.error("Problem in create group", e);
-			throw new ConnectorException("Failed to create group; " + e.getMessage(), e);
+			throw new ConnectorException(e.getMessage(), e);
 		}
 		
 		
@@ -727,15 +721,12 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 
 			return directoryIdentity;
 
-		} catch (InvalidNameException e) {
-			LOG.error("Problem in create identity", e);
 		} catch (NamingException e) {
-			LOG.error("Problem in create identity", e);
+			processNamingException(e, "Create Identity");
+			throw new IllegalStateException("Unreachable code");
 		} catch (IOException e) {
-			LOG.error("Problem in create identity", e);
+			throw new ConnectorException(e.getMessage(), e);
 		}
-		
-		throw new ConnectorException("Failed to create identity " + identity.getPrincipalName());
 	}
 
 	@Override
@@ -759,8 +750,11 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			ldapService.update(((DirectoryIdentity) identity).getDn(),
 					items.toArray(new ModificationItem[items.size()]));
 			identity.getAccountStatus().unlock();
-		} catch (Exception e) {
-			throw new ConnectorException("Lock account failure during write", e);
+		} catch (NamingException e) {
+			processNamingException(e, "Unlock Identity");
+			throw new IllegalStateException("Unreachable code");
+		} catch (IOException e) {
+			throw new ConnectorException(e.getMessage(), e);
 		}
 	}
 
@@ -786,8 +780,11 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			ldapService.update(((DirectoryIdentity) identity).getDn(),
 					items.toArray(new ModificationItem[items.size()]));
 			identity.getAccountStatus().lock();
-		} catch (Exception e) {
-			throw new ConnectorException("Lock account failure during write", e);
+		} catch (NamingException e) {
+			processNamingException(e, "Lock Identity");
+			throw new IllegalStateException("Unreachable code");
+		} catch (IOException e) {
+			throw new ConnectorException(e.getMessage(), e);
 		}
 	}
 
@@ -819,9 +816,10 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			ldapService.update(((DirectoryIdentity) identity).getDn(),
 					items.toArray(new ModificationItem[items.size()]));
 		} catch (NamingException e) {
-			LOG.error("Problem in disable identity", e);
+			processNamingException(e, "Disable Identity");
+			throw new IllegalStateException("Unreachable code");
 		} catch (IOException e) {
-			LOG.error("Problem in disable identity", e);
+			throw new ConnectorException(e.getMessage(), e);
 		}
 
 	}
@@ -858,9 +856,10 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			directoryIdentity.getAccountStatus().calculateType();
 			
 		} catch (NamingException e) {
-			LOG.error("Problem in enable identity", e);
+			processNamingException(e, "Enable Identity");
+			throw new IllegalStateException("Unreachable code");
 		} catch (IOException e) {
-			LOG.error("Problem in enable identity", e);
+			throw new ConnectorException(e.getMessage(), e);
 		}
 
 	}
@@ -887,11 +886,10 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 				ldapService.update(((DirectoryIdentity) identity).getDn(),
 						items.toArray(new ModificationItem[items.size()]));
 			} catch (NamingException e) {
-				throw new ConnectorException(
-						"Failed to change password. Reason code "
-								+ processNamingException(e));
+				processNamingException(e, "Force Password Change");
+				throw new IllegalStateException("Unreachable code");
 			} catch (IOException e) {
-				throw new ConnectorException("Failed to connect: " + e.getMessage(), e);
+				throw new ConnectorException(e.getMessage(), e);
 			}
 
 	}
@@ -939,11 +937,11 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 				}
 			}, configureRoleSearchControls(ldapService.getSearchControls()));
 		} catch (NamingException e) {
-			LOG.error("Problem in getting roles", e);
+			processNamingException(e, "List Roles");
+			throw new IllegalStateException("Unreachable code");
 		} catch (IOException e) {
-			LOG.error("Problem in getting roles", e);
+			throw new ConnectorException(e.getMessage(), e);
 		}
-		return ROLE_ITERATOR;
 
 	}
 	
@@ -965,7 +963,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 				}
 			}, ldapService.getSearchControls());
 		} catch (NamingException e) {
-			processNamingException(e);
+			processNamingException(e, "List Password Policies");
 			throw new IllegalStateException("Unreachable code");
 		} catch (IOException e) {
 			throw new ConnectorException(e.getMessage(), e);
@@ -1022,21 +1020,20 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			ldapService.update(((DirectoryIdentity) identity).getDn(),
 					new ModificationItem[] { item1, item2 });
 
-		} catch (NamingException nme) {
+		} catch (NamingException e) {
 			try {
-				throw new ConnectorException(
-						"Failed to change password. Reason code "
-								+ processNamingException(nme));
+				processNamingException(e, "Change Password");
+				throw new IllegalStateException("Unreachable code");
 			} catch (PasswordChangeRequiredException pcre) {
 				LOG.warn("Could not use change password because 'Change Password At Next Login' was set. Falling back to setPassword. Depending on the version of Active Directory in use, this may bypass password history checks.");
 				setPassword(identity, password, false, PasswordResetType.USER);
 			}
 		} catch (IOException e) {
-			LOG.error("Problem in change password for identity", e);
+			throw new ConnectorException(e.getMessage(), e);
 		}
 	}
     
-	protected String processNamingException(NamingException nme) {
+	protected String processNamingException(NamingException nme, String op) {
 
 		DirectoryExceptionParser dep = new DirectoryExceptionParser(nme);
 		String reason = dep.getReason();
@@ -1107,21 +1104,10 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 		if(LOG.isDebugEnabled()) {
 			LOG.debug(nme.getMessage() + ". Reason code give was " + reason, nme);
 		}
-		super.processNamingException(nme);
+		super.processNamingException(nme, op);
 		
 		return reason;
 
-	}
-
-	protected void checkNamingException(NamingException nme)
-			throws ConnectorException {
-		processNamingException(nme);
-		DirectoryExceptionParser dep = new DirectoryExceptionParser(nme);
-		String reason = dep.getReason();
-		LOG.error("Processed naming exception. Reason code give was " + reason, nme);
-		throw new ConnectorException(
-				"Failed to perform operation. Reason code " + reason
-						+ ". Please see the logs for more detail.");
 	}
 
 	protected void setPassword(Identity identity, char[] password,
@@ -1155,10 +1141,9 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			setForcePasswordChangeAtNextLogon((DirectoryIdentity)identity, forcePasswordChangeAtLogon);
 		
 		} catch (NamingException e) {
-			LOG.error("Problem in set password for identity", e);
-			processNamingException(e);
+			processNamingException(e, "Set Password");
+			throw new IllegalStateException("Unreachable code");
 		} catch (IOException e) {
-			LOG.error("Problem in set password for identity", e);
 			throw new ConnectorException(e);
 		}
 
@@ -1452,12 +1437,11 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 				}
 			}, configureSearchControls(ldapService.getSearchControls()));
 		} catch (NamingException e) {
-			LOG.error("Problem in fetching identity", e);
+			processNamingException(e, "List Identities");
+			throw new IllegalStateException("Unreachable code");
 		} catch (IOException e) {
-			LOG.error("Problem in fetching identity", e);
+			throw new ConnectorException(e.getMessage(), e);
 		}
-		return null;
-
 	}
 
 	private boolean isPasswordChangeRequired(SearchResult result)

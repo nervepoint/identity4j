@@ -221,7 +221,7 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 				}
 			}, configureSearchControls(ldapService.getSearchControls()));
 		} catch (NamingException e) {
-			processNamingException(e);
+			processNamingException(e, "List Identities");
 			throw new IllegalStateException("Unreachable code");
 		} catch (IOException e) {
 			throw new ConnectorException(e.getMessage(), e);
@@ -311,7 +311,7 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 			}, configureRoleSearchControls(ldapService.getSearchControls()));
 			
 		} catch (NamingException e) {
-			processNamingException(e);
+			processNamingException(e, "List Roles");
 			throw new IllegalStateException("Unreachable code");
 		} catch (IOException e) {
 			throw new ConnectorException(e.getMessage(), e);
@@ -399,17 +399,17 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 			
 		} catch(NamingException nme){
 			ldapService = null;
-			processNamingException(nme);
+			processNamingException(nme, "Open Connector");
 		} catch (Exception e) {
 			ldapService = null;
 			throw new ConnectorException(e);
 		}
 	}
 
-	protected String processNamingException(NamingException nme) {
+	protected String processNamingException(NamingException nme, String op) {
 		DirectoryExceptionParser dep = new DirectoryExceptionParser(nme);
 		String message = dep.getMessage();
-		throw new ConnectorException(message, nme);
+		throw new ConnectorException(op + ":" + message, nme);
 	}
 	
 	protected String getReason(NamingException nme) {
