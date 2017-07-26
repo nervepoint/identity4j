@@ -70,7 +70,9 @@ public class SalesforceConnector extends AbstractConnector {
 			ConnectorCapability.updateRole,
 			ConnectorCapability.authentication,
 			ConnectorCapability.identities,
-			ConnectorCapability.accountDisable
+			ConnectorCapability.accountDisable,
+			ConnectorCapability.identityAttributes,
+			ConnectorCapability.roleAttributes
 	}));
 
 	@Override

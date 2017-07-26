@@ -65,6 +65,8 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 			ConnectorCapability.identities,
 			ConnectorCapability.tracksLastPasswordChange,
 			ConnectorCapability.tracksLastSignOnDate,
+			ConnectorCapability.roleAttributes,
+			ConnectorCapability.identityAttributes,
 	}));
 	
 	public SocketFactory getSocketFactory() {

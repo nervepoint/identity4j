@@ -128,9 +128,10 @@ public enum ConnectorCapability {
 	/**
 	 * The connector supports account disable
 	 */
-	accountDisable, 
+	accountDisable,
 	/**
-	 * The connector supports forcing password change next time an identity logs in
+	 * The connector supports forcing password change next time an identity logs
+	 * in
 	 */
 	forcePasswordChange,
 	/**
@@ -141,4 +142,20 @@ public enum ConnectorCapability {
 	 * The connector supports roles within roles
 	 */
 	childRoles,
+	/**
+	 * The connector has additional native identity attributes
+	 */
+	identityAttributes,
+	/**
+	 * The connector has additional native role attributes
+	 */
+	roleAttributes,
+	/**
+	 * The connector has allows arbitrary identity attributes
+	 */
+	customIdentityAttributes,
+	/**
+	 * The connector has allows arbitrary role attributes
+	 */
+	customRoleAttributes,
 }

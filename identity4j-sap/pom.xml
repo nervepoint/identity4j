@@ -1,0 +1,64 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<artifactId>identity4j-sap</artifactId>
+	<name>Identity4J SAP</name>
+	<parent>
+		<groupId>com.nervepoint</groupId>
+		<artifactId>identity4j</artifactId>
+		<version>1.0.4-SNAPSHOT</version>
+		<relativePath>..</relativePath>
+	</parent>
+	<dependencies>
+		<dependency>
+			<groupId>commons-lang</groupId>
+			<artifactId>commons-lang</artifactId>
+			<version>2.6</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.nervepoint</groupId>
+			<artifactId>identity4j-jdbc</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.nervepoint</groupId>
+			<artifactId>identity4j-connector</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.nervepoint</groupId>
+			<artifactId>identity4j-connector</artifactId>
+			<version>${project.version}</version>
+			<type>test-jar</type>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.nervepoint</groupId>
+			<artifactId>identity4j-utils</artifactId>
+			<version>${project.version}</version>
+			<type>test-jar</type>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>sapjco</groupId>
+			<artifactId>sapjco</artifactId>
+			<version>3.0.10</version>
+			<systemPath>${basedir}/lib/sapjco3.jar</systemPath>
+			<scope>system</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.sap</groupId>
+			<artifactId>ngdbc</artifactId>
+			<version>0.0.0</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.sap</groupId>
+			<artifactId>ngdbc</artifactId>
+			<version>0.0.0</version>
+			<scope>provided</scope>
+		</dependency>
+	</dependencies>
+
+</project>

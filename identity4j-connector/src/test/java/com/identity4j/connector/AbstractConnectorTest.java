@@ -82,6 +82,7 @@ public abstract class AbstractConnectorTest {
 	protected Role role;
 	protected Connector connector;
 	protected Boolean checkOldCredentials;
+	protected boolean recreateTestUserOnSelectedTests;
 
 	/**
 	 * Constructor called after any static before methods
@@ -138,6 +139,14 @@ public abstract class AbstractConnectorTest {
 		
 	}
 
+	public boolean isRecreateTestUserOnSelectedTests() {
+		return recreateTestUserOnSelectedTests;
+	}
+
+	public void setReecreateTestUserOnSelectedTests(boolean recreateTestUserOnSelectedTests) {
+		this.recreateTestUserOnSelectedTests = recreateTestUserOnSelectedTests;
+	}
+	
 	private MultiMap loadConfigurationParameters(String propertiesFile) {
 		try {
 			InputStream resourceAsStream = getClass().getResourceAsStream(
@@ -294,9 +303,7 @@ public abstract class AbstractConnectorTest {
 					identityPassword.toCharArray(), actualNewPassword.toCharArray());
 			assertPasswordChange(identityName, identityPassword, actualNewPassword);
 		} finally {
-			// reset to original password
-			connector.setPassword(identityName, identityGuid,
-					identityPassword.toCharArray(), false);
+			resetPasswordOrRecreateUser();
 		}
 	}
 
@@ -366,6 +373,7 @@ public abstract class AbstractConnectorTest {
 
 		Assume.assumeTrue(connector.getCapabilities().contains(
 				ConnectorCapability.passwordSet));
+		
 		try {
 			String actualNewPassword = getActualNewPassword();
 			final boolean forcePasswordChangeAtLogon = false;
@@ -375,15 +383,35 @@ public abstract class AbstractConnectorTest {
 				assertPasswordChange(identityName, identityPassword,
 						actualNewPassword);
 			} finally {
-				// reset to original password
-				try {
-					connector.setPassword(identityName, identityGuid,
-							identityPassword.toCharArray(), false);
-				} catch (UnsupportedOperationException uoe) {
-				}
+				resetPasswordOrRecreateUser();
 			}
 		} finally {
 
+		}
+	}
+
+	private void resetPasswordOrRecreateUser() {
+		/* Work around for connectors that have password history. When we finish the test we either
+		 * reset the password or entirely recreate the account (assuming the connector has support to
+		 * do such a thing
+		 */
+		if(recreateTestUserOnSelectedTests) {
+			Identity id = connector.getIdentityByName(identityName);
+			try {
+				connector.deleteIdentity(identityName);
+			}
+			catch(Exception e) {
+				//
+			}
+			connector.createIdentity(id, identityPassword.toCharArray());
+		}
+		else {				
+			// reset to original password
+			try {
+				connector.setPassword(identityName, identityGuid,
+						identityPassword.toCharArray(), false);
+			} catch (UnsupportedOperationException uoe) {
+			}
 		}
 	}
 
@@ -446,9 +474,7 @@ public abstract class AbstractConnectorTest {
 					PasswordStatusType.changeRequired, identityByName
 							.getPasswordStatus().getType());
 		} finally {
-			// reset to original password
-			connector.setPassword(identityName, identityGuid,
-					identityPassword.toCharArray(), false);
+			resetPasswordOrRecreateUser();
 		}
 	}
 
@@ -636,8 +662,13 @@ public abstract class AbstractConnectorTest {
 		connector.createIdentity(newIdentity, identityPassword.toCharArray());
 		try {
 			newIdentity = connector.getIdentityByName(newPrincipalName);
-			assertEquals("Expect full name to be the same.", fullName,
-					newIdentity.getFullName());
+
+			assertEquals("Expect principal name to be the same.", newPrincipalName,
+					newIdentity.getPrincipalName());
+			
+			if(connector.getCapabilities().contains(ConnectorCapability.hasFullName))
+				assertEquals("Expect full name to be the same.", fullName,
+						newIdentity.getFullName());
 
 			Identity logon = connector.logon(newPrincipalName,
 					identityPassword.toCharArray());

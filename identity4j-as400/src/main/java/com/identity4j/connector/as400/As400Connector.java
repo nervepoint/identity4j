@@ -49,7 +49,9 @@ public class As400Connector extends AbstractConnector {
 					ConnectorCapability.createIdentityGUID, ConnectorCapability.identities,
 					ConnectorCapability.forcePasswordChange, ConnectorCapability.hasPasswordPolicy,
 					ConnectorCapability.createRole, ConnectorCapability.updateRole, ConnectorCapability.deleteRole,
-					ConnectorCapability.childRoles }));
+					ConnectorCapability.childRoles,
+					ConnectorCapability.roleAttributes,
+					ConnectorCapability.identityAttributes, }));
 
 	private As400Configuration as400Configuration;
 	private AS400 as400;

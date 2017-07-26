@@ -1,0 +1,17 @@
+i4jConnectorClass=com.identity4j.connector.sap.users.SAPUsersConnector
+i4jConfigurationClass=com.identity4j.connector.sap.users.SAPUsersConfiguration
+
+jdbcHostname=192.168.91.125
+jdbcDatabase=SystemDB
+jdbcUsername=SYSTEM
+jdbcPassword=PWPWPW
+
+sap.multiTenant=true
+sap.instance=90
+
+connector.validIdentityName=TEST1
+connector.validIdentityPassword=Qwerty123?
+connector.newPassword=*
+connector.invalidPassword=aaa
+connector.validRoleName=PUBLIC
+
