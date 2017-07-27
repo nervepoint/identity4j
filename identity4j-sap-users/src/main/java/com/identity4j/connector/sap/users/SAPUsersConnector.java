@@ -230,12 +230,9 @@ public class SAPUsersConnector extends JDBCConnector {
 		dpc.setMinimumSymbols(0);
 		dpc.setMinimumUpperCase(0);
 
-		// Really not sure what is acceptable as a symbol. It certainly doesn't
-		// like ?, # and some others. I must be misunderstanding in some way,
-		// but haven't yet found any decent information on what is actually
-		// allowed
-		// in here
-		dpc.setSymbols(new char[] { '*' });
+		/* Seems to be everything except double quotes */
+		dpc.setSymbols(new char[] {'!', '$', '\u00a3', '%', '^', '&', '*', '(', ')', '_', '-', '=', '+', '[',
+		                    '{', ']', '}', ':', ';', '\'', '@', '~', '#', ',', '<', '.', '>', '|', '\\', '?' });
 
 		// Good source -
 		// https://blogs.sap.com/2013/05/15/hana-password-security/
