@@ -40,7 +40,7 @@
 			<type>test-jar</type>
 			<scope>test</scope>
 		</dependency>
-		<dependency>
+		<!-- <dependency>
 			<groupId>sapjco</groupId>
 			<artifactId>sapjco</artifactId>
 			<version>3.0.10</version>
@@ -61,7 +61,7 @@
 			<version>0.0.0</version>
 			<scope>provided</scope>
 			<optional>true</optional>
-		</dependency>
+		</dependency> -->
 	</dependencies>
 
 </project>
