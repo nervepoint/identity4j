@@ -1,16 +1,16 @@
 package com.identity4j.connector.sap.users;
 
 import com.identity4j.connector.Connector.PasswordResetType;
+import com.identity4j.connector.jdbc.JDBCConfiguration;
 import com.identity4j.connector.principal.Identity;
 import com.identity4j.connector.principal.Role;
-import com.identity4j.connector.sap.SAPConfiguration;
 import com.identity4j.util.MultiMap;
 import com.identity4j.util.crypt.impl.PlainEncoder;
 
 /**
  * Configuration class provides access to properties configured
  */
-public class SAPUsersConfiguration extends SAPConfiguration {
+public class SAPUsersConfiguration extends JDBCConfiguration {
 
 	public final static String AUTH_MODE = "sap.authMode";
 
@@ -68,17 +68,52 @@ public class SAPUsersConfiguration extends SAPConfiguration {
 			configurationParameters.set(SQL_IDENTITY_TABLE_LAST_PASSWORD_CHANGE, "LAST_PASSWORD_CHANGE_TIME");
 		}
 		if (!configurationParameters.containsKey(SQL_ROLE_IDENTITY_TABLE_SELECT_BY_IDENTITY)) {
-			configurationParameters.set(SQL_ROLE_IDENTITY_TABLE_SELECT_BY_IDENTITY, "SELECT * FROM \"PUBLIC\".\"EFFECTIVE_ROLES\", \"PUBLIC\".\"ROLES\"  where \"PUBLIC\".\"EFFECTIVE_ROLES\".\"USER_NAME\" = '${principalName}' AND \"PUBLIC\".\"EFFECTIVE_ROLES\".\"ROLE_NAME\" = \"PUBLIC\".\"ROLES\".\"ROLE_NAME\";");
+			configurationParameters.set(SQL_ROLE_IDENTITY_TABLE_SELECT_BY_IDENTITY,
+					"SELECT * FROM \"PUBLIC\".\"EFFECTIVE_ROLES\", \"PUBLIC\".\"ROLES\"  where \"PUBLIC\".\"EFFECTIVE_ROLES\".\"USER_NAME\" = '${principalName}' AND \"PUBLIC\".\"EFFECTIVE_ROLES\".\"ROLE_NAME\" = \"PUBLIC\".\"ROLES\".\"ROLE_NAME\";");
 		}
-		
+
 		// http://www.bestsaphanatraining.com/how-to-manage-sap-hana-roles-and-privileges.html#a-hana-privilege-grant
 		if (!configurationParameters.containsKey(SQL_ROLE_IDENTITY_GRANT_TO_ROLE)) {
-			configurationParameters.set(SQL_ROLE_IDENTITY_GRANT_TO_ROLE, "GRANT ${rolePrincipalName} TO ${principalName};");
+			configurationParameters.set(SQL_ROLE_IDENTITY_GRANT_TO_ROLE,
+					"GRANT ${rolePrincipalName} TO ${principalName};");
 		}
 		if (!configurationParameters.containsKey(SQL_ROLE_IDENTITY_REVOKE_FROM_ROLE)) {
-			configurationParameters.set(SQL_ROLE_IDENTITY_REVOKE_FROM_ROLE, "REVOKE ${rolePrincipalName} FROM ${principalName};");
+			configurationParameters.set(SQL_ROLE_IDENTITY_REVOKE_FROM_ROLE,
+					"REVOKE ${rolePrincipalName} FROM ${principalName};");
 		}
-		
+
+	}
+
+	public final static String SAP_SYSNR = "sap.instance";
+	public final static String SAP_MULTI_TENANT = "sap.multiTenant";
+
+	@Override
+	public String getJDBCDriverName() {
+		return "sap";
+	}
+
+	@Override
+	public Integer getDefaultPort() {
+		// https://archive.sap.com/discussions/thread/3764026
+		return Integer.parseInt(String.format("3%02d%d", getInstance(), isMultiTenant() ? 13 : 15));
+	}
+
+	public int getInstance() {
+		return getConfigurationParameters().getIntegerOrDefault(SAP_SYSNR, 0);
+	}
+
+	public boolean isMultiTenant() {
+		return getConfigurationParameters().getBooleanOrDefault(SAP_MULTI_TENANT, false);
+	}
+
+	@Override
+	public String getDriverClassName() {
+		return "com.sap.db.jdbc.Driver";
+	}
+
+	@Override
+	public String getJDBUrlProperties(boolean safe) {
+		return null;
 	}
 
 	@Override

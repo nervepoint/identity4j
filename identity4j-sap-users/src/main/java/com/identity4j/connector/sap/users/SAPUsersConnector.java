@@ -5,6 +5,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLInvalidAuthorizationSpecException;
 import java.sql.Statement;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -27,7 +28,6 @@ import com.identity4j.connector.principal.PasswordStatusType;
 import com.identity4j.util.StringUtil;
 import com.identity4j.util.passwords.DefaultPasswordCharacteristics;
 import com.identity4j.util.passwords.PasswordCharacteristics;
-import com.sap.db.jdbc.exceptions.SQLInvalidAuthorizationSpecExceptionSapDB;
 
 public class SAPUsersConnector extends JDBCConnector {
 
@@ -62,7 +62,7 @@ public class SAPUsersConnector extends JDBCConnector {
 				if (identity.getPasswordStatus().getType() == PasswordStatusType.changeRequired) {
 					throw new PasswordChangeRequiredException();
 				}
-			} catch (SQLInvalidAuthorizationSpecExceptionSapDB sqle) {
+			} catch (SQLInvalidAuthorizationSpecException sqle) {
 				LOG.debug(String.format("Invalid credentials.", identity.getPrincipalName()), sqle);
 				return false;
 			} catch (SQLException sqle) {

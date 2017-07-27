@@ -16,9 +16,15 @@
 			<version>2.6</version>
 		</dependency>
 
-		<dependency>
+		<!-- <dependency>
 			<groupId>com.nervepoint</groupId>
 			<artifactId>identity4j-sap</artifactId>
+			<version>${project.version}</version>
+		</dependency> -->
+
+		<dependency>
+			<groupId>com.nervepoint</groupId>
+			<artifactId>identity4j-jdbc</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 		<dependency>
