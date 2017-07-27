@@ -88,6 +88,8 @@
 		<module>identity4j-mysql-users-connector</module>
 		<module>identity4j-ldap-directory-jndi</module>
 		<module>identity4j-active-directory-jndi</module>
+		<module>identity4j-sap</module>
+		<module>identity4j-sap-user</module>
 		<!-- <module>identity4j-webauth-test</module> -->
 	</modules>
 
