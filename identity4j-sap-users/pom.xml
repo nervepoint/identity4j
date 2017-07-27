@@ -46,18 +46,21 @@
 			<version>3.0.10</version>
 			<systemPath>${basedir}/lib/sapjco3.jar</systemPath>
 			<scope>system</scope>
+			<optional>true</optional>
 		</dependency>
 		<dependency>
 			<groupId>com.sap</groupId>
 			<artifactId>ngdbc</artifactId>
 			<version>0.0.0</version>
 			<scope>test</scope>
+			<optional>true</optional>
 		</dependency>
 		<dependency>
 			<groupId>com.sap</groupId>
 			<artifactId>ngdbc</artifactId>
 			<version>0.0.0</version>
 			<scope>provided</scope>
+			<optional>true</optional>
 		</dependency>
 	</dependencies>
 
