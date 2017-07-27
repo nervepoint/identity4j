@@ -240,6 +240,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 				}
 			}
 		}
+		getPasswordCharacteristics();
 	}
 
 	@Override
@@ -251,7 +252,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 
 			ldapService.unbind(new LdapName(identityOU));
 		} catch (NamingException e) {
-			processNamingException(e, "Delete Identitiy");
+			processNamingException(e);
 			throw new IllegalStateException("Unreachable code");
 		} catch (IOException e) {
 			throw new ConnectorException(e.getMessage(), e);
@@ -267,7 +268,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 
 			ldapService.unbind(new LdapName(roleOU));
 		} catch (NamingException e) {
-			processNamingException(e, "Delete Role");
+			processNamingException(e);
 			throw new IllegalStateException("Unreachable code");
 		} catch (IOException e) {
 			throw new ConnectorException(e.getMessage(), e);
@@ -402,7 +403,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			}
 
 		} catch (NamingException e) {
-			processNamingException(e, "Update Role");
+			processNamingException(e);
 			throw new IllegalStateException("Unreachable code");
 		} catch (IOException e) {
 			throw new ConnectorException(e.getMessage(), e);
@@ -489,7 +490,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			}
 
 		} catch (NamingException e) {
-			processNamingException(e, "Update Identity");
+			processNamingException(e);
 			throw new IllegalStateException("Unreachable code");
 		} catch (IOException e) {
 			throw new ConnectorException(e.getMessage(), e);
@@ -578,7 +579,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			return getRoleByName(role.getPrincipalName());
 
 		} catch (NamingException e) {
-			processNamingException(e, "Create Role");
+			processNamingException(e);
 			throw new IllegalStateException("Unreachable code");
 		} catch (IOException e) {
 			throw new ConnectorException(e.getMessage(), e);
@@ -722,7 +723,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			return directoryIdentity;
 
 		} catch (NamingException e) {
-			processNamingException(e, "Create Identity");
+			processNamingException(e);
 			throw new IllegalStateException("Unreachable code");
 		} catch (IOException e) {
 			throw new ConnectorException(e.getMessage(), e);
@@ -751,7 +752,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 					items.toArray(new ModificationItem[items.size()]));
 			identity.getAccountStatus().unlock();
 		} catch (NamingException e) {
-			processNamingException(e, "Unlock Identity");
+			processNamingException(e);
 			throw new IllegalStateException("Unreachable code");
 		} catch (IOException e) {
 			throw new ConnectorException(e.getMessage(), e);
@@ -781,7 +782,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 					items.toArray(new ModificationItem[items.size()]));
 			identity.getAccountStatus().lock();
 		} catch (NamingException e) {
-			processNamingException(e, "Lock Identity");
+			processNamingException(e);
 			throw new IllegalStateException("Unreachable code");
 		} catch (IOException e) {
 			throw new ConnectorException(e.getMessage(), e);
@@ -816,7 +817,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			ldapService.update(((DirectoryIdentity) identity).getDn(),
 					items.toArray(new ModificationItem[items.size()]));
 		} catch (NamingException e) {
-			processNamingException(e, "Disable Identity");
+			processNamingException(e);
 			throw new IllegalStateException("Unreachable code");
 		} catch (IOException e) {
 			throw new ConnectorException(e.getMessage(), e);
@@ -856,7 +857,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			directoryIdentity.getAccountStatus().calculateType();
 			
 		} catch (NamingException e) {
-			processNamingException(e, "Enable Identity");
+			processNamingException(e);
 			throw new IllegalStateException("Unreachable code");
 		} catch (IOException e) {
 			throw new ConnectorException(e.getMessage(), e);
@@ -886,7 +887,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 				ldapService.update(((DirectoryIdentity) identity).getDn(),
 						items.toArray(new ModificationItem[items.size()]));
 			} catch (NamingException e) {
-				processNamingException(e, "Force Password Change");
+				processNamingException(e);
 				throw new IllegalStateException("Unreachable code");
 			} catch (IOException e) {
 				throw new ConnectorException(e.getMessage(), e);
@@ -937,7 +938,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 				}
 			}, configureRoleSearchControls(ldapService.getSearchControls()));
 		} catch (NamingException e) {
-			processNamingException(e, "List Roles");
+			processNamingException(e);
 			throw new IllegalStateException("Unreachable code");
 		} catch (IOException e) {
 			throw new ConnectorException(e.getMessage(), e);
@@ -963,7 +964,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 				}
 			}, ldapService.getSearchControls());
 		} catch (NamingException e) {
-			processNamingException(e, "List Password Policies");
+			processNamingException(e);
 			throw new IllegalStateException("Unreachable code");
 		} catch (IOException e) {
 			throw new ConnectorException(e.getMessage(), e);
@@ -1022,7 +1023,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 
 		} catch (NamingException e) {
 			try {
-				processNamingException(e, "Change Password");
+				processNamingException(e);
 				throw new IllegalStateException("Unreachable code");
 			} catch (PasswordChangeRequiredException pcre) {
 				LOG.warn("Could not use change password because 'Change Password At Next Login' was set. Falling back to setPassword. Depending on the version of Active Directory in use, this may bypass password history checks.");
@@ -1033,7 +1034,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 		}
 	}
     
-	protected String processNamingException(NamingException nme, String op) {
+	protected String processNamingException(NamingException nme) {
 
 		DirectoryExceptionParser dep = new DirectoryExceptionParser(nme);
 		String reason = dep.getReason();
@@ -1104,7 +1105,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 		if(LOG.isDebugEnabled()) {
 			LOG.debug(nme.getMessage() + ". Reason code give was " + reason, nme);
 		}
-		super.processNamingException(nme, op);
+		super.processNamingException(nme);
 		
 		return reason;
 
@@ -1141,7 +1142,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			setForcePasswordChangeAtNextLogon((DirectoryIdentity)identity, forcePasswordChangeAtLogon);
 		
 		} catch (NamingException e) {
-			processNamingException(e, "Set Password");
+			processNamingException(e);
 			throw new IllegalStateException("Unreachable code");
 		} catch (IOException e) {
 			throw new ConnectorException(e);
@@ -1437,7 +1438,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 				}
 			}, configureSearchControls(ldapService.getSearchControls()));
 		} catch (NamingException e) {
-			processNamingException(e, "List Identities");
+			processNamingException(e);
 			throw new IllegalStateException("Unreachable code");
 		} catch (IOException e) {
 			throw new ConnectorException(e.getMessage(), e);

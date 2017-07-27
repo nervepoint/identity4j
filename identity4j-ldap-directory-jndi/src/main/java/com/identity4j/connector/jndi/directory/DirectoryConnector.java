@@ -118,13 +118,9 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 		} catch (IOException e) {
 			return false;
 		} catch (NamingException e) {
-			checkNamingException(e);
+			processNamingException(e);
 			return false;
 		}
-	}
-
-	protected void checkNamingException(NamingException e) {
-
 	}
 	
 	@Override
@@ -137,7 +133,7 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 		} catch (IOException e) {
 			return false;
 		} catch (NamingException e) {
-			checkNamingException(e);
+			processNamingException(e);
 			return false;
 		}
 	}
@@ -223,7 +219,7 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 				}
 			}, configureSearchControls(ldapService.getSearchControls()));
 		} catch (NamingException e) {
-			processNamingException(e, "List Identities");
+			processNamingException(e);
 			throw new IllegalStateException("Unreachable code");
 		} catch (IOException e) {
 			throw new ConnectorException(e.getMessage(), e);
@@ -313,7 +309,7 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 			}, configureRoleSearchControls(ldapService.getSearchControls()));
 			
 		} catch (NamingException e) {
-			processNamingException(e, "List Roles");
+			processNamingException(e);
 			throw new IllegalStateException("Unreachable code");
 		} catch (IOException e) {
 			throw new ConnectorException(e.getMessage(), e);
@@ -368,11 +364,11 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 			Attributes attributes = ldapService.lookupContext(dn);
 			return attributes.get(attributeName) != null ?  attributes.get(attributeName).get().toString() : null;
 		} catch (NamingException e) {
-			LOG.error("Problem in getting attribute value.", e);
+			processNamingException(e);
+			throw new IllegalStateException("Unreachable code");
 		} catch (IOException e) {
-			LOG.error("Problem in getting attribute value.", e);
+			throw new ConnectorException(e.getMessage(), e);
 		}
-		return null;
 	}
 
 	protected final String getByteValue(String attributeName, Attributes attributes) {
@@ -383,8 +379,9 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 			}
 			return StringUtil.convertByteToString(objectGuid);
 		} catch (NamingException e) {
-			throw new ConnectorException(e);
-		}
+			processNamingException(e);
+			throw new IllegalStateException("Unreachable code");
+		} 
 	}
 
 	@Override
@@ -401,17 +398,17 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 			
 		} catch(NamingException nme){
 			ldapService = null;
-			processNamingException(nme, "Open Connector");
+			processNamingException(nme);
 		} catch (Exception e) {
 			ldapService = null;
 			throw new ConnectorException(e);
 		}
 	}
 
-	protected String processNamingException(NamingException nme, String op) {
+	protected String processNamingException(NamingException nme) {
 		DirectoryExceptionParser dep = new DirectoryExceptionParser(nme);
 		String message = dep.getMessage();
-		throw new ConnectorException(op + ":" + message, nme);
+		throw new ConnectorException(message, nme);
 	}
 	
 	protected String getReason(NamingException nme) {
