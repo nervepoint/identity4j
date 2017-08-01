@@ -253,8 +253,11 @@ public abstract class JDBCConfiguration extends AbstractConnectorConfiguration {
 		buf.append(configurationParameters.getIntegerOrDefault(JDBC_PORT, getDefaultPort()));
 		buf.append("/");
 		buf.append(configurationParameters.getString(JDBC_DATABASE));
-        buf.append("?");
-        buf.append(getJDBUrlProperties(false));
+		String jdbUrlProperties = getJDBUrlProperties(false);
+		if (!StringUtil.isNullOrEmpty(jdbUrlProperties)) {
+			buf.append("?");
+			buf.append(jdbUrlProperties);
+		}
         return buf.toString();
 	}
 

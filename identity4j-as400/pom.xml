@@ -14,7 +14,7 @@
 		<dependency>
 			<groupId>net.sf.jt400</groupId>
 			<artifactId>jt400</artifactId>
-			<version>9.1</version>
+			<version>9.3</version>
 		</dependency>
 		<dependency>
 			<groupId>junit</groupId>

@@ -3,6 +3,7 @@ package com.identity4j.connector.as400;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -49,12 +50,12 @@ public class As400Connector extends AbstractConnector {
 					ConnectorCapability.createIdentityGUID, ConnectorCapability.identities,
 					ConnectorCapability.forcePasswordChange, ConnectorCapability.hasPasswordPolicy,
 					ConnectorCapability.createRole, ConnectorCapability.updateRole, ConnectorCapability.deleteRole,
-					ConnectorCapability.childRoles,
-					ConnectorCapability.roleAttributes,
+					ConnectorCapability.childRoles, ConnectorCapability.roleAttributes,
 					ConnectorCapability.identityAttributes, }));
 
 	private As400Configuration as400Configuration;
 	private AS400 as400;
+	private PasswordCharacteristics policy;
 
 	@Override
 	public boolean isOpen() {
@@ -260,9 +261,15 @@ public class As400Connector extends AbstractConnector {
 				String guid = String.valueOf(user.getUserID());
 				As400Identity identity = new As400Identity(user, guid, user.getName());
 
-				// get propertied for user
 				PasswordStatus passwordStatus = identity.getPasswordStatus();
 				passwordStatus.setLastChange(user.getPasswordLastChangedDate());
+				String warndays = policy.getAttributes().get(AS400PasswordRules.QPWDEXPWRN);
+				if (!StringUtil.isNullOrEmpty(warndays)) {
+					Calendar warn = Calendar.getInstance();
+					warn.setTime(user.getPasswordExpireDate());
+					warn.add(Calendar.DATE, Integer.parseInt(warndays));
+					passwordStatus.setWarn(warn.getTime());
+				}
 				if (user.isPasswordSetExpire())
 					passwordStatus.setNeedChange(true);
 				else
@@ -399,7 +406,7 @@ public class As400Connector extends AbstractConnector {
 				As400Identity identity = (As400Identity) getIdentityByName(id.getPrincipalName());
 
 				// Details
-				identity.getNativeUser().setDescription(id.getFullName());
+				identity.getNativeUser().setDescription(id.getFullName() == null ? "" : id.getFullName());
 				updateUserProfile(identity, id.getAttributes());
 
 				// set password
@@ -474,6 +481,29 @@ public class As400Connector extends AbstractConnector {
 					case QPWDMAXLEN:
 						def.setMaximumSize(Integer.valueOf(obj.toString()));
 						break;
+					case QPWDRQDDGT:
+						def.setMinimumDigits(Integer.valueOf(obj.toString()));
+						break;
+					case QPWDRQDDIF:
+						if (obj.toString().equals("0"))
+							def.setHistorySize(0);
+						else if (obj.toString().equals("1"))
+							def.setHistorySize(32);
+						else if (obj.toString().equals("2"))
+							def.setHistorySize(24);
+						else if (obj.toString().equals("3"))
+							def.setHistorySize(18);
+						else if (obj.toString().equals("4"))
+							def.setHistorySize(12);
+						else if (obj.toString().equals("5"))
+							def.setHistorySize(10);
+						else if (obj.toString().equals("6"))
+							def.setHistorySize(8);
+						else if (obj.toString().equals("7"))
+							def.setHistorySize(6);
+						else if (obj.toString().equals("8"))
+							def.setHistorySize(4);
+						break;
 					default:
 						def.getAttributes().put(key.getMeaning(), obj.toString());
 						break;
@@ -489,6 +519,7 @@ public class As400Connector extends AbstractConnector {
 		as400Configuration = (As400Configuration) parameters;
 		try {
 			this.as400 = as400Configuration.buildConnection();
+			this.policy = getPasswordCharacteristics();
 			if (!as400.authenticate(as400Configuration.getServiceAccountUsername(),
 					as400Configuration.getServiceAccountPassword())) {
 				throw new IOException("Invalid credentials");
@@ -675,9 +706,8 @@ public class As400Connector extends AbstractConnector {
 			identity.getNativeUser().setInitialProgram(attr[0]);
 		}
 		attr = map.get("initialMenu");
-		if (!Objects.equals(identity.getAttribute("initialMenu"), StringUtil.toDefaultString(attr)) && attr != null
-				&& attr.length > 0 && attr != null && attr.length > 0) {
-			identity.getNativeUser().setInitialMenu(attr[0]);
+		if (!Objects.equals(identity.getAttribute("initialMenu"), StringUtil.toDefaultString(attr))) {
+			identity.getNativeUser().setInitialMenu(attr == null || attr.length < 1 ? "" : attr[0].trim());
 		}
 		attr = map.get("keyboardBuffering");
 		if (!Objects.equals(identity.getAttribute("keyboardBuffering"), StringUtil.toDefaultString(attr))
@@ -788,7 +818,8 @@ public class As400Connector extends AbstractConnector {
 		identity.setAttribute("ccsid", String.valueOf(user.getCCSID()));
 		identity.setAttribute("chridControl", user.getCHRIDControl());
 		identity.setAttribute("countryID", user.getCountryID());
-		identity.setAttribute("currentLibraryName", user.getCurrentLibraryName().equals("") ? "*CRTDFT" : user.getCurrentLibraryName());
+		identity.setAttribute("currentLibraryName",
+				user.getCurrentLibraryName().equals("") ? "*CRTDFT" : user.getCurrentLibraryName());
 		identity.setAttribute("displaySignOnInformation", user.getDisplaySignOnInformation());
 		identity.setAttribute("groupAuthority", user.getGroupAuthority());
 		identity.setAttribute("groupAuthorityType", user.getGroupAuthorityType());
@@ -815,7 +846,7 @@ public class As400Connector extends AbstractConnector {
 		identity.setAttribute("specialAuthority", user.getSpecialAuthority());
 		identity.setAttribute("specialEnvironment", user.getSpecialEnvironment());
 		identity.setAttribute("storageUsed", String.valueOf(user.getStorageUsedInLong()));
-		identity.setAttribute("userActionAuditLevel",user.getUserActionAuditLevel());
+		identity.setAttribute("userActionAuditLevel", user.getUserActionAuditLevel());
 		identity.setAttribute("userClassName", user.getUserClassName());
 		identity.setAttribute("userExpirationAction", user.getUserExpirationAction());
 		identity.setAttribute("userOptions", user.getUserOptions());
