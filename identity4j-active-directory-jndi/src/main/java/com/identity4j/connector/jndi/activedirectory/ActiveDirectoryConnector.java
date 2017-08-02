@@ -451,9 +451,10 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 						DirContext.REPLACE_ATTRIBUTE, attribute));
 			}
 
-			ldapService.update(usersDn,
-					modificationItems.toArray(new ModificationItem[0]));
-
+			if(modificationItems.isEmpty()) {
+				ldapService.update(usersDn,
+						modificationItems.toArray(new ModificationItem[0]));
+			}
 			
 			// Update roles
 			List<Role> toRemove = new ArrayList<Role>(Arrays.asList(oldIdentity.getRoles()));
@@ -499,7 +500,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 	}
 
 	private boolean isExcludeForUpdate(String attributeName) {
-		return ATTRIBUTES_TO_EXCLUDE_FROM_UPDATE.contains(attributeName);
+		return !ALL_USER_ATTRIBUTES.contains(attributeName) || ATTRIBUTES_TO_EXCLUDE_FROM_UPDATE.contains(attributeName);
 	}
 
 	public Role createRole(Role role) throws ConnectorException {
