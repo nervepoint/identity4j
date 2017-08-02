@@ -125,12 +125,16 @@ public abstract class JDBCConfiguration extends AbstractConnectorConfiguration {
 
 	public String replaceTokens(String str, Principal identity) {
 		str = str.replace("${guid}", escapeString(identity.getGuid()));
-		str = str.replace("${principalName}", escapeString(identity.getPrincipalName()));
+		str = str.replace("${principalName}", escapeString(getProcessedPrincipalName(identity)));
 		str = str.replace("#{guid}", escapeStringDouble(identity.getGuid()));
-		str = str.replace("#{principalName}", escapeStringDouble(identity.getPrincipalName()));
+		str = str.replace("#{principalName}", escapeStringDouble(getProcessedPrincipalName(identity)));
 		str = replaceAttributeTokens(str, identity);
 		return replaceTokensDouble(replaceTokens(str));
 	}
+
+    protected String getProcessedPrincipalName(Principal identity) {
+        return identity.getPrincipalName();
+    }
 
 	public String replaceAttributeTokens(String str, Principal identity) {
 		Map<String, String[]> attributes = identity.getAttributes();
@@ -146,9 +150,9 @@ public abstract class JDBCConfiguration extends AbstractConnectorConfiguration {
 
 	public String replaceRoleTokens(String str, Principal identity) {
 		str = str.replace("${roleGuid}", escapeString(identity.getGuid()));
-		str = str.replace("${rolePrincipalName}", escapeString(identity.getPrincipalName()));
+		str = str.replace("${rolePrincipalName}", escapeString(getProcessedPrincipalName(identity)));
 		str = str.replace("#{roleGuid}", escapeStringDouble(identity.getGuid()));
-		str = str.replace("#{rolePrincipalName}", escapeStringDouble(identity.getPrincipalName()));
+		str = str.replace("#{rolePrincipalName}", escapeStringDouble(getProcessedPrincipalName(identity)));
 		return replaceTokensDouble(replaceTokens(str));
 	}
 

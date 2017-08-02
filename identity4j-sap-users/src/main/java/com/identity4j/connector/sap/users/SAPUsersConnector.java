@@ -49,7 +49,8 @@ public class SAPUsersConnector extends JDBCConnector {
 					ConnectorCapability.hasPasswordPolicy, ConnectorCapability.tracksLastPasswordChange,
 					ConnectorCapability.accountLocking, ConnectorCapability.accountDisable, ConnectorCapability.roles,
 					ConnectorCapability.forcePasswordChange, ConnectorCapability.createRole,
-					ConnectorCapability.identityAttributes, ConnectorCapability.roleAttributes }));
+					ConnectorCapability.identityAttributes, ConnectorCapability.roleAttributes,
+                    ConnectorCapability.caseInsensitivePrincipalNames }));
 
 	@Override
 	protected boolean areCredentialsValid(Identity identity, char[] password) throws ConnectorException {

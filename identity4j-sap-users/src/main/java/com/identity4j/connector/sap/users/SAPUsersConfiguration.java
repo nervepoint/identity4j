@@ -3,6 +3,7 @@ package com.identity4j.connector.sap.users;
 import com.identity4j.connector.Connector.PasswordResetType;
 import com.identity4j.connector.jdbc.JDBCConfiguration;
 import com.identity4j.connector.principal.Identity;
+import com.identity4j.connector.principal.Principal;
 import com.identity4j.connector.principal.Role;
 import com.identity4j.util.MultiMap;
 import com.identity4j.util.crypt.impl.PlainEncoder;
@@ -204,4 +205,8 @@ public class SAPUsersConfiguration extends JDBCConfiguration {
 				configurationParameters.getStringOrDefault(SQL_IDENTITY_TABLE_DELETE, "DROP ROLE ${principalName}")),
 				"${principalName}", principalName);
 	}
+
+    protected String getProcessedPrincipalName(Principal identity) {
+        return identity.getPrincipalName().toUpperCase();
+    }
 }
