@@ -79,7 +79,7 @@ public abstract class AbstractConnector implements Connector, ValidationContext 
 		return false;
 	}
 	
-	public boolean checkCredentialsOptimised(String remoteIdentifier, char[] password) throws ConnectorException {
+	public boolean checkCredentialsOptimised(String username, String remoteIdentifier, char[] password) throws ConnectorException {
 		throw new UnsupportedOperationException();
 	}
 	

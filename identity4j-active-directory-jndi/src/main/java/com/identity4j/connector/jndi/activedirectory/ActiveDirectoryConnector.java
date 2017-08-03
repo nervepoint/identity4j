@@ -2,6 +2,7 @@
 package com.identity4j.connector.jndi.activedirectory;
 
 import java.io.IOException;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -58,6 +59,11 @@ import com.identity4j.util.CollectionUtil;
 import com.identity4j.util.StringUtil;
 import com.identity4j.util.Util;
 import com.identity4j.util.passwords.PasswordCharacteristics;
+
+import jcifs.UniAddress;
+import jcifs.smb.NtlmPasswordAuthentication;
+import jcifs.smb.SmbException;
+import jcifs.smb.SmbSession;
 
 public class ActiveDirectoryConnector extends DirectoryConnector {
 
@@ -243,6 +249,41 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 		getPasswordCharacteristics();
 	}
 
+	protected boolean areCredentialsValid(Identity identity, char[] password) throws ConnectorException {
+
+		String authType = getConfiguration().getConfigurationParameters().getString(ActiveDirectoryConfiguration.ACTIVE_DIRECTORY_AUTHENTICATION);
+		if(StringUtils.isBlank(authType) || "ldap".equals(authType)) {
+			return super.areCredentialsValid(identity, password);
+		} else {
+			doNTLMAuthentication(identity.getPrincipalName(), password);
+			return true;
+		}
+	}
+	
+	private void doNTLMAuthentication(String username, char[] password) throws ConnectorException {
+		try {
+			UniAddress uniaddress = UniAddress.getByName(getConfiguration().getConfigurationParameters().getString(ActiveDirectoryConfiguration.DIRECTORY_HOSTNAME));
+			NtlmPasswordAuthentication ntlmpasswordauthentication = new NtlmPasswordAuthentication(getDomain(getRootDn()), username, new String(password));
+			SmbSession.logon(uniaddress, ntlmpasswordauthentication);
+		} catch (UnknownHostException e) {
+			throw new ConnectorException(e.getMessage(), e);
+		} catch (SmbException e) {
+			throw new ConnectorException(e.getMessage(), e);
+		}
+	}
+	
+	@Override
+	public boolean checkCredentialsOptimised(String username, String remoteIdentifier, char[] password) throws ConnectorException {
+		
+		String authType = getConfiguration().getConfigurationParameters().getString(ActiveDirectoryConfiguration.ACTIVE_DIRECTORY_AUTHENTICATION);
+		if(StringUtils.isBlank(authType) || "ldap".equals(authType)) {
+			return super.checkCredentialsOptimised(username, remoteIdentifier, password);
+		} else {
+			doNTLMAuthentication(username, password);
+			return true;
+		}
+	}
+	
 	@Override
 	public void deleteIdentity(String principalName) throws ConnectorException {
 		try {

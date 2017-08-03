@@ -20,6 +20,7 @@ public class ActiveDirectoryConfiguration extends DirectoryConfiguration {
 	private static final String USE_GLOBAL_CATALOG = "directory.isGlobalCatalog";
 	private static final String CHILD_DOMAIN_CONTROLLERS = "directory.childDomainControllers";
 
+	public static final String ACTIVE_DIRECTORY_AUTHENTICATION = "activeDirectory.authenticationType";
 	public static final String ACTIVE_DIRECTORY_INCLUDE_DEFAULT_USERS = "activeDirectory.includeDefaultUsers";
 	public static final String ACTIVE_DIRECTORY_INCLUDE_BUILTN_GROUPS = "activeDirectory.includeBuiltInGroups";
 	public static final String ACTIVE_DIRECTORY_USERNAME_IS_SAMACCOUNTNAME = "activeDirectory.usernameSamAccountName";
