@@ -1345,9 +1345,12 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 						if(LOG.isInfoEnabled()) {
 							LOG.info(String.format("%s's computed password expiry is %s", username, passwordexpiryComputed));
 						}
+						
 						if(passwordexpiryComputed!=null && StringUtils.isNotBlank(passwordexpiryComputed)) {
-							passwordStatus.setExpire(ActiveDirectoryDateUtil
-							.adTimeToJavaDate(Long.parseLong(passwordexpiryComputed)));
+							long expireTime = Long.parseLong(passwordexpiryComputed);
+							if(expireTime > 0 && expireTime < Long.MAX_VALUE) {
+								passwordStatus.setExpire(ActiveDirectoryDateUtil.adTimeToJavaDate(expireTime));
+							}
 						} else if(passwordLastSet != null) {
 							passwordStatus.setExpire(getAgedDate(
 									maximumPasswordAge, passwordLastSet));
@@ -1623,7 +1626,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 		}
 		return cal.getTime();
 	}
-
+	
 	private Date getDateAttribute(SearchResult result, String dateAttribute)
 			throws NamingException {
 
@@ -1633,8 +1636,11 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			String value = StringUtil.nonNull((String) getAttribute(attributes
 					.get(dateAttribute)));
 
+			/**
+			 * LDP - Long.MAX_VALUE also indicates non-expiry of account/password
+			 */
 			long val = Long.parseLong(value);
-			if (val > 0) {
+			if (val > 0 && val < Long.MAX_VALUE) {
 				return ActiveDirectoryDateUtil.adTimeToJavaDate(val);
 			}
 		} catch (NumberFormatException nfe) {
