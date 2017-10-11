@@ -351,7 +351,7 @@ public class DirectoryConfiguration extends AbstractConnectorConfiguration {
 					}
 					names.add(name);
 				} catch (Exception e) {
-					throw new ConnectorException(value + " is not a properly formatted DN value");
+					throw new ConnectorException(String.format("%s is not a properly formatted DN. Expected format <container>=<name> for example OU=Employees", value));
 				}
 			}
 		}
