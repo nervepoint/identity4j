@@ -516,7 +516,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 						DirContext.REPLACE_ATTRIBUTE, attribute));
 			}
 
-			if(modificationItems.isEmpty()) {
+			if(!modificationItems.isEmpty()) {
 				ldapService.update(usersDn,
 						modificationItems.toArray(new ModificationItem[0]));
 			}
