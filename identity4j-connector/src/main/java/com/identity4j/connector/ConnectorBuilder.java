@@ -180,17 +180,17 @@ public class ConnectorBuilder {
 			Object o = constructor.newInstance(args);
 			return o;
 		} catch (ClassNotFoundException cnfe) {
-			throw new ConnectorException("failed to createClassInstance", cnfe);
+			throw new ConnectorException("The connector class could not be found", cnfe);
 		} catch (IllegalAccessException iae) {
-			throw new ConnectorException("failed to createClassInstance", iae);
+			throw new ConnectorException("Permissions error creating connector", iae);
 		} catch (IllegalArgumentException iae) {
-			throw new ConnectorException("failed to createClassInstance", iae);
+			throw new ConnectorException("Invalid argument creating connector", iae);
 		} catch (InstantiationException inse) {
-			throw new ConnectorException("failed to createClassInstance", inse);
+			throw new ConnectorException("Instantiation error", inse);
 		} catch (InvocationTargetException ite) {
-			throw new ConnectorException("failed to createClassInstance", ite);
+			throw new ConnectorException(ite.getTargetException().getMessage(), ite.getTargetException());
 		} catch (NoSuchMethodException nsme) {
-			throw new ConnectorException("failed to createClassInstance", nsme);
+			throw new ConnectorException("Connector method missing", nsme);
 		}
 	}
 }

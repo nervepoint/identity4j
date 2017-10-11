@@ -144,12 +144,13 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 	public static final String PASSWORD_EXPIRY_COMPUTED = "msDS-UserPasswordExpiryTimeComputed";
 	public static final String PROXY_ADDRESSES = "proxyAddresses";
 	
+	public static final String GROUP_TYPE_ATTRIBUTE = "groupType";
 	
 	/**
 	 * This is a special attribute we add to mimic the Office365 ImmutableID
 	 */
 	public static final String IMMUTABLE_ID_ATTR = "ImmutableID";
-
+	
 	public static final String GLOBAL = "-2147483646";
 	public static final String DOMAIN_LOCAL = "-2147483644";
 	public static final String UNIVERSAL = "-2147483640";
@@ -220,7 +221,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			 USER_PRINCIPAL_NAME_ATTRIBUTE, OBJECT_CLASS_ATTRIBUTE });
 
 	private static Collection<String> ALL_ROLE_ATTRIBUTES = Arrays
-			.asList(new String[] { OBJECT_SID_ATTRIBUTE, OBJECT_GUID_ATTRIBUTE,
+			.asList(new String[] { OBJECT_SID_ATTRIBUTE, OBJECT_GUID_ATTRIBUTE, GROUP_TYPE_ATTRIBUTE,
 					COMMON_NAME_ATTRIBUTE, DISTINGUISHED_NAME_ATTRIBUTE, PASSWORD_POLICY_APPLIES, MEMBER_ATTRIBUTE });
 
 	public static final int CHANGE_PASSWORD_AT_NEXT_LOGON_FLAG = 0;

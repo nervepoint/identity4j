@@ -43,6 +43,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.identity4j.connector.AbstractConnectorConfiguration;
+import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.util.DummySSLSocketFactory;
 import com.identity4j.util.MultiMap;
 
@@ -339,15 +340,19 @@ public class DirectoryConfiguration extends AbstractConnectorConfiguration {
 		return baseDn;
 	}
 
-	private Collection<Name> getNames(String... values) throws InvalidNameException {
+	private Collection<Name> getNames(String... values) {
 		Collection<Name> names = new ArrayList<Name>();
 		for (String value : values) {
 			if(StringUtils.isNotBlank(value)) {
-				LdapName name = new LdapName(value);
-				if(!name.startsWith(getBaseDn())) {
-					name.addAll(0, getBaseDn());
+				try {
+					LdapName name = new LdapName(value);
+					if(!name.startsWith(getBaseDn())) {
+						name.addAll(0, getBaseDn());
+					}
+					names.add(name);
+				} catch (Exception e) {
+					throw new ConnectorException(value + " is not a properly formatted DN value");
 				}
-				names.add(name);
 			}
 		}
 		return names;
