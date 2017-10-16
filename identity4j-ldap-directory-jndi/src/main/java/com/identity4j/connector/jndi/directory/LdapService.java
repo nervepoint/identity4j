@@ -26,8 +26,10 @@ package com.identity4j.connector.jndi.directory;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.List;
 import java.util.NoSuchElementException;
 
 import javax.naming.Context;
@@ -62,17 +64,16 @@ public class LdapService {
 
 	private static final String LDAP_SOCKET_FACTORY = "java.naming.ldap.factory.socket";
 	final static Log LOG = LogFactory.getLog(LdapService.class);
-	/**
-	 */
+
 	public static final String WILDCARD_SEARCH = "*";
-	/**
-	 */
+
 	public static final String OBJECT_CLASS_ATTRIBUTE = "objectClass";
 
 	private DirectoryConfiguration configuration;
 	private SocketFactory socketFactory;
 	private Hashtable<String, String> env = new Hashtable<String, String>();
-
+	private List<DirContext> openContexts = new ArrayList<DirContext>();
+	
 	public void openConnection() throws NamingException, IOException {
 		checkLDAPHost();
 		env.put(Context.SECURITY_PRINCIPAL, configuration.getServiceAccountDn());
@@ -82,9 +83,19 @@ public class LdapService {
 				configuration.buildProviderUrl(
 						configuration.getSecurityProtocol().equalsIgnoreCase(DirectoryConfiguration.SSL),
 						configuration.getControllerHosts()));
+		configureSocket(env);
 		lookupContext(configuration.getBaseDn());
 	}
 
+	private void configureSocket(Hashtable<String,String> env) {
+		env.put("com.sun.jndi.ldap.connect.pool", "false");
+		env.put("com.sun.jndi.ldap.connect.pool.debug", "all");
+		env.put("com.sun.jndi.ldap.connect.pool.timeout", "30000");
+		env.put("com.sun.jndi.ldap.read.timeout", "30000");
+		env.put("java.naming.factory.initial", "com.sun.jndi.ldap.LdapCtxFactory");
+//		env.put("com.sun.jndi.ldap.connect.pool.protocol", "plain ssl");
+	}
+	
 	public SocketFactory getSocketFactory() {
 		return socketFactory;
 	}
@@ -98,8 +109,11 @@ public class LdapService {
 			env.put(LDAP_SOCKET_FACTORY, ThreadLocalSocketFactory.class.getName());
 			ThreadLocalSocketFactory.set(socketFactory);
 		}
+		configureSocket(env);
 		try {
-			return new InitialLdapContext(env, controls);
+			LdapContext ctx = new InitialLdapContext(env, controls);
+			openContexts.add(ctx);
+			return ctx;
 		} finally {
 			if (socketFactory != null) {
 				ThreadLocalSocketFactory.remove();
@@ -121,8 +135,11 @@ public class LdapService {
 			env.put(LDAP_SOCKET_FACTORY, ThreadLocalSocketFactory.class.getName());
 			ThreadLocalSocketFactory.set(socketFactory);
 		}
+		configureSocket(env);
 		try {
-			return new InitialDirContext(env);
+			DirContext ctx = new InitialDirContext(env);
+			openContexts.add(ctx);
+			return ctx;
 		} finally {
 			if (socketFactory != null) {
 				ThreadLocalSocketFactory.remove();
@@ -132,7 +149,7 @@ public class LdapService {
 	}
 
 	public void authenticate(String account, String password) throws IOException, NamingException {
-			getConnection(account, password);
+		close(getConnection(account, password));
 	}
 	
 	public void setPassword(final String account, final char[] newPassword) throws NamingException, IOException {
@@ -164,12 +181,19 @@ public class LdapService {
 		}, controls);
 	}
 
-	public void close(DirContext ctx) {
+	public void close() {
+		for(DirContext ctx : new ArrayList<DirContext>(openContexts)) {
+			close(ctx);
+		}
+	}
+	
+	private void close(DirContext ctx) {
 		if (ctx != null)
 			try {
 				ctx.close();
 			} catch (NamingException e) {
-				throw new ConnectorException("Problem in closing " + e.getMessage(), e);
+			} finally {
+				openContexts.remove(ctx);
 			}
 	}
 
@@ -412,9 +436,8 @@ public class LdapService {
 	}
 
 	private <T> T processBlock(Block<T> block, Control... controls) throws NamingException, IOException {
-		LdapContext ctx = null;
-		ctx = getConnection(controls);
-		return block.apply(ctx);
+		return block.apply(getConnection(controls));
+		
 	}
 
 	public interface ResultMapper<T> {

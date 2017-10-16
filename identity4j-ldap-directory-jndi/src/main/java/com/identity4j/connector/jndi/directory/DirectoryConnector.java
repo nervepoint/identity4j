@@ -114,6 +114,7 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 
 	@Override
 	protected void onClose() {
+		ldapService.close();
 		ldapService = null;
 	}
 
