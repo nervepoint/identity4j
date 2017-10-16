@@ -261,36 +261,34 @@ public class LdapService {
 			while (results.hasMoreElements()) {
 				try {
 					SearchResult result = results.next();
-					try {
-						if (!resultMapper.isApplyFilters()) {
-							return resultMapper.apply(result);
-						}
-						Name resultName = new LdapName(result.getNameInNamespace());
-						boolean include = configuration.getIncludes().isEmpty();
-						if (!include) {
-							for (Name name : configuration.getIncludes()) {
-								if (resultName.startsWith(name)) {
-									include = true;
-									break;
-								}
-							}
-						}
 
-						for (Name name : configuration.getExcludes()) {
+					if (!resultMapper.isApplyFilters()) {
+						return resultMapper.apply(result);
+					}
+					Name resultName = new LdapName(result.getNameInNamespace());
+					boolean include = configuration.getIncludes().isEmpty();
+					if (!include) {
+						for (Name name : configuration.getIncludes()) {
 							if (resultName.startsWith(name)) {
-								include = false;
+								include = true;
 								break;
 							}
 						}
-
-						if (!include) {
-							continue;
-						}
-
-						return resultMapper.apply(result);
-					} finally {
-						((Context) result.getObject()).close();
 					}
+
+					for (Name name : configuration.getExcludes()) {
+						if (resultName.startsWith(name)) {
+							include = false;
+							break;
+						}
+					}
+
+					if (!include) {
+						continue;
+					}
+
+					return resultMapper.apply(result);
+
 				} catch (PartialResultException e) {
 					if (configuration.isFollowReferrals()) {
 						LOG.error("Following referrals is on but partial result was received", e);
@@ -400,16 +398,10 @@ public class LdapService {
 		});
 	}
 
-	public Attributes lookupContext(final Name dn) throws NamingException, IOException {
-		return processBlock(new Block<Attributes>() {
-
-			public Attributes apply(LdapContext context) throws NamingException {
-				LdapContext ldapContext = (LdapContext) context.lookup(dn);
-				try {
-					return ldapContext.getAttributes("");
-				} finally {
-					ldapContext.close();
-				}
+	public LdapContext lookupContext(final Name dn) throws NamingException, IOException {
+		return processBlock(new Block<LdapContext>() {
+			public LdapContext apply(LdapContext context) throws NamingException {
+				return (LdapContext) context.lookup(dn);
 			}
 		});
 	}

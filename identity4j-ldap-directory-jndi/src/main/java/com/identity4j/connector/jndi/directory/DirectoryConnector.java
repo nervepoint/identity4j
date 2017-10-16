@@ -41,6 +41,7 @@ import javax.naming.directory.Attribute;
 import javax.naming.directory.Attributes;
 import javax.naming.directory.SearchControls;
 import javax.naming.directory.SearchResult;
+import javax.naming.ldap.LdapContext;
 import javax.naming.ldap.LdapName;
 import javax.net.SocketFactory;
 
@@ -379,19 +380,24 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 		return searchControls;
 	}
 
-	
-
-	
-
 	protected final String getAttributeValue(Name dn, String attributeName) {
+		
 		try {
-			Attributes attributes = ldapService.lookupContext(dn);
-			return attributes.get(attributeName) != null ?  attributes.get(attributeName).get().toString() : null;
-		} catch (NamingException e) {
-			processNamingException(e);
+			LdapContext ctx = ldapService.lookupContext(dn);
+			try {
+				Attributes attributes = ctx.getAttributes("");
+				return attributes.get(attributeName) != null ?  attributes.get(attributeName).get().toString() : null;
+			} catch (NamingException e) {
+				processNamingException(e);
+				throw new IllegalStateException("Unreachable code");
+			} finally {
+				ctx.close();
+			}
+		} catch(NamingException ex) {
+			processNamingException(ex);
 			throw new IllegalStateException("Unreachable code");
-		} catch (IOException e) {
-			throw new ConnectorException(e.getMessage(), e);
+		} catch(IOException ex) {
+			throw new IllegalStateException(ex.getMessage(), ex);
 		}
 	}
 

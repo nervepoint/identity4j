@@ -52,6 +52,7 @@ import javax.naming.directory.ModificationItem;
 import javax.naming.directory.SearchControls;
 import javax.naming.directory.SearchResult;
 import javax.naming.ldap.BasicControl;
+import javax.naming.ldap.LdapContext;
 import javax.naming.ldap.LdapName;
 import javax.naming.ldap.Rdn;
 
@@ -1470,12 +1471,12 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 									directoryIdentity.addRole(groups.get(dn
 											.toLowerCase()));
 								} else {
-									Attributes roleAttributes;
+									LdapContext ctx = ldapService
+											.lookupContext(new LdapName(dn));
 									try {
-										roleAttributes = ldapService
-												.lookupContext(new LdapName(dn));
+										
 										ActiveDirectoryGroup activeDirectoryGroup = mapRole(
-												dn, roleAttributes);
+												dn, ctx.getAttributes(""));
 										if (activeDirectoryGroup != null) {
 											groups.put(dn.toLowerCase(),
 													activeDirectoryGroup);
@@ -1486,9 +1487,11 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 											directoryIdentity
 													.addRole(activeDirectoryGroup);
 										}
-
-									} catch (IOException e) {
-										LOG.error("Problem in getting role", e);
+									} finally {
+										try {
+											ctx.close();
+										} catch (Exception e) {
+										}
 									}
 								}
 							}
