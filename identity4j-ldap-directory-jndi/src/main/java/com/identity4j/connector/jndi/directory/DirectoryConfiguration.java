@@ -106,6 +106,21 @@ public class DirectoryConfiguration extends AbstractConnectorConfiguration {
 	public static final String DIRECTORY_FOLLOW_REFERRALS = "directory.followReferrals";
 	
 	/**
+	 * Connect timeout
+	 */
+	public static final String DIRECTORY_CONNECT_TIMEOUT = "directory.timeout";
+	
+	/**
+	 * Read timeout
+	 */
+	public static final String DIRECTORY_READ_TIMEOUT = "directory.readTimeout";
+	
+	/**
+	 * Max page size
+	 */
+	public static final String DIRECTORY_MAX_PAGE_SIZE = "directory.maxPageSize";
+	
+	/**
      */
 	public static final char PORT_SEPARATOR = ':';
 	
@@ -309,7 +324,7 @@ public class DirectoryConfiguration extends AbstractConnectorConfiguration {
 	 * @return initial context factory
 	 */
 	public final int getTimeout() {
-		return configurationParameters.getIntegerOrDefault("directory.timeout", Integer.valueOf(30)) * 1000;
+		return configurationParameters.getIntegerOrDefault(DIRECTORY_CONNECT_TIMEOUT, Integer.valueOf(30)) * 1000;
 	}
 
 	/**
@@ -318,7 +333,7 @@ public class DirectoryConfiguration extends AbstractConnectorConfiguration {
 	 * @return maximum page size
 	 */
 	public int getMaxPageSize() {
-		return configurationParameters.getIntegerOrDefault("directory.maxPageSize", 1000);
+		return configurationParameters.getIntegerOrDefault(DIRECTORY_MAX_PAGE_SIZE, 1000);
 	}
 
 	/**
@@ -541,6 +556,7 @@ public class DirectoryConfiguration extends AbstractConnectorConfiguration {
 		}
 
 		variables.put("com.sun.jndi.ldap.connect.timeout", String.valueOf(getTimeout()));
+		variables.put("com.sun.jndi.ldap.read.timeout", String.valueOf(getReadTimeout()));
 		variables.put("java.naming.ldap.version", getVersion());
 		variables.put("com.sun.jndi.ldap.connect.pool", "true");
 		variables.put("javax.security.sasl.qop", "auth-conf,auth-int,auth");
@@ -601,7 +617,8 @@ public class DirectoryConfiguration extends AbstractConnectorConfiguration {
 		buffer.append("', ServiceAuthenticationType='" + getServiceAuthenticationType());
 		buffer.append("', SecurityProtocol='" + getSecurityProtocol());
 		buffer.append("', InitialContextFactory='" + getInitialContextFactory());
-		buffer.append("', Timeout='" + getTimeout());
+		buffer.append("', ConnectTimeout='" + getTimeout());
+		buffer.append("', ReadTimeout='" + getReadTimeout());
 		buffer.append("', Version='" + getVersion());
 		buffer.append("', BaseDn='" + getBaseDn());
 		buffer.append("', ServiceAccountUsername='" + getServiceAccountDn());
@@ -626,4 +643,9 @@ public class DirectoryConfiguration extends AbstractConnectorConfiguration {
 	public String getHostnameHint() {
 		return configurationParameters.getStringOrNull(DIRECTORY_HOSTNAME);
 	}
+
+	public int getReadTimeout() {
+		return configurationParameters.getIntegerOrDefault(DIRECTORY_READ_TIMEOUT, 120000);
+	}
+	
 }

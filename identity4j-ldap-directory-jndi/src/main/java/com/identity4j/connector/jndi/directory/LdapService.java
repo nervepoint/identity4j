@@ -87,8 +87,6 @@ public class LdapService {
 	private void configureSocket(Hashtable<String, String> env) {
 		env.put("com.sun.jndi.ldap.connect.pool", "false");
 		env.put("com.sun.jndi.ldap.connect.pool.debug", "all");
-		env.put("com.sun.jndi.ldap.connect.pool.timeout", "30000");
-		env.put("com.sun.jndi.ldap.read.timeout", "30000");
 		env.put("java.naming.factory.initial", "com.sun.jndi.ldap.LdapCtxFactory");
 		// env.put("com.sun.jndi.ldap.connect.pool.protocol", "plain ssl");
 	}
