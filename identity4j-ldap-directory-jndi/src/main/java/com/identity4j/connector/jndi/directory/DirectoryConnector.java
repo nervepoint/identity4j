@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.StringTokenizer;
 
+import javax.naming.CommunicationException;
 import javax.naming.Name;
 import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
@@ -426,6 +427,9 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 			Name baseDn = directoryConfiguration.getBaseDn();
 			LOG.info("Looking up " + baseDn);
 			
+		} catch(CommunicationException nme){
+			ldapService = null;
+			throw new ConnectorException(String.format("Failed to connect to %s", directoryConfiguration.getControllerHostnames()[0]));
 		} catch(NamingException nme){
 			ldapService = null;
 			processNamingException(nme);
