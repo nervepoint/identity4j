@@ -700,7 +700,29 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 						+ ") must be a child of the Base DN (" + baseDn
 						+ " configured for the Active Directory connector.");
 			}
-
+			
+			boolean included = getConfiguration().getIncludes().isEmpty();
+			
+			if(!included) {
+				for(Name name : getConfiguration().getIncludes()) {
+					if(userDn.startsWith(name)) {
+						included = true;
+					}
+				}
+			}
+				
+			if(included) {
+				for(Name name : getConfiguration().getExcludes()) {
+					if(userDn.startsWith(name)) {
+						included = false;
+					}
+				}
+			}
+			
+			if(!included) {
+				throw new ConnectorException("The User DN (" + userDn
+						+ ") must be within the included OU scopes configured for the Active Directory connector.");
+			}
 			/*
 			 * Set up the attributes for the primary details. Some of these may
 			 * already have been in the generic attributes
