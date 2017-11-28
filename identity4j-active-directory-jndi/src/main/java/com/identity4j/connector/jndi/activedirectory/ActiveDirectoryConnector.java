@@ -1124,7 +1124,6 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 	}
     
 	protected String processNamingException(NamingException nme) {
-
 		DirectoryExceptionParser dep = new DirectoryExceptionParser(nme);
 		String reason = dep.getReason();
 		// Now for specific errors. These will hopefully build up over
@@ -1407,8 +1406,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 					String userDn = ActiveDirectoryConfiguration.buildUsername(
 							config.getBaseDn().toString(), config.getDomain(),
 							directoryIdentity.getPrincipalName());
-					if (userDn.equalsIgnoreCase(getConfiguration()
-							.getServiceAccountDn())) {
+					if (userDn.equalsIgnoreCase(getConfiguration().getServiceAccountDn())) {
 						// Do not allow the service account password to be reset
 						passwordStatus.setType(PasswordStatusType.noChangeAllowed);
 					} else if (isPasswordChangeRequired(result)) {

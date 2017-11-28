@@ -190,19 +190,24 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 		}
 	}
 
-	public Iterator<DirectoryOU> getOrganizationalUnits() throws NamingException, IOException {
-		return ldapService.search(ldapService.buildObjectClassFilter(
-				"organizationalUnit", "ou", WILDCARD_SEARCH), new ResultMapper<DirectoryOU>() {
+	public Iterator<DirectoryOU> getOrganizationalUnits() throws ConnectorException, IOException {
+		try {
+			return ldapService.search(ldapService.buildObjectClassFilter(
+					"organizationalUnit", "ou", WILDCARD_SEARCH), new ResultMapper<DirectoryOU>() {
 
-			@Override
-			public DirectoryOU apply(SearchResult result) throws NamingException {
-				return new DirectoryOU((String)result.getAttributes().get("distinguishedName").get(),
-						(String)result.getAttributes().get("ou").get());
-			}
-			public boolean isApplyFilters() {
-				return true;
-			}
-		}, ldapService.getSearchControls());
+				@Override
+				public DirectoryOU apply(SearchResult result) throws NamingException {
+					return new DirectoryOU((String)result.getAttributes().get("distinguishedName").get(),
+							(String)result.getAttributes().get("ou").get());
+				}
+				public boolean isApplyFilters() {
+					return true;
+				}
+			}, ldapService.getSearchControls());
+		} catch (NamingException e) {
+			processNamingException(e);
+			throw new IllegalStateException(e.getMessage(), e);
+		}
 	}
 	
 	@Override
@@ -427,9 +432,6 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 			Name baseDn = directoryConfiguration.getBaseDn();
 			LOG.info("Looking up " + baseDn);
 			
-		} catch(CommunicationException nme){
-			ldapService = null;
-			throw new ConnectorException(String.format("Failed to connect to %s", directoryConfiguration.getControllerHostnames()[0]));
 		} catch(NamingException nme){
 			ldapService = null;
 			processNamingException(nme);
@@ -440,6 +442,9 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 	}
 
 	protected String processNamingException(NamingException nme) {
+		if(nme instanceof CommunicationException) {
+			throw new ConnectorException(String.format("Failed to connect to %s", directoryConfiguration.getControllerHostnames()[0]));
+		}
 		DirectoryExceptionParser dep = new DirectoryExceptionParser(nme);
 		String message = dep.getMessage();
 		throw new ConnectorException(message, nme);
