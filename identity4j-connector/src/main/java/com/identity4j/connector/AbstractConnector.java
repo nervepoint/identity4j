@@ -280,6 +280,17 @@ public abstract class AbstractConnector implements Connector, ValidationContext 
 
 	/**
 	 * Default implementation simply returns null. Need to override this to
+	 * create new identity
+	 * 
+	 * @param identity
+	 * @param password
+	 * @throws ConnectorException
+	 */
+	public Identity createIdentity(Identity identity, PasswordCreationCallback passwordCallback, boolean forceChange) throws ConnectorException {
+		return createIdentity(identity, passwordCallback.createPassword(identity));
+	}
+	/**
+	 * Default implementation simply returns null. Need to override this to
 	 * update a identity
 	 * 
 	 * @param identity identity to update

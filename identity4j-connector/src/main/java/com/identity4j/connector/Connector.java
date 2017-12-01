@@ -277,6 +277,17 @@ public interface Connector {
 	 * @throws ConnectorException
 	 */
 	Identity createIdentity(Identity identity, char[] password) throws ConnectorException;
+	
+	
+	/**
+	 * Default implementation simply calls PasswordCreationCallback and passes result into createIdentity(Identity,char[])
+	 * 
+	 * @param identity
+	 * @param passwordCallback
+	 * @throws ConnectorException
+	 */
+	public Identity createIdentity(Identity identity, PasswordCreationCallback passwordCallback, boolean forceChange) throws ConnectorException;
+	
 	/**
 	 * Update an identity's details.
 	 * 

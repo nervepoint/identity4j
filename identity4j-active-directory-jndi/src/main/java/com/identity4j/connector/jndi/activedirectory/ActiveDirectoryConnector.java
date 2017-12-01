@@ -65,6 +65,7 @@ import org.apache.commons.logging.LogFactory;
 import com.identity4j.connector.ConnectorCapability;
 import com.identity4j.connector.ConnectorConfigurationParameters;
 import com.identity4j.connector.Media;
+import com.identity4j.connector.PasswordCreationCallback;
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.exception.PasswordChangeRequiredException;
 import com.identity4j.connector.exception.PasswordPolicyViolationException;
@@ -656,7 +657,18 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 	}
 	
 	@Override
-	public Identity createIdentity(final Identity identity, char[] password)
+	public Identity createIdentity(final Identity identity, final char[] password)
+			throws ConnectorException {
+		return createIdentity(identity, new PasswordCreationCallback() {
+			@Override
+			public char[] createPassword(Identity identity) {
+				return password;
+			}
+		}, false);
+	}
+	
+	@Override
+	public Identity createIdentity(final Identity identity, PasswordCreationCallback passwordCallback, boolean forceChange)
 			throws ConnectorException {
 		try {
 			final ActiveDirectoryConfiguration config = getActiveDirectoryConfiguration();
@@ -678,21 +690,27 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			LdapName userDn = new LdapName(usersDn.toString());
 			String principalName = identity.getPrincipalName();
 
-			StringBuilder tmp = new StringBuilder();
-			tmp.append(identity.getAttribute("givenName"));
-			String initials = identity.getAttribute("initials");
-			if(StringUtils.isNotBlank(initials)) {
+			if(StringUtils.isNotBlank(identity.getAttribute("givenName"))
+					|| StringUtils.isNotBlank(identity.getAttribute("sn"))) {
+				StringBuilder tmp = new StringBuilder();
+				tmp.append(identity.getAttribute("givenName"));
+				String initials = identity.getAttribute("initials");
+				if(StringUtils.isNotBlank(initials)) {
+					tmp.append(" ");
+					tmp.append(initials);
+					tmp.append(".");
+				}
 				tmp.append(" ");
-				tmp.append(initials);
-				tmp.append(".");
+				tmp.append(identity.getAttribute("sn"));
+				
+				userDn.add("CN=" +  tmp.toString());
+				identity.setFullName(tmp.toString());
+				identity.setAttribute("cn", tmp.toString());
+			} else {
+				userDn.add("CN=" +  identity.getPrincipalName());
+				identity.setFullName(identity.getPrincipalName());
+				identity.setAttribute("cn", identity.getPrincipalName());
 			}
-			tmp.append(" ");
-			tmp.append(identity.getAttribute("sn"));
-			
-			userDn.add("CN=" +  tmp.toString());
-
-			identity.setFullName(tmp.toString());
-			identity.setAttribute("cn", tmp.toString());
 			
 			Name baseDn = getConfiguration().getBaseDn();
 			if (!userDn.toString().toLowerCase().endsWith(baseDn.toString().toLowerCase())) {
@@ -799,14 +817,16 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			}
 
 			ldapService.bind(userDn, attributes.toArray(new Attribute[0]));
-			ldapService.setPassword(userDn.toString(), password);
 
 			for(Role r : identity.getRoles()) {
 				assignRole(userDn, r);
 			}
 			
 			DirectoryIdentity directoryIdentity = (DirectoryIdentity) getIdentityByName(upn);
-			setForcePasswordChangeAtNextLogon(directoryIdentity, false);
+			
+			ldapService.setPassword(userDn.toString(), passwordCallback.createPassword(directoryIdentity));
+			
+			setForcePasswordChangeAtNextLogon(directoryIdentity, forceChange);
 			enableIdentity(directoryIdentity);
 
 			return directoryIdentity;
