@@ -364,14 +364,61 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 				modificationItems.toArray(new ModificationItem[0]));
 	}
 	
-	protected void processAttributes(
+	protected void processUserAttributes(
 			List<ModificationItem> modificationItems, 
 			Principal previousState, 
 			Principal newState) {
 		
 		for (Map.Entry<String, String[]> entry : newState.getAttributes()
 				.entrySet()) {
-			if (!isExcludeForUpdate(entry.getKey())) {
+			if (!isExcludeForUserUpdate(entry.getKey())) {
+				if (!previousState.getAttributes()
+						.containsKey(entry.getKey())) {
+					// New
+					if (entry.getValue().length > 0) {
+
+						String[] value = entry.getValue();
+						if (value.length > 0 && !StringUtils.isEmpty(value[0])) {
+							Attribute attr = new BasicAttribute(entry.getKey());
+							for(String val : value) {
+								attr.add(val);
+							}
+							modificationItems.add(new ModificationItem(
+									DirContext.ADD_ATTRIBUTE, attr));
+						}
+					}
+				} else {
+					String[] oldValue = previousState.getAttributes().get(entry.getKey());
+					String[] newValue = newState.getAttributes().get(entry.getKey());
+					if (!ArrayUtils.isEquals(oldValue, newValue)) {
+
+						String[] value = entry.getValue();
+						if (value.length > 0 && !StringUtils.isEmpty(value[0])) {
+							Attribute attr = new BasicAttribute(entry.getKey());
+							for(String val : value) {
+								attr.add(val);
+							}
+							modificationItems.add(new ModificationItem(
+									DirContext.REPLACE_ATTRIBUTE, attr));
+						} else {
+							Attribute attr = new BasicAttribute(entry.getKey());
+							modificationItems.add(new ModificationItem(
+									DirContext.REMOVE_ATTRIBUTE, attr));
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	protected void processGroupAttributes(
+			List<ModificationItem> modificationItems, 
+			Principal previousState, 
+			Principal newState) {
+		
+		for (Map.Entry<String, String[]> entry : newState.getAttributes()
+				.entrySet()) {
+			if (!isExcludeForGroupUpdate(entry.getKey())) {
 				if (!previousState.getAttributes()
 						.containsKey(entry.getKey())) {
 					// New
@@ -423,7 +470,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			LdapName roleDn = new LdapName(roleOu);
 			String principalName = role.getPrincipalName();
 
-			processAttributes(modificationItems, oldRole, role);
+			processGroupAttributes(modificationItems, oldRole, role);
 
 			if (Util.differs(
 					oldRole.getAttribute(SAM_ACCOUNT_NAME_ATTRIBUTE),
@@ -440,7 +487,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 
 			
 			// Update roles
-//			List<Role> toRemove = new ArrayList<Role>(Arrays.asList(oldIdentity.getRoles()));
+//			List<Role> toRemove = new ArrayList<Identity>(Arrays.asList(oldRole.));
 //			List<Role> toAdd = new ArrayList<Role>(Arrays.asList(identity.getRoles()));
 //			toRemove.removeAll(Arrays.asList(identity.getRoles()));
 //			toAdd.removeAll(Arrays.asList(oldIdentity.getRoles()));
@@ -495,7 +542,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			LdapName usersDn = new LdapName(identityOU);
 			String principalName = identity.getPrincipalName();
 
-			processAttributes(modificationItems, oldIdentity, identity);
+			processUserAttributes(modificationItems, oldIdentity, identity);
 
 			String principalNameWithDomain = principalName + "@"
 					+ config.getDomain();
@@ -566,8 +613,12 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 
 	}
 
-	private boolean isExcludeForUpdate(String attributeName) {
+	private boolean isExcludeForUserUpdate(String attributeName) {
 		return !ALL_USER_ATTRIBUTES.contains(attributeName) || ATTRIBUTES_TO_EXCLUDE_FROM_UPDATE.contains(attributeName);
+	}
+	
+	private boolean isExcludeForGroupUpdate(String attributeName) {
+		return !ALL_ROLE_ATTRIBUTES.contains(attributeName) || ATTRIBUTES_TO_EXCLUDE_FROM_UPDATE.contains(attributeName);
 	}
 
 	public Role createRole(Role role) throws ConnectorException {
