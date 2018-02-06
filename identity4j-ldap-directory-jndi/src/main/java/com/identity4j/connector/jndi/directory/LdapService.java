@@ -106,7 +106,9 @@ public class LdapService {
 		}
 		configureSocket(env);
 		try {
-			return new InitialLdapContext(env, controls);
+			InitialLdapContext ctx = new InitialLdapContext(env, null);
+			ctx.setRequestControls(controls);
+			return ctx;
 		} finally {
 			if (socketFactory != null) {
 				ThreadLocalSocketFactory.remove();
