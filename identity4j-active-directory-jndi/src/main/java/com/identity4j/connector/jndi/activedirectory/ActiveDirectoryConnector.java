@@ -67,6 +67,7 @@ import com.identity4j.connector.ConnectorConfigurationParameters;
 import com.identity4j.connector.Media;
 import com.identity4j.connector.PasswordCreationCallback;
 import com.identity4j.connector.exception.ConnectorException;
+import com.identity4j.connector.exception.InvalidLoginCredentialsException;
 import com.identity4j.connector.exception.PasswordChangeRequiredException;
 import com.identity4j.connector.exception.PasswordPolicyViolationException;
 import com.identity4j.connector.jndi.directory.DirectoryConnector;
@@ -164,6 +165,10 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			capabilities.add(ConnectorCapability.caseInsensitivePrincipalNames);
 			capabilities.add(ConnectorCapability.accountLocking);
 			capabilities.add(ConnectorCapability.accountDisable);
+			capabilities.add(ConnectorCapability.createRole);
+			capabilities.add(ConnectorCapability.updateRole);
+			capabilities.add(ConnectorCapability.deleteRole);
+			capabilities.add(ConnectorCapability.forcePasswordChange);
 		}
 		return capabilities;
 	}
@@ -649,7 +654,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 
 			Name baseDn = getConfiguration().getBaseDn();
 			if (!roleDn.toString().toLowerCase().endsWith(baseDn.toString().toLowerCase())) {
-				throw new ConnectorException("The User DN (" + roleDn
+				throw new ConnectorException("The Role DN (" + roleDn
 						+ ") must be a child of the Base DN (" + baseDn
 						+ " configured for the Active Directory connector.");
 			}
@@ -741,7 +746,15 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			LdapName userDn = new LdapName(usersDn.toString());
 			String principalName = identity.getPrincipalName();
 
-			if(StringUtils.isNotBlank(identity.getAttribute("givenName"))
+			if(StringUtils.isNotBlank(identity.getFullName())) {
+				/* This connector declares itself as having Capbility.fullName,
+				 * so it needs to support it. 
+				 */
+				userDn.add("CN=" +  identity.getFullName());
+				identity.setFullName(identity.getFullName());
+				identity.setAttribute("cn", identity.getFullName());
+			}
+			else if(StringUtils.isNotBlank(identity.getAttribute("givenName"))
 					|| StringUtils.isNotBlank(identity.getAttribute("sn"))) {
 				StringBuilder tmp = new StringBuilder();
 				tmp.append(identity.getAttribute("givenName"));
@@ -1231,7 +1244,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			throw new ConnectorException(
 					"The user cannot be found.");
 		} else if (reason.equals("80090308") && "52e".equals(dep.getData())) {
-			throw new ConnectorException(
+			throw new InvalidLoginCredentialsException(
 					"Invalid credentials");
 		} else if (reason.equals("80090308") && "530".equals(dep.getData())) {
 			throw new ConnectorException(
