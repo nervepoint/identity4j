@@ -32,7 +32,7 @@ import com.identity4j.connector.AbstractConnectorTest;
 import com.identity4j.connector.principal.Identity;
 import com.identity4j.connector.principal.Role;
 
-public class As400ConnectorTest extends AbstractConnectorTest<As400Configuration> {
+public class As400ConnectorTest extends AbstractConnectorTest {
 
 	private int lastAmt;
 	private String lastDesc;

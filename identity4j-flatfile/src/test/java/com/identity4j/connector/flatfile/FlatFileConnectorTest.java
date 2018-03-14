@@ -36,10 +36,9 @@ import org.apache.commons.vfs2.VFS;
 import org.junit.Test;
 
 import com.identity4j.connector.AbstractConnectorTest;
-import com.identity4j.connector.ConnectorConfigurationParameters;
 import com.identity4j.connector.flatfile.FlatFileConfiguration;
 
-public class FlatFileConnectorTest<C extends ConnectorConfigurationParameters> extends AbstractConnectorTest<C> {
+public class FlatFileConnectorTest extends AbstractConnectorTest {
 
     public FlatFileConnectorTest() {
         this("/flatfile-connector.properties");
