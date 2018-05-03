@@ -26,7 +26,6 @@ import org.junit.Test;
 
 import com.identity4j.connector.AbstractConnectorTest;
 
-@SuppressWarnings("rawtypes")
 public class MySQLConnectorTest extends AbstractConnectorTest {
 
 	public MySQLConnectorTest() {

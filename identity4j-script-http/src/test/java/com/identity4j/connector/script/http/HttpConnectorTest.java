@@ -28,7 +28,6 @@ import org.junit.Test;
 import com.identity4j.connector.AbstractConnectorTest;
 
 
-@SuppressWarnings("rawtypes")
 public class HttpConnectorTest extends AbstractConnectorTest {
     public HttpConnectorTest() {
         super("/script-http-connector.properties");

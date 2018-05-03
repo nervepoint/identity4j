@@ -28,7 +28,6 @@ import org.junit.Test;
 import com.identity4j.connector.AbstractConnectorTest;
 
 
-@SuppressWarnings("rawtypes")
 public class ScriptConnectorTest extends AbstractConnectorTest {
     public ScriptConnectorTest() {
         super("/script-connector.properties");

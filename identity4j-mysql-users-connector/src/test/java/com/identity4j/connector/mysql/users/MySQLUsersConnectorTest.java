@@ -31,7 +31,6 @@ import com.identity4j.connector.ConnectorCapability;
 import com.identity4j.connector.principal.Identity;
 import com.identity4j.connector.principal.IdentityImpl;
 
-@SuppressWarnings("rawtypes")
 public class MySQLUsersConnectorTest extends AbstractConnectorTest{
 
 	private String testDatabaseForGrant;

@@ -27,7 +27,6 @@ import org.junit.Test;
 import com.identity4j.connector.flatfile.FlatFileConnectorTest;
 
 
-@SuppressWarnings("rawtypes")
 public class HTPasswdConnectorTest extends FlatFileConnectorTest {
 
     public HTPasswdConnectorTest() {
