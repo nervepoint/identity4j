@@ -250,18 +250,32 @@ public class ActiveDirectoryConfiguration extends DirectoryConfiguration {
 	}
 
 	private static String getDomain(MultiMap configurationParameters) {
-		String[] domains = configurationParameters
-				.getStringArrayOrDefault(DIRECTORY_DOMAIN);
+		String[] domains = configurationParameters.getStringArrayOrDefault(DIRECTORY_DOMAIN);
 		if (domains.length > 0 && !domains[0].equals("")) {
 			return domains[0];
 		} else {
-			String[] hostNames = configurationParameters
-					.getStringArrayOrFail(DIRECTORY_HOSTNAME);
+			String baseDn = configurationParameters.getString(DIRECTORY_BASE_DN);
+			String[] hostNames = configurationParameters.getStringArrayOrFail(DIRECTORY_HOSTNAME);
 			String hostName = getControllerHostWithoutPort(hostNames[0]);
 			if (IpAddressValidator.isHostName(hostName)) {
 				int indexOf = hostName.indexOf('.');
-				return indexOf == -1 ? "" : hostName.substring(indexOf + 1,
-						hostName.length());
+				return indexOf == -1 ? "" : hostName.substring(indexOf + 1, hostName.length());
+			} else if (!StringUtil.isNullOrEmpty(baseDn)) {
+				/* NOTE: This should probably be used in preference to the hostname, but this
+				 * preserves backwards compatibility
+				 */
+				StringBuilder b = new StringBuilder();
+				String[] p = baseDn.split(",");
+				for (String i : p) {
+					i = i.trim();
+					if(i.startsWith("DC=")) {
+						i = i.substring(3);
+						if(b.length() > 0)
+							b.append('.');
+						b.append(i);
+					}
+				}
+				return b.toString();
 			}
 		}
 		return "";
