@@ -33,7 +33,7 @@ import com.identity4j.connector.flatfile.FlatFileConnectorTest;
 import com.identity4j.connector.principal.Identity;
 
 
-public class UnixConnectorTest extends FlatFileConnectorTest<UnixConfiguration> {
+public class UnixConnectorTest extends FlatFileConnectorTest {
 
     public UnixConnectorTest() {
         super("/unix-connector.properties");
