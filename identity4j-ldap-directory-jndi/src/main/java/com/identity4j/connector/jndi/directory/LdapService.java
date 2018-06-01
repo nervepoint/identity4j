@@ -25,6 +25,7 @@ package com.identity4j.connector.jndi.directory;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.Iterator;
 
@@ -213,12 +214,128 @@ public class LdapService {
 		return processBlockNoClose(new Block<Iterator<T>>() {
 
 			public Iterator<T> apply(LdapContext context) throws IOException, NamingException {
-				return new SearchResultIterator<T>(baseDN, context, filter, resultMapper, searchControls);
+				if("true".equals(System.getProperty("identity4j.useNewIterator", "false")))
+					return new SearchResultsIterator<T>(Arrays.asList(baseDN), filter, searchControls, configuration, resultMapper, context);
+				else
+					return new OldSearchResultIterator<T>(baseDN, context, filter, resultMapper, searchControls);
 			}
 		});
 	}
 
-	class SearchResultIterator<T> implements Iterator<T> {
+	public void unbind(final Name name) throws NamingException, IOException {
+		processBlock(new Block<Void>() {
+
+			@Override
+			public Void apply(LdapContext context) throws NamingException, IOException {
+				context.unbind(name);
+				return null;
+			}
+		});
+	}
+
+	public void update(final Name name, final ModificationItem... mods) throws NamingException, IOException {
+		processBlock(new Block<Void>() {
+
+			@Override
+			public Void apply(LdapContext context) throws NamingException, IOException {
+				context.modifyAttributes(name, mods);
+				return null;
+			}
+		});
+	}
+
+	public void bind(final Name name, final Attribute... attrs) throws NamingException, IOException {
+		processBlock(new Block<Void>() {
+
+			@Override
+			public Void apply(LdapContext context) throws NamingException, IOException {
+				Attributes attributes = new BasicAttributes();
+				for (Attribute attribute : attrs) {
+					attributes.put(attribute);
+				}
+				context.bind(name, null, attributes);
+				return null;
+			}
+		});
+	}
+
+	public LdapContext lookupContext(final Name dn) throws NamingException, IOException {
+		return processBlock(new Block<LdapContext>() {
+			public LdapContext apply(LdapContext context) throws NamingException {
+				return (LdapContext) context.lookup(dn);
+			}
+		});
+	}
+
+	public final String buildObjectClassFilter(String objectClass, String principalNameFilterAttribute,
+			String principalName) {
+		return String.format("(&(objectClass=%s)(%s=%s))", objectClass, principalNameFilterAttribute, principalName);
+	}
+
+	protected SearchControls configureSearchControls(SearchControls searchControls) {
+		searchControls.setSearchScope(SearchControls.SUBTREE_SCOPE);
+		// searchControls.setCountLimit(0);
+		searchControls.setReturningObjFlag(true);
+		return searchControls;
+	}
+
+	protected SearchControls configureRoleSearchControls(SearchControls searchControls) {
+		searchControls.setSearchScope(SearchControls.SUBTREE_SCOPE);
+		// searchControls.setCountLimit(0);
+		searchControls.setReturningObjFlag(true);
+		return searchControls;
+	}
+
+	private <T> T processBlock(Block<T> block, Control... controls) throws NamingException, IOException {
+		LdapContext connection = getConnection(controls);
+		try {
+			return block.apply(connection);
+		} finally {
+			close(connection);
+		}
+
+	}
+
+	private <T> T processBlockNoClose(Block<T> block, Control... controls) throws NamingException, IOException {
+		return block.apply(getConnection(controls));
+	}
+
+	public interface ResultMapper<T> {
+		public T apply(SearchResult result) throws NamingException, IOException;
+
+		public boolean isApplyFilters();
+	}
+
+	public interface Block<T> {
+		public T apply(LdapContext context) throws NamingException, IOException;
+	}
+
+	protected void checkLDAPHost() {
+		/*
+		 * NOTE
+		 * 
+		 * Check the LDAP hostname may be looked up by IP address. If this is
+		 * not possible, LDAP queries will be very slow
+		 */
+
+		for (String controllerHost : configuration.getControllerHosts()) {
+			String host = DirectoryConfiguration.getControllerHostWithoutPort(controllerHost);
+			if (host.matches("\\b\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\b")) {
+				try {
+					InetAddress addr = InetAddress.getByName(host);
+					if (addr.getHostName().equals(host)) {
+						throw new ConnectorException("IP " + controllerHost
+								+ " is not resolvable by a reverse DNS. Check your DNS configuration. "
+								+ "If this error persists try adding an entry for " + controllerHost
+								+ " to your system HOSTS file.");
+					}
+				} catch (UnknownHostException e) {
+				}
+			}
+		}
+	}
+	
+	class OldSearchResultIterator<T> implements Iterator<T> {
 
 		NamingEnumeration<SearchResult> results = null;
 		ResultMapper<T> resultMapper;
@@ -229,7 +346,7 @@ public class LdapService {
 		String filter;
 		LinkedList<T> cached = new LinkedList<T>();
 		
-		SearchResultIterator(Name baseDN, LdapContext context, String filter, ResultMapper<T> resultMapper,
+		OldSearchResultIterator(Name baseDN, LdapContext context, String filter, ResultMapper<T> resultMapper,
 				SearchControls searchControls) throws NamingException, IOException {
 			this.resultMapper = resultMapper;
 			this.baseDN = baseDN;
@@ -380,118 +497,5 @@ public class LdapService {
 		public void remove() {
 		}
 
-	}
-
-	public void unbind(final Name name) throws NamingException, IOException {
-		processBlock(new Block<Void>() {
-
-			@Override
-			public Void apply(LdapContext context) throws NamingException, IOException {
-				context.unbind(name);
-				return null;
-			}
-		});
-	}
-
-	public void update(final Name name, final ModificationItem... mods) throws NamingException, IOException {
-		processBlock(new Block<Void>() {
-
-			@Override
-			public Void apply(LdapContext context) throws NamingException, IOException {
-				context.modifyAttributes(name, mods);
-				return null;
-			}
-		});
-	}
-
-	public void bind(final Name name, final Attribute... attrs) throws NamingException, IOException {
-		processBlock(new Block<Void>() {
-
-			@Override
-			public Void apply(LdapContext context) throws NamingException, IOException {
-				Attributes attributes = new BasicAttributes();
-				for (Attribute attribute : attrs) {
-					attributes.put(attribute);
-				}
-				context.bind(name, null, attributes);
-				return null;
-			}
-		});
-	}
-
-	public LdapContext lookupContext(final Name dn) throws NamingException, IOException {
-		return processBlock(new Block<LdapContext>() {
-			public LdapContext apply(LdapContext context) throws NamingException {
-				return (LdapContext) context.lookup(dn);
-			}
-		});
-	}
-
-	public final String buildObjectClassFilter(String objectClass, String principalNameFilterAttribute,
-			String principalName) {
-		return String.format("(&(objectClass=%s)(%s=%s))", objectClass, principalNameFilterAttribute, principalName);
-	}
-
-	protected SearchControls configureSearchControls(SearchControls searchControls) {
-		searchControls.setSearchScope(SearchControls.SUBTREE_SCOPE);
-		// searchControls.setCountLimit(0);
-		searchControls.setReturningObjFlag(true);
-		return searchControls;
-	}
-
-	protected SearchControls configureRoleSearchControls(SearchControls searchControls) {
-		searchControls.setSearchScope(SearchControls.SUBTREE_SCOPE);
-		// searchControls.setCountLimit(0);
-		searchControls.setReturningObjFlag(true);
-		return searchControls;
-	}
-
-	private <T> T processBlock(Block<T> block, Control... controls) throws NamingException, IOException {
-		LdapContext connection = getConnection(controls);
-		try {
-			return block.apply(connection);
-		} finally {
-			close(connection);
-		}
-
-	}
-
-	private <T> T processBlockNoClose(Block<T> block, Control... controls) throws NamingException, IOException {
-		return block.apply(getConnection(controls));
-	}
-
-	public interface ResultMapper<T> {
-		public T apply(SearchResult result) throws NamingException, IOException;
-
-		public boolean isApplyFilters();
-	}
-
-	public interface Block<T> {
-		public T apply(LdapContext context) throws NamingException, IOException;
-	}
-
-	protected void checkLDAPHost() {
-		/*
-		 * NOTE
-		 * 
-		 * Check the LDAP hostname may be looked up by IP address. If this is
-		 * not possible, LDAP queries will be very slow
-		 */
-
-		for (String controllerHost : configuration.getControllerHosts()) {
-			String host = DirectoryConfiguration.getControllerHostWithoutPort(controllerHost);
-			if (host.matches("\\b\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\b")) {
-				try {
-					InetAddress addr = InetAddress.getByName(host);
-					if (addr.getHostName().equals(host)) {
-						throw new ConnectorException("IP " + controllerHost
-								+ " is not resolvable by a reverse DNS. Check your DNS configuration. "
-								+ "If this error persists try adding an entry for " + controllerHost
-								+ " to your system HOSTS file.");
-					}
-				} catch (UnknownHostException e) {
-				}
-			}
-		}
 	}
 }

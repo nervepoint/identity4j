@@ -55,6 +55,7 @@ import com.identity4j.connector.BrowseableConnector;
 import com.identity4j.connector.ConnectorCapability;
 import com.identity4j.connector.ConnectorConfigurationParameters;
 import com.identity4j.connector.exception.ConnectorException;
+import com.identity4j.connector.exception.InvalidLoginCredentialsException;
 import com.identity4j.connector.exception.PrincipalNotFoundException;
 import com.identity4j.connector.jndi.directory.LdapService.ResultMapper;
 import com.identity4j.connector.principal.Identity;
@@ -159,7 +160,11 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 		} catch (IOException e) {
 			return false;
 		} catch (NamingException e) {
-			processNamingException(e);
+			try {
+				processNamingException(e);
+			}
+			catch(InvalidLoginCredentialsException ilce) {
+			}
 			return false;
 		}
 	}

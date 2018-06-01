@@ -31,7 +31,7 @@ import org.junit.Test;
 import com.identity4j.connector.AbstractConnectorTest;
 import com.identity4j.connector.principal.Identity;
 
-public class SAPUsersConnectorTest extends AbstractConnectorTest {
+public class SAPUsersConnectorTest extends AbstractConnectorTest<SAPUsersConfiguration> {
 
 	private int lastAmt;
 
