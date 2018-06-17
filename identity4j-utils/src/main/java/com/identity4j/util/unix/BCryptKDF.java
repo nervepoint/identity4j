@@ -73,7 +73,7 @@ public class BCryptKDF {
 				ctx.update(tmpout);
 				sha2salt = ctx.digest();
 				B = new BCrypt();
-				out = B.crypt_raw(sha2pass, sha2salt, rounds);
+				tmpout = B.crypt_raw(sha2pass, sha2salt, rounds);
 				for (j = 0; j < out.length; j++)
 					out[j] ^= tmpout[j];
 			}
