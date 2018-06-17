@@ -624,7 +624,7 @@ public class BCrypt {
 	 * of rounds of hashing to apply
 	 * @return	an array containing the binary hashed password
 	 */
-	private byte[] crypt_raw(byte password[], byte salt[], int log_rounds) {
+	byte[] crypt_raw(byte password[], byte salt[], int log_rounds) {
 		int rounds, i, j;
 		int cdata[] = (int[])bf_crypt_ciphertext.clone();
 		int clen = cdata.length;
