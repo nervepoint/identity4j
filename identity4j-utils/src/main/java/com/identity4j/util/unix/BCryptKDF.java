@@ -19,12 +19,53 @@
  */
 package com.identity4j.util.unix;
 
+import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 public class BCryptKDF {
 	final static int BCRYPT_WORDS = 8;
 	final static int BCRYPT_HASHSIZE = BCRYPT_WORDS * 4;
+	
+	static byte[] bcrypt_hash(byte[] sha2pass, byte[] sha2salt)
+	{
+		BCrypt B = new BCrypt();
+
+		byte[] out = new byte[BCRYPT_HASHSIZE];
+		byte[] ciphertext;
+		try {
+			ciphertext = "OxychromaticBlowfishSwatDynamite".getBytes("ASCII");
+		} catch (UnsupportedEncodingException e) {
+			throw new IllegalStateException("ASCII not supported :\\");
+		}
+		int[] cdata = new int[BCRYPT_WORDS];
+		int i;
+
+		B.init_key();
+		B.ekskey(sha2salt, sha2pass);
+		for (i = 0; i < 64; i++) {
+			B.key(sha2salt);
+			B.key(sha2pass);
+		}
+
+		/* encryption */
+		int[] j = new int[] { 0 };
+		for (i = 0; i < BCRYPT_WORDS; i++)
+			cdata[i] = BCrypt.streamtoword(ciphertext, j);
+		for (i = 0; i < 64; i++)
+			B.encipher(cdata, 0);
+
+		/* copy out */
+		for (i = 0; i < BCRYPT_WORDS; i++) {
+			out[4 * i + 3] = (byte)((cdata[i] >> 24) & 0xff);
+			out[4 * i + 2] = (byte)((cdata[i] >> 16) & 0xff);
+			out[4 * i + 1] = (byte)((cdata[i] >> 8) & 0xff);
+			out[4 * i + 0] = (byte)(cdata[i] & 0xff);
+		}
+		
+		return out;
+
+	}
 
 	public static byte[] bcrypt_pbkdf(byte[] pass, byte[] salt, byte[] key, int rounds)
 			throws NoSuchAlgorithmException {
@@ -64,16 +105,14 @@ public class BCryptKDF {
 			ctx.update(countsalt);
 			sha2salt = ctx.digest();
 
-			BCrypt B = new BCrypt();
-			out = B.crypt_raw(sha2pass, sha2salt, rounds);
+			out = bcrypt_hash(sha2pass, sha2salt);
 
 			for (i = 1; i < rounds; i++) {
 				/* subsequent rounds, salt is previous output */
 				ctx.reset();
 				ctx.update(tmpout);
 				sha2salt = ctx.digest();
-				B = new BCrypt();
-				tmpout = B.crypt_raw(sha2pass, sha2salt, rounds);
+				tmpout = bcrypt_hash(sha2pass, sha2salt);
 				for (j = 0; j < out.length; j++)
 					out[j] ^= tmpout[j];
 			}

@@ -504,7 +504,7 @@ public class BCrypt {
 	 * @param lr	an array containing the two 32-bit half blocks
 	 * @param off	the position in the array of the blocks
 	 */
-	private final void encipher(int lr[], int off) {
+	final void encipher(int lr[], int off) {
 		int i, n, l = lr[off], r = lr[off + 1];
 
 		l ^= P[0];
@@ -534,7 +534,7 @@ public class BCrypt {
 	 * current offset into data
 	 * @return	the next word of material from data
 	 */
-	private static int streamtoword(byte data[], int offp[]) {
+	static int streamtoword(byte data[], int offp[]) {
 		int i;
 		int word = 0;
 		int off = offp[0];
@@ -551,7 +551,7 @@ public class BCrypt {
 	/**
 	 * Initialise the Blowfish key schedule
 	 */
-	private void init_key() {
+	void init_key() {
 		P = (int[])P_orig.clone();
 		S = (int[])S_orig.clone();
 	}
@@ -560,7 +560,7 @@ public class BCrypt {
 	 * Key the Blowfish cipher
 	 * @param key	an array containing the key
 	 */
-	private void key(byte key[]) {
+	void key(byte key[]) {
 		int i;
 		int koffp[] = { 0 };
 		int lr[] = { 0, 0 };
@@ -589,7 +589,7 @@ public class BCrypt {
 	 * @param data	salt information
 	 * @param key	password information
 	 */
-	private void ekskey(byte data[], byte key[]) {
+	void ekskey(byte data[], byte key[]) {
 		int i;
 		int koffp[] = { 0 }, doffp[] = { 0 };
 		int lr[] = { 0, 0 };
