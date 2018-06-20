@@ -278,8 +278,9 @@ public class As400Connector extends AbstractConnector {
 		return new As400Callback<Identity>() {
 			@Override
 			protected Identity executeInCallback() throws Exception {
-				if (user.getGroupID() != 0)
-					throw new IllegalArgumentException("This user is a  group.");
+				// https://app.assembla.com/spaces/hypersocket/tickets/2240-nam--as400-error-when-service-account-profile-has-a-group-flag/details
+				//	if (user.getGroupID() != 0)
+				//		throw new IllegalArgumentException("This user is a  group.");
 
 				String guid = String.valueOf(user.getUserID());
 				As400Identity identity = new As400Identity(user, guid, user.getName());

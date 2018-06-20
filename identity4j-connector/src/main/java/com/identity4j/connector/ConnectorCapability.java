@@ -179,5 +179,5 @@ public enum ConnectorCapability {
 	/**
 	 * The connector has allows arbitrary role attributes
 	 */
-	customRoleAttributes,
+	customRoleAttributes
 }

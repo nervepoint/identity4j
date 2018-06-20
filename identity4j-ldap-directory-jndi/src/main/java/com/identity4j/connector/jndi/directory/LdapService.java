@@ -220,7 +220,11 @@ public class LdapService {
 		return processBlockNoClose(new Block<Iterator<T>>() {
 
 			public Iterator<T> apply(LdapContext context) throws IOException, NamingException {
-				return new SearchResultsIterator<T>(Arrays.asList(baseDN), filter, searchControls, configuration, resultMapper, context);
+				if("true".equals(System.getProperty("identity4j.useNewIterator", "false")))  {
+					return new SearchResultsIterator<T>(Arrays.asList(baseDN), filter, searchControls, configuration, resultMapper, context);
+				} else {
+					return new OldSearchResultIterator<T>(baseDN, context, filter, resultMapper, searchControls);
+				}
 			}
 		});
 	}
@@ -336,5 +340,169 @@ public class LdapService {
 				}
 			}
 		}
+	}
+	
+	class OldSearchResultIterator<T> implements Iterator<T> {
+
+		NamingEnumeration<SearchResult> results = null;
+		ResultMapper<T> resultMapper;
+		byte[] cookie = null;
+		LdapContext context;
+		SearchControls searchControls;
+		Name baseDN;
+		String filter;
+		LinkedList<T> cached = new LinkedList<T>();
+		
+		OldSearchResultIterator(Name baseDN, LdapContext context, String filter, ResultMapper<T> resultMapper,
+				SearchControls searchControls) throws NamingException, IOException {
+			this.resultMapper = resultMapper;
+			this.baseDN = baseDN;
+			this.searchControls = searchControls;
+			this.context = context;
+			this.filter = filter;
+			buildResults();
+		}
+
+		private void buildResults() {
+			
+			try {
+				if (cookie != null) {
+					context.setRequestControls(new Control[] {
+							new PagedResultsControl(configuration.getMaxPageSize(), cookie, Control.CRITICAL) });
+				} else {
+					context.setRequestControls(
+							new Control[] { new PagedResultsControl(configuration.getMaxPageSize(), Control.CRITICAL) });
+				}
+				
+				results = context.search(baseDN, filter, searchControls);
+				
+				while(results.hasMore()) {
+					
+					SearchResult result = null;
+					try {
+						
+						result = results.next();
+	
+						if (resultMapper.isApplyFilters()) {
+
+							Name resultName = new LdapName(result.getNameInNamespace());
+							boolean include = configuration.getIncludes().isEmpty();
+							if (!include) {
+								for (Name name : configuration.getIncludes()) {
+									if (resultName.startsWith(name)) {
+										include = true;
+										break;
+									}
+								}
+							}
+		
+							for (Name name : configuration.getExcludes()) {
+								if (resultName.startsWith(name)) {
+									include = false;
+									break;
+								}
+							}
+		
+							if (!include) {
+								continue;
+							}
+						}
+	
+						cached.addLast(resultMapper.apply(result));
+	
+					} catch (PartialResultException e) {
+						if (configuration.isFollowReferrals()) {
+							LOG.error("Following referrals is on but partial result was received", e);
+						} else {
+							if (LOG.isDebugEnabled()) {
+								LOG.debug("Partial resluts ignored: " + e.getExplanation());
+							}
+						}
+					} catch (NamingException e) {
+						LOG.error("Failed to get results", e);
+						throw new IllegalStateException(e.getMessage(), e);
+					} catch (IOException e) {
+						LOG.error("Failed to get results", e);
+						throw new IllegalStateException(e.getMessage(), e);
+					} finally {
+						if(result!=null && result.getObject()!=null) {
+							((Context)result.getObject()).close();
+						}
+					}
+				}
+			} catch (PartialResultException e) {
+				if (configuration.isFollowReferrals()) {
+					LOG.error("Following referrals is on but partial result was received", e);
+				} else {
+					if (LOG.isDebugEnabled()) {
+						LOG.debug("Partial resluts ignored: " + e.getExplanation());
+					}
+				}
+			} catch (NamingException e) {
+				LOG.error("Failed to get results", e);
+				throw new IllegalStateException(e.getMessage(), e);
+			} catch (IOException e) {
+				LOG.error("Failed to get results", e);
+				throw new IllegalStateException(e.getMessage(), e);
+			} finally {
+				if(results!=null) {
+					try {
+						results.close();
+					} catch (NamingException e) {
+					}
+				}
+			}
+			
+			try {
+
+				// Record page cookie for next set of results
+				Control[] controls = context.getResponseControls();
+				if (controls != null) {
+					for (int i = 0; i < controls.length; i++) {
+						if (controls[i] instanceof PagedResultsResponseControl) {
+							PagedResultsResponseControl pagedResultsResponseControl = (PagedResultsResponseControl) controls[i];
+							cookie = pagedResultsResponseControl.getCookie();
+						}
+					}
+				}
+
+				if (cookie == null) {
+					close(context);
+					return;
+				}
+
+			} catch (NamingException e) {
+				LOG.error("Failed to get results", e);
+				throw new IllegalStateException(e.getMessage(), e);
+			}
+		}
+
+		@Override
+		public boolean hasNext() {
+			return !cached.isEmpty();
+		}
+
+		@Override
+		public T next() {
+
+			if(cached.isEmpty()) {
+				throw new NoSuchElementException();
+			}
+			
+			T next = cached.removeFirst();
+
+			if(cached.isEmpty()) {
+				if(cookie!=null) {
+					buildResults();
+				}
+			}
+
+			return next;
+		}
+
+		@Override
+		public void remove() {
+		}
+
 	}
 }

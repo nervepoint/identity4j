@@ -25,8 +25,9 @@ package com.identity4j.connector.mysql.tests;
 import org.junit.Test;
 
 import com.identity4j.connector.AbstractConnectorTest;
+import com.identity4j.connector.mysql.MySQLConfiguration;
 
-public class MySQLConnectorTest extends AbstractConnectorTest {
+public class MySQLConnectorTest extends AbstractConnectorTest<MySQLConfiguration> {
 
 	public MySQLConnectorTest() {
 		super("/mysql-connector.properties");

@@ -52,12 +52,14 @@
 			<artifactId>ngdbc</artifactId>
 			<version>0.0.0</version>
 			<scope>test</scope>
+			<systemPath>${basedir}/lib/ngdbc.jar</systemPath>
 		</dependency>
 		<dependency>
 			<groupId>com.sap</groupId>
 			<artifactId>ngdbc</artifactId>
 			<version>0.0.0</version>
-			<scope>provided</scope>
+			<scope>system</scope> 
+			<systemPath>${basedir}/lib/ngdbc.jar</systemPath>
 		</dependency>
 	</dependencies>
 

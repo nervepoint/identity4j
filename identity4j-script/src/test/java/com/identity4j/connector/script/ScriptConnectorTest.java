@@ -28,7 +28,7 @@ import org.junit.Test;
 import com.identity4j.connector.AbstractConnectorTest;
 
 
-public class ScriptConnectorTest extends AbstractConnectorTest {
+public class ScriptConnectorTest extends AbstractConnectorTest<ScriptConfiguration> {
     public ScriptConnectorTest() {
         super("/script-connector.properties");
     }

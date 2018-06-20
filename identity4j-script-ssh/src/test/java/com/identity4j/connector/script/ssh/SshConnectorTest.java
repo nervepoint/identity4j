@@ -28,7 +28,7 @@ import org.junit.Test;
 import com.identity4j.connector.AbstractConnectorTest;
 
 
-public class SshConnectorTest extends AbstractConnectorTest {
+public class SshConnectorTest extends AbstractConnectorTest<SshConfiguration> {
     public SshConnectorTest() {
         super("/script-ssh-connector.properties");
     }

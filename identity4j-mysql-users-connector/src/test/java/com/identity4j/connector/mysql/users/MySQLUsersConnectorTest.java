@@ -31,7 +31,7 @@ import com.identity4j.connector.ConnectorCapability;
 import com.identity4j.connector.principal.Identity;
 import com.identity4j.connector.principal.IdentityImpl;
 
-public class MySQLUsersConnectorTest extends AbstractConnectorTest{
+public class MySQLUsersConnectorTest extends AbstractConnectorTest<MySQLUsersConfiguration> {
 
 	private String testDatabaseForGrant;
 	private String testDatabaseAnother2ForGrant;
