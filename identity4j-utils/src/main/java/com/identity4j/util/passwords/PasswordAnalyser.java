@@ -26,6 +26,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+import com.nulabinc.zxcvbn.Strength;
+import com.nulabinc.zxcvbn.Zxcvbn;
+
 public class PasswordAnalyser {
 
 	private PasswordDictionaryService dictionaryService;
@@ -38,7 +41,7 @@ public class PasswordAnalyser {
 		this.dictionaryService = dictionaryService;
 	}
 
-	public float analyse(Locale locale, String username, char[] password, PasswordCharacteristics characteristics)
+	public PasswordAnalysis analyse(Locale locale, String username, char[] password, PasswordCharacteristics characteristics)
 			throws PasswordPolicyException {
 
 		// Count up the character types
@@ -91,20 +94,20 @@ public class PasswordAnalyser {
 		// Don't exceed the ideal
 		actualStrength = Math.min(idealStrength, actualStrength);
 
-		float strength = actualStrength / idealStrength;
+		PasswordAnalysis analysis = new PasswordAnalysis(actualStrength / idealStrength);
 
 		// First check the password is within the size range
 		if (characteristics.getMinimumSize() != -1 && password.length < characteristics.getMinimumSize()) {
-			throw new PasswordPolicyException(PasswordPolicyException.Type.tooShort, strength);
+			throw new PasswordPolicyException(PasswordPolicyException.Type.tooShort, analysis);
 		}
 		if (characteristics.getMaximumSize() != -1 && password.length > characteristics.getMaximumSize()) {
-			throw new PasswordPolicyException(PasswordPolicyException.Type.tooLong, strength);
+			throw new PasswordPolicyException(PasswordPolicyException.Type.tooLong, analysis);
 		}
 
 		// Check the password doesn't contain the username
 		if (username != null && !characteristics.isContainUsername()) {
 			if (new String(password).toLowerCase().contains(username.toLowerCase())) {
-				throw new PasswordPolicyException(PasswordPolicyException.Type.containsUsername, strength);
+				throw new PasswordPolicyException(PasswordPolicyException.Type.containsUsername, analysis);
 			}
 		}
 
@@ -130,7 +133,7 @@ public class PasswordAnalyser {
 				if (word.length() > 3) {
 					if (dictionaryService != null && dictionaryService.containsWord(locale, word)) {
 						throw new PasswordPolicyException(PasswordPolicyException.Type.containsDictionaryWords,
-								strength);
+								analysis);
 					}
 				}
 			}
@@ -138,47 +141,59 @@ public class PasswordAnalyser {
 
 		// Check against policy
 		if (characteristics.getRequiredMatches() == 4) {
-			check(PasswordPolicyException.Type.notEnoughDigits, digit, characteristics.getMinimumDigits(), strength);
+			check(PasswordPolicyException.Type.notEnoughDigits, digit, characteristics.getMinimumDigits(), analysis);
 			check(PasswordPolicyException.Type.notEnoughLowerCase, lowerCase, characteristics.getMinimumLowerCase(),
-					strength);
+					analysis);
 			check(PasswordPolicyException.Type.notEnoughUpperCase, upperCase, characteristics.getMinimumUpperCase(),
-					strength);
-			check(PasswordPolicyException.Type.notEnoughSymbols, other, characteristics.getMinimumSymbols(), strength);
+					analysis);
+			check(PasswordPolicyException.Type.notEnoughSymbols, other, characteristics.getMinimumSymbols(), analysis);
 		} else {
 			int matches = 0;
 			if (matches(PasswordPolicyException.Type.notEnoughDigits, digit, characteristics.getMinimumDigits(),
-					strength)) {
+					analysis)) {
 				matches++;
 			}
 			if (matches(PasswordPolicyException.Type.notEnoughLowerCase, lowerCase,
-					characteristics.getMinimumLowerCase(), strength)) {
+					characteristics.getMinimumLowerCase(), analysis)) {
 				matches++;
 			}
 			if (matches(PasswordPolicyException.Type.notEnoughUpperCase, upperCase,
-					characteristics.getMinimumUpperCase(), strength)) {
+					characteristics.getMinimumUpperCase(), analysis)) {
 				matches++;
 			}
 			if (matches(PasswordPolicyException.Type.notEnoughSymbols, other, characteristics.getMinimumSymbols(),
-					strength)) {
+					analysis)) {
 				matches++;
 			}
 			if (matches < characteristics.getRequiredMatches()) {
-				throw new PasswordPolicyException(PasswordPolicyException.Type.doesNotMatchComplexity, strength);
+				throw new PasswordPolicyException(PasswordPolicyException.Type.doesNotMatchComplexity, analysis);
 			}
 		}
+		
+		if(characteristics.isAdditionalAnalysis()) {
+			/* We throw away our own legacy strength calculation and use the one provided by zxcvbn */
+			Zxcvbn zxcvbn = new Zxcvbn();
+			Strength zstrength = zxcvbn.measure(new String(password));
+			analysis.setStrength((float)zstrength.getScore() / 4f); 
+			analysis.setSuggestions(zstrength.getFeedback().getSuggestions().toArray(new String[0]));
+			analysis.setWarning(zstrength.getFeedback().getWarning());
+		}
+		
+		if(analysis.getStrength() < characteristics.getMinStrength())
+			throw new PasswordPolicyException(PasswordPolicyException.Type.doesNotMatchMinimumStrength, analysis);
 
-		return strength;
+		return analysis;
 
 	}
 
-	private void check(PasswordPolicyException.Type type, int val, int req, float strength)
+	private void check(PasswordPolicyException.Type type, int val, int req, PasswordAnalysis analysis)
 			throws PasswordPolicyException {
-		if (!matches(type, val, req, strength)) {
-			throw new PasswordPolicyException(type, strength);
+		if (!matches(type, val, req, analysis)) {
+			throw new PasswordPolicyException(type, analysis);
 		}
 	}
 
-	private boolean matches(PasswordPolicyException.Type type, int val, int req, float strength)
+	private boolean matches(PasswordPolicyException.Type type, int val, int req, PasswordAnalysis analysis)
 			throws PasswordPolicyException {
 		return req == -1 || val >= req;
 	}

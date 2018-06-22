@@ -291,8 +291,4 @@ public class ActiveDirectoryConfiguration extends DirectoryConfiguration {
 		return configurationParameters.getBooleanOrDefault(
 				ACTIVE_DIRECTORY_USERNAME_IS_SAMACCOUNTNAME, Boolean.FALSE);
 	}
-
-	public String getOU() {
-		return configurationParameters.getString(DIRECTORY_USER_OU);
-	}
 }

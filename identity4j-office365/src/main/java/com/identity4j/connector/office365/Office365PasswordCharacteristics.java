@@ -123,4 +123,14 @@ public class Office365PasswordCharacteristics implements PasswordCharacteristics
 		return 0;
 	}
 
+	@Override
+	public boolean isAdditionalAnalysis() {
+		return false;
+	}
+
+	@Override
+	public float getMinStrength() {
+		return 0;
+	}
+
 }

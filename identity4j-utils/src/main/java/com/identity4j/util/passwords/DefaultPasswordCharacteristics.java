@@ -46,6 +46,8 @@ public class DefaultPasswordCharacteristics implements PasswordCharacteristics {
 	private boolean containUsername;
 	private Map<String, String> attributes = new HashMap<String, String>();
 	private char[] symbols = DEFAULT_SYMBOLS;
+	private boolean additionalAnalysis = false;
+	private float minStrength;
 
 	public DefaultPasswordCharacteristics() {
 	}
@@ -64,6 +66,24 @@ public class DefaultPasswordCharacteristics implements PasswordCharacteristics {
 		historySize = p.getHistorySize();
 		symbols = p.getSymbols();
 		attributes.putAll(p.getAttributes());
+		additionalAnalysis = p.isAdditionalAnalysis();
+		minStrength = p.getMinStrength();
+	}
+
+	public float getMinStrength() {
+		return minStrength;
+	}
+
+	public void setMinStrength(float minStrength) {
+		this.minStrength = minStrength;
+	}
+
+	public boolean isAdditionalAnalysis() {
+		return additionalAnalysis;
+	}
+
+	public void setAdditionalAnalysis(boolean additionalAnalysis) {
+		this.additionalAnalysis = additionalAnalysis;
 	}
 
 	public int getHistorySize() {

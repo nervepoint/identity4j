@@ -27,24 +27,24 @@ public class PasswordPolicyException extends Exception {
 	private static final long serialVersionUID = -8948568782955097084L;
 
 	public enum Type {
-        tooShort, tooLong, notEnoughLowerCase, notEnoughUpperCase, notEnoughSymbols, notEnoughDigits, containsDictionaryWords, containsUsername, doesNotMatchComplexity,
+        tooShort, tooLong, notEnoughLowerCase, notEnoughUpperCase, notEnoughSymbols, notEnoughDigits, containsDictionaryWords, containsUsername, doesNotMatchComplexity, doesNotMatchMinimumStrength,
     }
     
     private Type type;
-    private float strength;
+    private PasswordAnalysis analyis;
 
-    public PasswordPolicyException(Type type, float strength) {
+    public PasswordPolicyException(Type type, PasswordAnalysis analyis) {
         super();
         this.type = type;
-        this.strength = strength;
+        this.analyis = analyis;
     }
     
     public Type getType() {
         return type;
     }
     
-    public float getStrength() {
-        return strength;
+    public PasswordAnalysis getAnalysis() {
+        return analyis;
     }
 
 }

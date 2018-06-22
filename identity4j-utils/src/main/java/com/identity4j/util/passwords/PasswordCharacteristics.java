@@ -62,6 +62,10 @@ public interface PasswordCharacteristics extends Serializable {
     char[] getSymbols();
 
     boolean isDictionaryWordsAllowed();
+
+    boolean isAdditionalAnalysis();
+    
+    float getMinStrength();
     
     boolean isContainUsername();
     

@@ -1,5 +1,9 @@
 package com.identity4j.connector.jndi.directory;
 
+import static org.junit.Assert.assertEquals;
+
+import java.util.Map;
+
 /*
  * #%L
  * Idenity4J LDAP Directory JNDI
@@ -23,10 +27,31 @@ package com.identity4j.connector.jndi.directory;
  */
 
 import com.identity4j.connector.AbstractConnectorTest;
+import com.identity4j.connector.principal.Identity;
 
 public class OpenLDAPDirectoryConnectorTest extends AbstractConnectorTest<DirectoryConfiguration> {
 
 	public OpenLDAPDirectoryConnectorTest() {
 		super("/openldap-directory-connector.properties");
+	}
+
+	@Override
+	protected void populateIdentityForCreation(Identity newIdentity) {
+		newIdentity.setAttribute("gidNumber",
+				String.valueOf(configurationParameters.getIntegerOrFail("directory.validGidNumber")));
+		newIdentity.setAttribute("uidNumber", String.valueOf(1000 + (int) (Math.random() * 1000)));
+		newIdentity.setAttribute("sn", "Surname");
+		newIdentity.setAttribute("homeDirectory", "/home/" + newIdentity.getPrincipalName());
+	}
+
+	@Override
+	protected void updateAttributes(Identity identity2, Map<String, String[]> attributes) {
+		attributes.put("sn", new String[] { "Newsurname" });
+	}
+
+	@Override
+	protected void assertUpdatedAttributes(Identity identity, Map<String, String[]> attributes, Identity newIdentity,
+			Map<String, String[]> newAttributes) {
+		assertEquals("Attributes should be identical", "Newsurname", newIdentity.getAttribute("sn"));
 	}
 }

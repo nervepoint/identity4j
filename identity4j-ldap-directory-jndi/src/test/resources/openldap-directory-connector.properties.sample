@@ -1,0 +1,55 @@
+###
+# #%L
+# Nervepoint Active Directory Connector
+# %%
+# Copyright (C) 2008 - 2017 Nervepoint
+# %%
+# All Rights Reserved.
+#
+#  This file is subject to the terms and conditions defined in
+#  file 'app/src/license/logonbox/license.txt', which is part of this source code package.
+# #L%
+###
+
+i4jConnectorClass=com.identity4j.connector.jndi.directory.DirectoryConnector
+i4jConfigurationClass=com.identity4j.connector.jndi.directory.DirectoryConfiguration
+
+connector.validIdentityName=jbloggers
+connector.validIdentityPassword=Password123?
+connector.newPassword=Zxcvbnm?
+connector.invalidPassword=tooEasy
+connector.validRoleName=default
+
+directory.validGidNumber=500
+
+directory.enableRoles=true
+directory.hostname=openldap
+directory.port=636
+directory.protocol=ssl
+directory.baseDn=dc=acme,dc=com
+directory.serviceAccountUsername=cn=admin,dc=acme,dc=com
+directory.serviceAccountPassword=password123?
+directory.backupHostnames=
+directory.userOU=OU=Users
+directory.defaultObjectClasses=top,posixAccount
+
+directory.protocol=plain
+directory.followReferrals=true
+directory.timeout=30
+directory.pageSize=1000
+readOnly=false
+
+directory.identityObjectClass=posixAccount
+directory.identityNameAttribute=uid
+directory.identityGuidAttribute=uidNumber
+directory.identityRoleGuidAttribute=gidNumber
+directory.identityRoleNameAttribute=
+	
+directory.roleObjectClass=posixGroup
+directory.roleNameAttribute=cn
+directory.roleGuidAttribute=gidNumber
+	
+directory.identityPasswordAttribute=userPassword
+directory.identityPasswordEncoding=plain
+
+attributesToRetrieve=gidNumber

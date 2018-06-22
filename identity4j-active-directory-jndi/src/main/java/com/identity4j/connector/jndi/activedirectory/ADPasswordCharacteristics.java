@@ -150,4 +150,14 @@ public class ADPasswordCharacteristics implements PasswordCharacteristics, Seria
 	public String getCommonName() {
 		return commonName;
 	}
+
+	@Override
+	public boolean isAdditionalAnalysis() {
+		return false;
+	}
+
+	@Override
+	public float getMinStrength() {
+		return 0;
+	}
 }

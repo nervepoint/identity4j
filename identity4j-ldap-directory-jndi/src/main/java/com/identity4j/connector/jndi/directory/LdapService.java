@@ -279,20 +279,6 @@ public class LdapService {
 		return String.format("(&(objectClass=%s)(%s=%s))", objectClass, principalNameFilterAttribute, principalName);
 	}
 
-	protected SearchControls configureSearchControls(SearchControls searchControls) {
-		searchControls.setSearchScope(SearchControls.SUBTREE_SCOPE);
-		// searchControls.setCountLimit(0);
-		searchControls.setReturningObjFlag(true);
-		return searchControls;
-	}
-
-	protected SearchControls configureRoleSearchControls(SearchControls searchControls) {
-		searchControls.setSearchScope(SearchControls.SUBTREE_SCOPE);
-		// searchControls.setCountLimit(0);
-		searchControls.setReturningObjFlag(true);
-		return searchControls;
-	}
-
 	private <T> T processBlock(Block<T> block, Control... controls) throws NamingException, IOException {
 		LdapContext connection = getConnection(controls);
 		try {

@@ -171,7 +171,7 @@ public class PasswordGenerator {
 			try {
 				analyser.analyse(locale, username, pw.toString().toCharArray(), characteristics);
 				if (pw.length() < targetLength) {
-					throw new PasswordPolicyException(PasswordPolicyException.Type.tooShort, 0);
+					throw new PasswordPolicyException(PasswordPolicyException.Type.tooShort, new PasswordAnalysis());
 				}
 				break;
 			} catch (PasswordPolicyException pe) {
