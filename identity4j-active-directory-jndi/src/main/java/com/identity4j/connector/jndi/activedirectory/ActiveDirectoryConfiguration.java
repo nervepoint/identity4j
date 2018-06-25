@@ -81,6 +81,7 @@ public class ActiveDirectoryConfiguration extends DirectoryConfiguration {
 				"samAccountName");
 		configurationParameters
 				.set("directory.roleGuidAttribute", "objectGUID");
+		configurationParameters.set("directory.distinguishedNameAttribute", "distinguishedName");
 		return configurationParameters;
 	}
 
