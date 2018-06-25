@@ -67,7 +67,11 @@ public class ActiveDirectoryConfiguration extends DirectoryConfiguration {
 		setIncludeBuiltInGroups(configurationParameters);
 		setIncludeDefaultUsers(configurationParameters);
 
+		/**
+		 * LDP - I believe the  attribute directory.identityObjectClass is now obsolete?
+		 */
 		configurationParameters.set("directory.identityObjectClass", "user");
+		
 		configurationParameters.set("directory.identityNameAttribute",
 				"samAccountName");
 		configurationParameters.set("directory.identityGuidAttribute",
@@ -81,6 +85,12 @@ public class ActiveDirectoryConfiguration extends DirectoryConfiguration {
 				"samAccountName");
 		configurationParameters
 				.set("directory.roleGuidAttribute", "objectGUID");
+		
+		
+		/**
+		 * LDP - Missing attribute....
+		 */
+		configurationParameters.set("direcctory.identityCreationObjectClasses", "user");
 		configurationParameters.set("directory.distinguishedNameAttribute", "distinguishedName");
 		return configurationParameters;
 	}
