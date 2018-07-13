@@ -790,6 +790,36 @@ public abstract class JDBCConnector extends AbstractConnector {
 			closeStatement(statement);
 		}
 	}
+	/**
+	 * Helper method which performs the query in a transaction.  
+	 * @param sql
+	 * @param block
+	 */
+	protected void inTransaction(JDBCTransaction tx) {
+		try {
+			connect.setAutoCommit(false);
+			tx.apply(connect);
+			connect.commit();
+		} catch (SQLException e) {
+			rollback(connect);
+			throw new ConnectorException(e);
+		} finally {
+			autoCommitTrue(connect);
+		}
+	}
+	/**
+	 * Helper method which performs the query in a transaction and return a result.  
+	 * @param sql
+	 * @param block
+	 */
+	protected <T> T jdbcAction(JDBCAction<T> tx) {
+		try {
+			return tx.apply(connect);
+		} catch (SQLException e) {
+			throw new ConnectorException(e);
+		} finally {
+		}
+	}
 
 	/**
 	 * Helper method which performs the query in a transaction. <br>
@@ -848,6 +878,27 @@ public abstract class JDBCConnector extends AbstractConnector {
 	 */
 	public interface JDBCBlock {
 		public void apply(Statement statement) throws SQLException;
+	}
+
+	/**
+	 * Provides a hook method apply which will act on JDBC connection.
+	 * 
+	 * @author gaurav
+	 *
+	 */
+	public interface JDBCTransaction {
+		public void apply(Connection connection) throws SQLException;
+	}
+
+	/**
+	 * Provides a hook method apply which will act on JDBC connection
+	 * and provide a result
+	 * 
+	 * @author gaurav
+	 *
+	 */
+	public interface JDBCAction<T> {
+		public T apply(Connection connection) throws SQLException;
 	}
 
 	/**

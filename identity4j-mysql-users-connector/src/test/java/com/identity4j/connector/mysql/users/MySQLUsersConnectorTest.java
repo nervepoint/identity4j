@@ -40,9 +40,9 @@ public class MySQLUsersConnectorTest extends AbstractConnectorTest<MySQLUsersCon
 
 	public MySQLUsersConnectorTest() {
 		super("/mysql-users-connector.properties");
-		testDatabaseForGrant = configurationParameters.getString("connector.grantOnDatabaseForTest");
-		testDatabaseAnother2ForGrant = configurationParameters.getString("connector.grantOnDatabaseAnother2ForTest");
-		testDatabaseAnother3ForGrant = configurationParameters.getString("connector.grantOnDatabaseAnother3ForTest");
+		testDatabaseForGrant = configurationParameters.getStringOrDefault("connector.grantOnDatabaseForTest", "UPDATE ON *.*");
+		testDatabaseAnother2ForGrant = configurationParameters.getStringOrDefault("connector.grantOnDatabaseAnother2ForTest", "INDEX ON *.*");
+		testDatabaseAnother3ForGrant = configurationParameters.getStringOrDefault("connector.grantOnDatabaseAnother3ForTest", "INSERT ON *.*");
 		invaliduser = configurationParameters.getString("connector.invaliduser");
 	}
 	
@@ -52,7 +52,7 @@ public class MySQLUsersConnectorTest extends AbstractConnectorTest<MySQLUsersCon
 	public void createIdentity() {
 		Assume.assumeTrue(connector.getCapabilities().contains(
 				ConnectorCapability.createUser));
-		String newPrincipalName = "test_" + identityName;
+		String newPrincipalName = "test_" + identityName + "@%";
 		Identity newIdentity = new IdentityImpl(newPrincipalName);
 		newIdentity.setAttribute(MySqlUsersConstants.USER_ACCESS, testDatabaseForGrant);
 		
@@ -75,7 +75,7 @@ public class MySQLUsersConnectorTest extends AbstractConnectorTest<MySQLUsersCon
 	public void identityCanBeDisabled() {
 		Assume.assumeTrue(connector.getCapabilities().contains(
 				ConnectorCapability.createUser));
-		String newPrincipalName = "test_" + identityName;
+		String newPrincipalName = "test_" + identityName + "@%";
 		Identity newIdentity = new IdentityImpl(newPrincipalName);
 		newIdentity.setAttribute(MySqlUsersConstants.USER_ACCESS, testDatabaseForGrant);
 		
@@ -105,7 +105,7 @@ public class MySQLUsersConnectorTest extends AbstractConnectorTest<MySQLUsersCon
 	public void identityCanBeEnabledWithAllGrants() {
 		Assume.assumeTrue(connector.getCapabilities().contains(
 				ConnectorCapability.createUser));
-		String newPrincipalName = "test_" + identityName;
+		String newPrincipalName = "test_" + identityName + "@%";
 		Identity newIdentity = new IdentityImpl(newPrincipalName);
 		newIdentity.setAttribute(MySqlUsersConstants.USER_ACCESS, testDatabaseForGrant);
 		

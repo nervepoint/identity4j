@@ -241,7 +241,7 @@ public abstract class AbstractConnectorTest<C extends ConnectorConfigurationPara
 				throw pnfe;
 		}
 		identityGuid = identity.getGuid();
-		if (!StringUtil.isNullOrEmpty(roleName)) {
+		if (connector.getCapabilities().contains(ConnectorCapability.roles) && !StringUtil.isNullOrEmpty(roleName)) {
 			try {
 				role = connector.getRoleByName(roleName);
 			} catch (PrincipalNotFoundException pnfe) {

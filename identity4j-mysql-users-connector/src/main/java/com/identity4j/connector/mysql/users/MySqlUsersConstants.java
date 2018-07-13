@@ -44,5 +44,6 @@ public interface MySqlUsersConstants {
 	//GRANT containing Password
 	String IDENTIFIED_BY_PASSWORD = "IDENTIFIED BY PASSWORD";
 	String _TO_ = " TO ";
+	String _ON_ = " ON ";
 	
 }
