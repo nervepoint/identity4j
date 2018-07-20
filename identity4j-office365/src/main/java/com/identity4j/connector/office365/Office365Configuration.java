@@ -170,7 +170,7 @@ public class Office365Configuration extends AbstractConnectorConfiguration{
 	 * @return the apiVersion
 	 */
 	public  String getApiVersion() {
-		return configurationParameters.getStringOrDefault(OFFICE365_API_VERSION, "api-version=2013-04-05");
+		return configurationParameters.getStringOrDefault(OFFICE365_API_VERSION, "api-version=1.6");
 	}
 	
 	/**

@@ -23,6 +23,7 @@ package com.identity4j.connector.office365.services;
  */
 
 import java.io.IOException;
+import java.util.List;
 
 import com.identity4j.connector.PrincipalType;
 import com.identity4j.connector.exception.ConnectorException;
@@ -34,6 +35,7 @@ import com.identity4j.connector.office365.entity.Groups;
 import com.identity4j.connector.office365.services.token.handler.ADToken;
 import com.identity4j.util.http.HttpPair;
 import com.identity4j.util.http.HttpResponse;
+import com.identity4j.util.http.HttpUtil;
 import com.identity4j.util.http.request.HttpRequestHandler;
 import com.identity4j.util.json.JsonMapperService;
 
@@ -50,7 +52,7 @@ public class GroupService extends AbstractRestAPIService{
 	}
 
 	/**
-	 * This method retrieves an instance of Group corresponding to provided object id or group principal name.
+	 * This method retrieves an instance of Group corresponding to provided object id
 	 * If group is not found in data store it throws PrincipalNotFoundException
 	 * 
 	 * @param objectId/groupPrincipalName
@@ -62,11 +64,37 @@ public class GroupService extends AbstractRestAPIService{
 		HttpResponse response = httpRequestHandler.handleRequestGet(
 				constructURI(String.format("/groups/%s", objectId), null), getHeaders().toArray(new HttpPair[0]));
 		try {
-			if (response.status().getCode() == 404) {
+			if (response.status().getCode() == 404 || response.status().getCode() == 400) {
 				throw new PrincipalNotFoundException(objectId + " not found.", null, PrincipalType.role);
+			}
+			if (response.status().getCode() != 200) {
+				throw new ConnectorException(String.format("Unexpected status. %d. %s", response.status().getCode(), response.status().getError() ));
 			}
 			group = JsonMapperService.getInstance().getObject(Group.class, response.contentString());
 			return group;
+		} finally {
+			response.release();
+		}
+	}
+	/**
+	 * This method retrieves an instance of Group corresponding to provided object id
+	 * If group is not found in data store it throws PrincipalNotFoundException
+	 * 
+	 * @param objectId/groupPrincipalName
+	 * @return
+	 */
+	public Group getByName(String name) {
+		HttpResponse response = httpRequestHandler.handleRequestGet(
+				constructURI("/groups", String.format("$filter=displayName eq '%s'", name)), getHeaders().toArray(new HttpPair[0]));
+		try {
+			if (response.status().getCode() != 200) {
+				throw new ConnectorException(String.format("Unexpected status. %d. %s", response.status().getCode(), response.status().getError() ));
+			}
+			Groups g = JsonMapperService.getInstance().getObject(Groups.class, response.contentString());
+			final List<Group> groups = g.getGroups();
+			if(groups.isEmpty())
+				throw new PrincipalNotFoundException(name + " not found.", null, PrincipalType.role);
+			return groups.get(0);
 		} finally {
 			response.release();
 		}
@@ -107,6 +135,9 @@ public class GroupService extends AbstractRestAPIService{
 				if("A conflicting object with one or more of the specified property values is present in the directory.".equals(errorMessage.getError().getMessage().getValue())){
 					throw new PrincipalAlreadyExistsException("Principal contains conflicting properties which already exists, " + group.getDisplayName());
 				}
+			}
+			if (response.status().getCode() != 201) {
+				throw new ConnectorException(String.format("Unexpected status. %d. %s", response.status().getCode(), response.status().getError() ));
 			}
 			group = JsonMapperService.getInstance().getObject(Group.class, response.contentString());
 			return group;

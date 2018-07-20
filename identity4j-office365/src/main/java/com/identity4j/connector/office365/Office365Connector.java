@@ -38,6 +38,7 @@ import org.apache.commons.logging.LogFactory;
 import com.identity4j.connector.AbstractConnector;
 import com.identity4j.connector.ConnectorCapability;
 import com.identity4j.connector.ConnectorConfigurationParameters;
+import com.identity4j.connector.PrincipalType;
 import com.identity4j.connector.WebAuthenticationAPI;
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.exception.PrincipalAlreadyExistsException;
@@ -374,10 +375,7 @@ public class Office365Connector extends AbstractConnector {
 	 * <p>
 	 * Deletes a role in the active directory with specified principal name.
 	 * <br/>
-	 * <b>Note:</b> Role in active directory is referred as Groups and
-	 * identified by only guid, not group name. <br/>
-	 * <b>Refer groups by guid as all operations on groups are performed using
-	 * only guid.</b> <br/>
+	 * 
 	 * Please refer
 	 * <a href="http://msdn.microsoft.com/en-us/library/dn151610.aspx">Groups
 	 * </a>.
@@ -391,22 +389,19 @@ public class Office365Connector extends AbstractConnector {
 	 *             given to service id.
 	 */
 	@Override
-	public void deleteRole(String guid) throws ConnectorException {
+	public void deleteRole(String principalName) throws ConnectorException {
 		if (isReadOnly()) {
 			throw new ConnectorException(
 					"This directory is read only because the service account does not have sufficient privileges to perform all required operations");
 		}
-		Role role = getRoleByName(guid);
+		Role role = getRoleByName(principalName);
 		directory.groups().delete(role.getGuid());
 	}
 
 	/**
 	 * <p>
 	 * Finds a role in the active directory with specified principal name. <br/>
-	 * <b>Note:</b> Role in active directory is referred as Groups and
-	 * identified by only guid, not group name. <br/>
-	 * <b>Refer groups by guid as all operations on groups are performed using
-	 * only guid.</b> <br/>
+	 * <br/>
 	 * Please refer
 	 * <a href="http://msdn.microsoft.com/en-us/library/dn151610.aspx">Groups
 	 * </a>.
@@ -419,7 +414,30 @@ public class Office365Connector extends AbstractConnector {
 	 *             for api, connection related errors.
 	 */
 	@Override
-	public Role getRoleByName(String guid) throws PrincipalNotFoundException, ConnectorException {
+	public Role getRoleByName(String principalName) throws PrincipalNotFoundException, ConnectorException {
+		Group group = directory.groups().getByName(principalName);
+		return Office365ModelConvertor.groupToRole(group);
+	}
+
+	/**
+	 * <p>
+	 * Finds a role in the active directory with specified GUID.<br/>
+	 * <b>Note:</b> Role in active directory is referred as Groups and
+	 * identified by only guid, not group name. <br/>
+	 * <b>Refer groups by guid as all operations on groups are performed using
+	 * only guid.</b> <br/>
+	 * Please refer
+	 * <a href="http://msdn.microsoft.com/en-us/library/dn151610.aspx">Groups
+	 * </a>.
+	 * </p>
+	 * 
+	 * @throws PrincipalNotFoundException
+	 *             if role specified by GUID not present in
+	 *             active directory.
+	 * @throws ConnectorException
+	 *             for api, connection related errors.
+	 */
+	public Role getRoleByGuid(String guid) throws PrincipalNotFoundException, ConnectorException {
 		Group group = directory.groups().get(guid);
 		return Office365ModelConvertor.groupToRole(group);
 	}

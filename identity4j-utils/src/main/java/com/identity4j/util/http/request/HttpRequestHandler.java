@@ -59,7 +59,7 @@ public class HttpRequestHandler {
 	 * @return response data which contains data if any and http response codes.
 	 */
 	public HttpResponse handleRequestPost(URI uri,final String data, HttpPair... header) {
-		return getClient(uri).post(getPath(uri), data, header);
+		return getClient(uri).post(getPathAndQuerry(uri), data, header);
 	}
 	
 	/**

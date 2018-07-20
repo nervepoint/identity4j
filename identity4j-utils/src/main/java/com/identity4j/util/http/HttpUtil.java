@@ -1,5 +1,9 @@
 package com.identity4j.util.http;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
+
 /*
  * #%L
  * Identity4J Utils
@@ -24,11 +28,27 @@ package com.identity4j.util.http;
 
 public class HttpUtil {
 
+	public static String encode(String part) {
+		try {
+			return URLEncoder.encode(part, "UTF-8");
+		} catch (UnsupportedEncodingException uo) {
+			throw new RuntimeException("No encoding.", uo);
+		}
+	}
+
+	public static String decode(String part) {
+		try {
+			return URLDecoder.decode(part, "UTF-8");
+		} catch (UnsupportedEncodingException uo) {
+			throw new RuntimeException("No encoding.", uo);
+		}
+	}
+
 	public static String concatenateUriParts(String part1, String part2) {
-		while(part1.endsWith("/")) {
+		while (part1.endsWith("/")) {
 			part1 = part1.substring(0, part1.length() - 1);
 		}
-		while(part2 != null && part2.startsWith("/")) {
+		while (part2 != null && part2.startsWith("/")) {
 			part2 = part2.substring(1);
 		}
 		return part1 + (part2 == null ? "" : "/" + part2);
