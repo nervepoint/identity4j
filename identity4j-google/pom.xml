@@ -37,7 +37,7 @@
 		<dependency>
 			<groupId>com.google.apis</groupId>
 			<artifactId>google-api-services-oauth2</artifactId>
-			<version>v2-rev124-1.22.0</version>
+			<version>v2-rev139-1.23.0</version>
 		</dependency>
 
 		<dependency>
