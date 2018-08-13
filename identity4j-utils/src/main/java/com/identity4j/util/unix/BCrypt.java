@@ -444,7 +444,7 @@ public class BCrypt {
 	 */
 	private static byte char64(char x) {
 		if ((int)x < 0 || (int)x > index_64.length)
-			return -1;
+			return -1; 
 		return index_64[(int)x];
 	}
 
@@ -499,6 +499,35 @@ public class BCrypt {
 	}
 
 	/**
+	 * Blowfish decipher a single 64-bit block encoded as
+	 * two 32-bit halves
+	 * @param lr	an array containing the two 32-bit half blocks
+	 * @param off	the position in the array of the blocks
+	 */
+	final void decipher(int lr[], int off) {
+		int i, n, l = lr[off], r = lr[off + 1];
+
+		l ^= P[BLOWFISH_NUM_ROUNDS + 1];
+		for (i = BLOWFISH_NUM_ROUNDS; i > 0;) {
+			// Feistel substitution on left word
+			n = S[(l >> 24) & 0xff];
+			n += S[0x100 | ((l >> 16) & 0xff)];
+			n ^= S[0x200 | ((l >> 8) & 0xff)];
+			n += S[0x300 | (l & 0xff)];
+			r ^= n ^ P[i--];
+
+			// Feistel substitution on right word
+			n = S[(r >> 24) & 0xff];
+			n += S[0x100 | ((r >> 16) & 0xff)];
+			n ^= S[0x200 | ((r >> 8) & 0xff)];
+			n += S[0x300 | (r & 0xff)];
+			l ^= n ^ P[i--];
+		}
+		lr[off] = r ^ P[0];
+		lr[off + 1] = l;
+	}
+
+	/**
 	 * Blowfish encipher a single 64-bit block encoded as
 	 * two 32-bit halves
 	 * @param lr	an array containing the two 32-bit half blocks
@@ -535,13 +564,25 @@ public class BCrypt {
 	 * @return	the next word of material from data
 	 */
 	static int streamtoword(byte data[], int offp[]) {
+		return streamtoword(data, offp, data.length);
+	}
+
+	/**
+	 * Cycically extract a word of key material
+	 * @param data	the string to extract the data from
+	 * @param offp	a "pointer" (as a one-entry array) to the
+	 * current offset into data
+	 * @param length of data
+	 * @return	the next word of material from data
+	 */
+	static int streamtoword(byte data[], int offp[], int dataBytes) {
 		int i;
 		int word = 0;
 		int off = offp[0];
 
 		for (i = 0; i < 4; i++) {
 			word = (word << 8) | (data[off] & 0xff);
-			off = (off + 1) % data.length;
+			off = (off + 1) % dataBytes;
 		}
 
 		offp[0] = off;
@@ -561,13 +602,22 @@ public class BCrypt {
 	 * @param key	an array containing the key
 	 */
 	void key(byte key[]) {
+		key(key, key.length);
+	}
+
+	/**
+	 * Key the Blowfish cipher
+	 * @param key	an array containing the key
+	 * @param length key length
+	 */
+	void key(byte key[], int keylen) {
 		int i;
 		int koffp[] = { 0 };
 		int lr[] = { 0, 0 };
 		int plen = P.length, slen = S.length;
 
 		for (i = 0; i < plen; i++)
-			P[i] = P[i] ^ streamtoword(key, koffp);
+			P[i] = P[i] ^ streamtoword(key, koffp, keylen);
 
 		for (i = 0; i < plen; i += 2) {
 			encipher(lr, 0);
@@ -751,5 +801,70 @@ public class BCrypt {
 	 */
 	public static boolean checkpw(String plaintext, String hashed) {
 		return (hashed.compareTo(hashpw(plaintext, hashed)) == 0);
+	}
+
+	public void blf_enc(int[] data, int blocks) {
+		int d = 0;
+		for(int i = 0 ; i < blocks; i++) {
+			encipher(data, d);
+			d += 2;
+		}
+	}
+
+	public void blf_dec(int[] data, int blocks) {
+		blf_dec(data, 0, blocks);
+	}
+
+	public void blf_dec(int[] data, int offset, int blocks) {
+		int d = 0;
+		for(int i = 0 ; i < blocks; i++) {
+			decipher(data, d + offset);
+			d += 2;
+		}
+	}
+
+	public void blf_key(byte[] k) {
+		blf_key(k, k.length);
+	}
+	
+	public void blf_key(byte[] k, int len) {
+		init_key();
+		key(k, len);
+	}
+	public static void report(int data[], int len)
+	{
+		int i;
+		for (i = 0; i < len; i += 2)
+			System.out.println(String.format("Block %d: %08x %08x.",
+			    i / 2, data[i], data[i + 1]));
+	}
+	
+	
+	public static void main(String[] args) throws Exception {
+		byte[] key = "AAAAA".getBytes("ASCII");
+		byte[] key2 = "abcdefghijklmnopqrstuvwxyz".getBytes("ASCII");
+		int[] data = new int[10];
+		int[] data2 = {0x424c4f57, 0x46495348};
+
+		// First test 	-
+		for (int i = 0; i < 10; i++)
+			data[i] = i;
+		
+		BCrypt b = new BCrypt();
+		b.blf_key(key, 5);
+		b.blf_enc(data, 5);
+		b.blf_dec(data, 1);
+		b.blf_dec(data, 2, 4);
+		System.out.println("Should read as 0 - 9.");
+		report(data, 10);
+		
+		// Works so far
+		b.blf_key(key2);
+		b.blf_enc(data2, 1);
+		System.out.println("Should read as: 0x324ed0fe 0xf413a203.");
+		report(data2, 2);
+		b.blf_dec(data2, 1);
+		report(data2, 2);
+		System.out.println("Should read as: 0x424c4f57 0x46495348.");
 	}
 }

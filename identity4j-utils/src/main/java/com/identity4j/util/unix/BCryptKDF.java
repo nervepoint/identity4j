@@ -3,6 +3,10 @@
  * 
  * Based on http://cvsweb.openbsd.org/cgi-bin/cvsweb/src/lib/libutil/bcrypt_pbkdf.c?rev=1.13&content-type=text/x-cvsweb-markup
  * 
+ * Useful testing webapp: https://asecuritysite.com/encryption/PBKDF2z
+ * 
+ * Other interesting reading: RFC 2898
+ * 
  * Copyright (c) 2013 Ted Unangst <tedu@openbsd.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
@@ -41,22 +45,24 @@ public class BCryptKDF {
 		int[] cdata = new int[BCRYPT_WORDS];
 		int i;
 
-		B.init_key();
-		B.ekskey(sha2salt, sha2pass);
+		B.init_key(); // OK
+		B.ekskey(sha2salt, sha2pass); // OK
 		for (i = 0; i < 64; i++) {
-			B.key(sha2salt);
-			B.key(sha2pass);
+			B.key(sha2salt); // OK
+			B.key(sha2pass); // OK
 		}
 
 		/* encryption */
 		int[] j = new int[] { 0 };
-		for (i = 0; i < BCRYPT_WORDS; i++)
+		for (i = 0; i < BCRYPT_WORDS; i++) {
 			cdata[i] = BCrypt.streamtoword(ciphertext, j);
-		for (i = 0; i < 64; i++)
-			B.encipher(cdata, 0);
+		}
+		for (i = 0; i < 64; i++) {
+			B.blf_enc(cdata, BCRYPT_HASHSIZE / BCRYPT_WORDS);
+		}
 
 		/* copy out */
-		for (i = 0; i < BCRYPT_WORDS; i++) {
+		for (i = 0; i < cdata.length; i++) {
 			out[4 * i + 3] = (byte)((cdata[i] >> 24) & 0xff);
 			out[4 * i + 2] = (byte)((cdata[i] >> 16) & 0xff);
 			out[4 * i + 1] = (byte)((cdata[i] >> 8) & 0xff);
@@ -67,7 +73,7 @@ public class BCryptKDF {
 
 	}
 
-	public static byte[] bcrypt_pbkdf(byte[] pass, byte[] salt, byte[] key, int rounds)
+	public static byte[] bcrypt_pbkdf(byte[] pass, byte[] salt, int keylen, int rounds)
 			throws NoSuchAlgorithmException {
 		byte[] sha2salt;
 		byte[] out = new byte[BCRYPT_HASHSIZE];
@@ -75,7 +81,7 @@ public class BCryptKDF {
 		byte[] countsalt = new byte[4];
 		int i, j, amt;
 		int count;
-		int keylen = key.length;
+		byte[] key = new byte[keylen];
 		int origkeylen = keylen;
 
 		if (rounds < 1)
@@ -105,7 +111,8 @@ public class BCryptKDF {
 			ctx.update(countsalt);
 			sha2salt = ctx.digest();
 
-			out = bcrypt_hash(sha2pass, sha2salt);
+			tmpout = bcrypt_hash(sha2pass, sha2salt);
+			System.arraycopy(tmpout, 0, out, 0, out.length);
 
 			for (i = 1; i < rounds; i++) {
 				/* subsequent rounds, salt is previous output */
@@ -129,6 +136,7 @@ public class BCryptKDF {
 			}
 			keylen -= i;
 		}
-		return out;
+
+		return key;
 	}
 }
