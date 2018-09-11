@@ -67,6 +67,7 @@ public class Office365ConnectorTest extends AbstractRestWebServiceConnectorTest 
 	private String validRoleName = null;
 	private String validRoleEmail = null;
 	private String validRoleDescription = null;
+	@SuppressWarnings("unused")
 	private String validRoleObjectId = null;
 	private String testRoleName = null;
 	private String testRoleEmail = null;

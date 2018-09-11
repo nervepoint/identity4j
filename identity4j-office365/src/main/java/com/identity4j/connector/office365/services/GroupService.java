@@ -35,7 +35,6 @@ import com.identity4j.connector.office365.entity.Groups;
 import com.identity4j.connector.office365.services.token.handler.ADToken;
 import com.identity4j.util.http.HttpPair;
 import com.identity4j.util.http.HttpResponse;
-import com.identity4j.util.http.HttpUtil;
 import com.identity4j.util.http.request.HttpRequestHandler;
 import com.identity4j.util.json.JsonMapperService;
 
