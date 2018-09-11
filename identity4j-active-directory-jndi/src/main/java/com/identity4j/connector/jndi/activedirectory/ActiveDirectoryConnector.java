@@ -715,7 +715,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 	}
 
 	private int getPasswordAge(String attributeName) {
-		String value = getAttributeValue(getConfiguration().getBaseDn(), attributeName);
+		String value = getAttributeValue(getRootDn(), attributeName);
 		if (StringUtil.isNullOrEmpty(value)) {
 			return 0;
 		}

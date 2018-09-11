@@ -26,6 +26,7 @@ package com.identity4j.connector.jndi.activedirectory;
 
 import java.util.Calendar;
 import java.util.Date;
+import java.util.TimeZone;
 
 public final class ActiveDirectoryDateUtil {
 
@@ -54,11 +55,11 @@ public final class ActiveDirectoryDateUtil {
      * @return days representing the long
      */
     public static int adTimeToJavaDays(long timeStamp) {
-        return (int) (timeStamp / -86400L / 10000000L);
+        return (int) timeStamp == -9223372036854775808L ? 0 : (int) (timeStamp / -86400L / 10000000L);
     }
 
 	public static long javaDataToADTime(Date date) {
-        Calendar calendar = Calendar.getInstance();
+        Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
         calendar.clear();
         calendar.setTime(date);
         
