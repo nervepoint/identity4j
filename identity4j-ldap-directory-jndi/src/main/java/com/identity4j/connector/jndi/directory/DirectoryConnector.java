@@ -36,6 +36,7 @@ import java.util.Set;
 import java.util.StringTokenizer;
 
 import javax.naming.CommunicationException;
+import javax.naming.InvalidNameException;
 import javax.naming.Name;
 import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
@@ -433,6 +434,37 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 		}
 	}
 
+	protected boolean isIncluded(String dn) throws InvalidNameException {
+		return isIncluded(new LdapName(dn));
+	}
+	
+	protected boolean isIncluded(Name dn) {
+		Name baseDn = getConfiguration().getBaseDn();
+		if (!dn.toString().toLowerCase().endsWith(baseDn.toString().toLowerCase())) {
+			return false;
+		}
+
+		boolean included = getConfiguration().getIncludes().isEmpty();
+
+		if (!included) {
+			for (Name name : getConfiguration().getIncludes()) {
+				if (dn.startsWith(name)) {
+					included = true;
+				}
+			}
+		}
+
+		if (included) {
+			for (Name name : getConfiguration().getExcludes()) {
+				if (dn.startsWith(name)) {
+					included = false;
+				}
+			}
+		}
+
+		return included;
+	}
+	
 	@Override
 	public void updateIdentity(final Identity identity) throws ConnectorException {
 
@@ -459,7 +491,9 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 			toAdd.removeAll(Arrays.asList(oldIdentity.getRoles()));
 
 			for (Role r : toRemove) {
-				revokeRole(usersDn, r);
+				if(isIncluded(r.getAttribute(getConfiguration().getDistinguishedNameAttribute()))) {
+					revokeRole(usersDn, r);
+				}
 			}
 
 			for (Role r : toAdd) {
