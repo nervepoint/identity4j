@@ -1202,8 +1202,12 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			Calendar cal = Calendar.getInstance();
 			if (date != null) {
 				cal.setTime(date);
+				cal.add(Calendar.DAY_OF_YEAR, age);
+			} else {
+				// Set a fixed date way in the future
+				cal.setTimeInMillis(0);
+				cal.set(Calendar.YEAR, 3999);
 			}
-			cal.add(Calendar.DAY_OF_YEAR, age);
 			return trimDate(cal.getTime());
 		}
 	}
@@ -1301,9 +1305,8 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 		Calendar cal = Calendar.getInstance();
 		cal.setTime(date);
 		if (cal.get(Calendar.YEAR) > 3999) {
-			return null;
-			// cal.setTimeInMillis(0);
-			// cal.set(Calendar.YEAR, 3999);
+			cal.setTimeInMillis(0);
+			cal.set(Calendar.YEAR, 3999);
 		}
 		return cal.getTime();
 	}
