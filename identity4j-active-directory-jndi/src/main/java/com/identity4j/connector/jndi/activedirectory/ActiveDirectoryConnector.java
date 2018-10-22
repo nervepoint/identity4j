@@ -143,6 +143,13 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 	public static final String PASSWORD_POLICY_APPLIES = "msDS-ResultantPSO";
 	public static final String PASSWORD_EXPIRY_COMPUTED = "msDS-UserPasswordExpiryTimeComputed";
 	public static final String PROXY_ADDRESSES = "proxyAddresses";
+	public static final String COUNTRY_CODE = "c";
+	public static final String COUNTRY = "co";
+	public static final String CITY = "l";
+	public static final String STATE = "st";
+	public static final String STREET_ADRESS = "streetAddress";
+	public static final String POST_OFFICE_BOX = "postOfficeBox";
+	public static final String POSTAL_CODE = "postalCode";
 
 	public static final String GROUP_TYPE_ATTRIBUTE = "groupType";
 
@@ -198,7 +205,10 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			INITIALS_ATTRIBUTE, DESCRIPTION_ATTRIBUTE, OFFICE_ATTRIBUTE, HOME_PAGE_ATTRIBUTE, PROFILE_PATH_ATTRIBUTE,
 			SCRIPT_PATH_ATTRIBUTE, HOME_DIR_ATTRIBUTE, HOME_DRIVE_ATTRIBUTE, HOME_PHONE_ATTRIBUTE, PAGER_ATTRIBUTE,
 			FAX_ATTRIBUTE, IPPHONE_ATTRIBUTE, INFO_ATTRIBUTE, TITLE_ATTRIBUTE, DEPARTMENT_ATTRIBUTE, COMPANY_ATTRIBUTE,
-			MANAGER_ATTRIBUTE, DISPLAY_NAME_ATTRIBUTE, PASSWORD_POLICY_APPLIES, PROXY_ADDRESSES });
+			MANAGER_ATTRIBUTE, DISPLAY_NAME_ATTRIBUTE, PASSWORD_POLICY_APPLIES, PROXY_ADDRESSES, COUNTRY, COUNTRY_CODE, CITY, STATE,
+			STREET_ADRESS, POST_OFFICE_BOX, POSTAL_CODE
+
+	});
 
 	private static Collection<String> CORE_IDENTITY_ATTRIBUTES = Arrays.asList(new String[] { COMMON_NAME_ATTRIBUTE,
 			SAM_ACCOUNT_NAME_ATTRIBUTE, USER_PRINCIPAL_NAME_ATTRIBUTE, OBJECT_CLASS_ATTRIBUTE });

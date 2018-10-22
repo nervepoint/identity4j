@@ -844,8 +844,11 @@ public class DirectoryConnector extends AbstractConnector implements BrowseableC
 
 	protected String processNamingException(NamingException nme) {
 		if (nme instanceof CommunicationException) {
+			if(nme.getRootCause() != null && nme.getRootCause().getClass().getName().equals("com.hypersocket.certificates.CertificateVerificationException")) {
+				throw (RuntimeException)nme.getCause();
+			}
 			throw new ConnectorException(
-					String.format("Failed to connect to %s", directoryConfiguration.getControllerHostnames()[0]));
+					String.format("Failed to connect to %s", directoryConfiguration.getControllerHostnames()[0]), nme);
 		}
 		DirectoryExceptionParser dep = new DirectoryExceptionParser(nme);
 		if (dep.getCode() == 49)
