@@ -1448,8 +1448,11 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			return;
 		}
 		Date lastPasswordChange = identity.getPasswordStatus().getLastChange();
-		if (lastPasswordChange != null && !Util.isDatePast(lastPasswordChange, getMinimumPasswordAge())) {
-			throw new PasswordChangeTooSoonException(lastPasswordChange);
+		int days = getMinimumPasswordAge();
+		if(days > 0) {
+			if (lastPasswordChange != null && !Util.isDatePast(lastPasswordChange, days)) {
+				throw new PasswordChangeTooSoonException(lastPasswordChange);
+			}
 		}
 	}
 
