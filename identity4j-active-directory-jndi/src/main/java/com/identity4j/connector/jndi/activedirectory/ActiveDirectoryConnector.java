@@ -969,9 +969,13 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			while (it.hasNext()) {
 				ActiveDirectoryGroup group = (ActiveDirectoryGroup) it.next();
 				String dn = group.getDn().toString();
+				
+				/**
+				 * LDP: Removed as part of Invalid name fix
+				 */
 				// https://jira.springsource.org/browse/LDAP-109
-				dn = dn.replace("\\\\", "\\\\\\");
-				dn = dn.replace("/", "\\/");
+//				dn = dn.replace("\\\\", "\\\\\\");
+//				dn = dn.replace("/", "\\/");
 
 				groups.put(dn.toLowerCase(), group);
 				groupsByRID.put(group.getRid(), group);
@@ -1146,9 +1150,13 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 							while (groupDnsItr.hasNext()) {
 								String dn = groupDnsItr.next();
 
+								/**
+								 * LDP - This is causing Invalid name exception when group
+								 * is retrieved via lookupContext
+								 */
 								// https://jira.springsource.org/browse/LDAP-109
-								dn = dn.replace("\\\\", "\\\\\\");
-								dn = dn.replace("/", "\\/");
+//								dn = dn.replace("\\\\", "\\\\\\");
+//								dn = dn.replace("/", "\\/");
 
 								if (groups.containsKey(dn.toLowerCase())) {
 									directoryIdentity.addRole(groups.get(dn.toLowerCase()));
