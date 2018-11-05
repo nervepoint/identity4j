@@ -48,6 +48,8 @@ public class ActiveDirectoryConfiguration extends DirectoryConfiguration {
 	public static final String ACTIVE_DIRECTORY_INCLUDE_BUILTN_GROUPS = "activeDirectory.includeBuiltInGroups";
 	public static final String ACTIVE_DIRECTORY_USERNAME_IS_SAMACCOUNTNAME = "activeDirectory.usernameSamAccountName";
 	
+	public static final String ACTIVE_DIRECTORy_ENFORCE_PASSWORD_RULES = "activeDirectory.enforcePasswordRules";
+	
 	public ActiveDirectoryConfiguration(MultiMap configurationParameters) {
 		super(addConfigurationParameters(configurationParameters));
 	}
@@ -298,6 +300,10 @@ public class ActiveDirectoryConfiguration extends DirectoryConfiguration {
 				"objectSID objectGUID");
 	}
 
+	public boolean isPasswordRulesEnforced() {
+		return getConfigurationParameters().getBoolean(ACTIVE_DIRECTORy_ENFORCE_PASSWORD_RULES);
+	}
+	
 	public boolean isUsernameSamAccountName() {
 		return configurationParameters.getBooleanOrDefault(
 				ACTIVE_DIRECTORY_USERNAME_IS_SAMACCOUNTNAME, Boolean.FALSE);

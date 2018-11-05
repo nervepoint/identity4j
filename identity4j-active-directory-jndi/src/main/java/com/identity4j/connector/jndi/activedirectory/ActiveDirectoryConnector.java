@@ -162,6 +162,8 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 	public static final String DOMAIN_LOCAL = "-2147483644";
 	public static final String UNIVERSAL = "-2147483640";
 
+	private ActiveDirectorySchemaVersion cachedVersion;
+	
 	@Override
 	public Set<ConnectorCapability> getCapabilities() {
 		if (!capabilities.contains(ConnectorCapability.hasPasswordPolicy)) {
@@ -254,6 +256,8 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 				}
 			}
 		}
+		
+		getSchemaVersion();
 		getPasswordCharacteristics();
 	}
 
@@ -835,6 +839,79 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 		}
 	}
 
+	private boolean isUsePSO() {
+        int version = getSchemaVersion().getVersion();
+        return version >= ActiveDirectorySchemaVersion.WINDOWS_2008.getVersion();
+    }
+	
+	protected ActiveDirectorySchemaVersion getSchemaVersion() {
+
+        if (cachedVersion != null) {
+            return cachedVersion;
+        }
+
+        try {
+        	
+        	LdapName schemaDn = new LdapName("CN=Schema,CN=Configuration,"  + getRootDn().toString());
+        	String value = getAttributeValue(schemaDn, "objectVersion");
+        	
+            int version = Integer.parseInt(value);
+            switch (version) {
+                case 13:
+                    cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2000;
+                    break;
+                case 30:
+                	cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2003;
+                	break;
+                case 31:
+                	cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2003_R2;
+                	break;
+                case 44:
+                	cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2008;
+                	break;
+                case 47:
+                	cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2008_R2;
+                	break;
+                case 56:
+                	cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2012;
+                	break;
+                case 69:
+                	cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2012_R2;
+                	break;
+                case 87:
+                	cachedVersion = ActiveDirectorySchemaVersion.WINDWOS_2016;
+                	break;
+                case 88:
+                	cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2019;
+                	break;
+                default:
+                    LOG.info("Could not determine Active Directory schema version from value " + value);
+                    if(version < ActiveDirectorySchemaVersion.WINDOWS_2000.getVersion()) {
+                    	cachedVersion = ActiveDirectorySchemaVersion.PRE_WINDOWS_2000;
+                    } else if(version > ActiveDirectorySchemaVersion.WINDOWS_2019.getVersion()) {
+                    	cachedVersion = ActiveDirectorySchemaVersion.POST_WINDOWS_2019;
+                    } else {
+                    	cachedVersion = ActiveDirectorySchemaVersion.UNKNOWN;
+                    }
+                    break;
+            }
+           
+        } catch (NumberFormatException  e) {
+            LOG.info("Could not determine Active Directory schema version", e);
+            cachedVersion = ActiveDirectorySchemaVersion.UNKNOWN;
+        } catch (InvalidNameException e) {
+        	LOG.info("Could not determine Active Directory schema version", e);
+            cachedVersion = ActiveDirectorySchemaVersion.UNKNOWN;
+		}
+        
+        if(LOG.isInfoEnabled()) {
+        	LOG.info("Active Directory schema version is " + cachedVersion.name().replaceAll("_", " "));
+        }
+        
+        return cachedVersion;
+
+    }
+	
 	protected String processNamingException(NamingException nme) {
 		DirectoryExceptionParser dep = new DirectoryExceptionParser(nme);
 		String reason = dep.getReason();
@@ -857,12 +934,12 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			throw new PasswordPolicyViolationException(message);
 		} else if (reason.equals("00000056") || reason.equals("00000057")) {
 			throw new PasswordPolicyViolationException(
-					"The new password does not comply with the rules enforced by Active Directory. It is also likely you very recently made another password change.");
+					"The new password does not comply with the rules enforced by Active Directory. It is also likely you very recently made another password change.", nme);
 		} else if (reason.equals("00000524")) {
-			throw new ConnectorException("Attempt to create account with username that already exists.");
+			throw new ConnectorException("Attempt to create account with username that already exists.", nme);
 		} else if (reason.equals("0000001F")) {
 			throw new ConnectorException(
-					"Could not perform the requested operation. Please configure the server to connect to your Active Directory securely over SSL.");
+					"Could not perform the requested operation. Please configure the server to connect to your Active Directory securely over SSL.", nme);
 		} else if (reason.equals("80090308") && "773".equals(dep.getData())) {
 			throw new PasswordChangeRequiredException(
 					"Cannot change password when changePasswordPasswordAtNextLogin is set, must use setPassword");
@@ -904,7 +981,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 	protected void setPassword(Identity identity, char[] password, boolean forcePasswordChangeAtLogon,
 			PasswordResetType type) throws ConnectorException {
 		try {
-
+			
 			if (forcePasswordChangeAtLogon) {
 				switch (identity.getPasswordStatus().getType()) {
 				case neverExpires:
@@ -920,10 +997,19 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			}
 			String newQuotedPassword = "\"" + new String(password) + "\"";
 			byte[] newUnicodePassword = newQuotedPassword.getBytes("UTF-16LE");
-
+			boolean enforce = getConfiguration().getConfigurationParameters().getBoolean(ActiveDirectoryConfiguration.ACTIVE_DIRECTORy_ENFORCE_PASSWORD_RULES);
+			
 			if (type == PasswordResetType.USER) {
-				ldapService.setPassword(((DirectoryIdentity) identity).getDn().toString(), newUnicodePassword,
-						new BasicControl(LDAP_SERVER_POLICY_HINTS_OID, true, controlData));
+				if(!enforce) {
+					ldapService.setPassword(((DirectoryIdentity) identity).getDn().toString(), newUnicodePassword);
+				} else {
+					if(getSchemaVersion().ordinal() >= ActiveDirectorySchemaVersion.WINDOWS_2008_R2.ordinal()) {
+						ldapService.setPassword(((DirectoryIdentity) identity).getDn().toString(), newUnicodePassword,
+								new BasicControl(LDAP_SERVER_POLICY_HINTS_OID, true, controlData));
+					} else {
+						ldapService.setPassword(((DirectoryIdentity) identity).getDn().toString(), newUnicodePassword);
+					}
+				}
 			} else {
 				ldapService.setPassword(((DirectoryIdentity) identity).getDn().toString(), newUnicodePassword);
 			}
