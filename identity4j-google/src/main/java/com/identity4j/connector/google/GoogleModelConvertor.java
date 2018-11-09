@@ -63,7 +63,7 @@ class GoogleModelConvertor {
 	public static GoogleIdentity googleUserToGoogleIdentity(User user){
 		GoogleIdentity googleIdentity = new GoogleIdentity(user.getId(),user.getPrimaryEmail());
 		
-		googleIdentity.setFullName(user.getName().getFullName());
+		googleIdentity.setFullName(user.getName() == null ? null : user.getName().getFullName());
 		googleIdentity.setAddress(Media.email, user.getPrimaryEmail());
 		
 		// TODO how?
