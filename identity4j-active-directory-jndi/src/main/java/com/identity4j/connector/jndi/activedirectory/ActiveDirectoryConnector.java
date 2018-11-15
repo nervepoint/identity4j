@@ -839,6 +839,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 		}
 	}
 
+	@SuppressWarnings("unused")
 	private boolean isUsePSO() {
         int version = getSchemaVersion().getVersion();
         return version >= ActiveDirectorySchemaVersion.WINDOWS_2008.getVersion();
@@ -852,6 +853,9 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 
         try {
         	
+        	/**
+        	 * TODO we need to fix this for child domains
+        	 */
         	LdapName schemaDn = new LdapName("CN=Schema,CN=Configuration,"  + getRootDn().toString());
         	String value = getAttributeValue(schemaDn, "objectVersion");
         	
@@ -899,7 +903,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
         } catch (NumberFormatException  e) {
             LOG.info("Could not determine Active Directory schema version", e);
             cachedVersion = ActiveDirectorySchemaVersion.UNKNOWN;
-        } catch (InvalidNameException e) {
+        } catch (Throwable e) {
         	LOG.info("Could not determine Active Directory schema version", e);
             cachedVersion = ActiveDirectorySchemaVersion.UNKNOWN;
 		}
