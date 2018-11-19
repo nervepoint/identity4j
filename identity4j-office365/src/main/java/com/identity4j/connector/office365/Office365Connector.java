@@ -50,6 +50,7 @@ import com.identity4j.connector.office365.services.Directory;
 import com.identity4j.connector.principal.Identity;
 import com.identity4j.connector.principal.Role;
 import com.identity4j.util.CollectionUtil;
+import com.identity4j.util.StringUtil;
 import com.identity4j.util.passwords.PasswordCharacteristics;
 
 /**
@@ -565,6 +566,8 @@ public class Office365Connector extends AbstractConnector {
 	@Override
 	public Identity createIdentity(Identity identity, char[] password) throws ConnectorException {
 		User user = Office365ModelConvertor.covertOfficeIdentityToOffice365User(identity);
+		if(StringUtil.isNullOrEmpty(user.getDisplayName()))
+			user.setDisplayName(user.getUserPrincipalName());
 		List<Group> groups = user.getMemberOf();
 		user.setMemberOf(null);// as groups will be saved independent from User
 		user.getPasswordProfile().setForceChangePasswordNextLogin(false);
