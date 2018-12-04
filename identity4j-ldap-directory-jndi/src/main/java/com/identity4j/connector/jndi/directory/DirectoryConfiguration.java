@@ -121,6 +121,13 @@ public class DirectoryConfiguration extends AbstractConnectorConfiguration {
 	public static final String DIRECTORY_MAX_PAGE_SIZE = "directory.maxPageSize";
 
 	/**
+	 * Use the new search results iterator. This option is temporary and will be 
+	 * removed when the new iterator is proved.
+	 */
+	@Deprecated
+	public static final String DIRECTORY_NEW_ITERATOR = "directory.newIterator";
+
+	/**
 	 */
 	public static final char PORT_SEPARATOR = ':';
 
@@ -343,6 +350,16 @@ public class DirectoryConfiguration extends AbstractConnectorConfiguration {
 	 */
 	public final String getVersion() {
 		return configurationParameters.getStringOrDefault("directory.version", "3");
+	}
+
+	/**
+	 * Get if the new iterator should be used for this connection. This is temporary and
+	 * will be removed when the new iterator is proved.
+	 * 
+	 * @return use new iterator
+	 */
+	public final boolean isNewIterator() {
+		return configurationParameters.getBooleanOrDefault(DIRECTORY_NEW_ITERATOR, true);
 	}
 
 	/**

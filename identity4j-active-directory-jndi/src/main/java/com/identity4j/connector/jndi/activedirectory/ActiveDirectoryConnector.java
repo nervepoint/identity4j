@@ -1069,6 +1069,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 
 				groups.put(dn.toLowerCase(), group);
 				groupsByRID.put(group.getRid(), group);
+				Util.memDbg(String.format("Group cache size %6d  Group: %s ", groups.size(), dn));
 			}
 		}
 
@@ -1085,6 +1086,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 
 				@Override
 				public Identity apply(SearchResult result) throws NamingException {
+					
 					Attributes attributes = result.getAttributes();
 
 					byte[] guidBytes = (byte[]) getAttribute(attributes.get(OBJECT_GUID_ATTRIBUTE));
@@ -1092,6 +1094,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 					Name udn = new LdapName(result.getNameInNamespace());
 					String domain = getDomain(udn);
 					String username = selectUsername(result);
+					Util.memDbg("User " + username);
 					DirectoryIdentity directoryIdentity = new DirectoryIdentity(guid, username, udn);
 
 					// Generate Immutable ID for MSOL services
@@ -1565,6 +1568,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			throws NamingException, InvalidNameException {
 		String commonName = StringUtil.nonNull((String) getAttribute(attributes.get(COMMON_NAME_ATTRIBUTE)));
 		if (commonName.length() != 0) {
+			Util.memDbg(String.format("Group %s ", dn));
 			String guid = UUID.nameUUIDFromBytes((byte[]) getAttribute(attributes.get(OBJECT_GUID_ATTRIBUTE)))
 					.toString();
 			byte[] sid = (byte[]) getAttribute(attributes.get(OBJECT_SID_ATTRIBUTE));

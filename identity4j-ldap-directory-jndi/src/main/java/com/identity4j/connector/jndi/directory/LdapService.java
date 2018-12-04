@@ -220,7 +220,7 @@ public class LdapService {
 		return processBlockNoClose(new Block<Iterator<T>>() {
 
 			public Iterator<T> apply(LdapContext context) throws IOException, NamingException {
-				if("true".equals(System.getProperty("identity4j.useNewIterator", "false")))  {
+				if(configuration.isNewIterator() || "true".equals(System.getProperty("identity4j.useNewIterator", "false")))  {
 					return new SearchResultsIterator<T>(Arrays.asList(baseDN), filter, searchControls, configuration, resultMapper, context);
 				} else {
 					return new OldSearchResultIterator<T>(baseDN, context, filter, resultMapper, searchControls);

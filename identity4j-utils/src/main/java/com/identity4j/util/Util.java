@@ -637,4 +637,12 @@ public final class Util {
 		}
 		return o1 != null && !o1.equals(o2);
 	}
+
+	public static void memDbg(String ctx) {
+		if("true".equalsIgnoreCase(System.getProperty("identity4j.memDbg", "false")))
+			System.out.println(String.format("Total: %6d MiB   Free: %6d   Used: %6d   Max: %6d    Ctx: %s",
+					Runtime.getRuntime().totalMemory() / 1024 / 1024, Runtime.getRuntime().freeMemory() / 1024 / 1024,
+					(Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024 / 1024,
+					Runtime.getRuntime().maxMemory() / 1024 / 1024, ctx));
+	}
 }
