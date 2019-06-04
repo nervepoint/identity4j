@@ -88,7 +88,7 @@ public class NssTokenDatabase {
 	}
 
 	public NssTokenDatabase(byte[] noise, byte[] passphrase) {
-		this(new File(getNssConfigurationDirectory(), ".private"), noise, passphrase);
+		this(new File(getNssConfigurationDirectory()), noise, passphrase);
 	}
 
 	public NssTokenDatabase(File dbDir, byte[] noise, byte[] passphrase) {
