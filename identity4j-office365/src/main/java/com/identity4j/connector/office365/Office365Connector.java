@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -305,7 +306,11 @@ public class Office365Connector extends AbstractConnector {
 		List<Role> roles = new ArrayList<Role>();
 		Set<String> inc = configuration.getIncludedGroups();
 		Set<String> exc = configuration.getExcludedGroups();
-		for (Group group : groups.getGroups()) {
+		final List<Group> groupObjects = groups == null ? null : groups.getGroups();
+		if(groupObjects == null) {
+			throw new ConnectorException("An empty group list was returned. This suggests a problem with the Office365 connection. It may be a transient problem, please try again.");
+		}
+		for (Group group : groupObjects) {
 			if ((inc.isEmpty() || matchesGroups(group, inc)) && (exc.isEmpty() || !(matchesGroups(group, exc))))
 				roles.add(Office365ModelConvertor.groupToRole(group));
 		}
