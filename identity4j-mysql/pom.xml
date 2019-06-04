@@ -16,10 +16,11 @@
 			<artifactId>identity4j-jdbc</artifactId>
 			<version>${project.version}</version>
 		</dependency>
+		
 		<dependency>
-			<groupId>mysql</groupId>
-			<artifactId>mysql-connector-java</artifactId>
-			<version>5.1.43</version>
+			<groupId>${mysqlGroupId}</groupId>
+			<artifactId>${mysqlArtifactId}</artifactId>
+			<version>${mysqlVersion}</version>
 		</dependency>
 		<dependency>
 			<groupId>junit</groupId>

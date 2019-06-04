@@ -20,6 +20,9 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
+		<mysqlGroupId>mysql</mysqlGroupId>
+		<mysqlArtifactId>mysql-connector-java</mysqlArtifactId>
+		<mysqlVersion>8.0.15</mysqlVersion>
 	</properties>
 
 	<modelVersion>4.0.0</modelVersion>
