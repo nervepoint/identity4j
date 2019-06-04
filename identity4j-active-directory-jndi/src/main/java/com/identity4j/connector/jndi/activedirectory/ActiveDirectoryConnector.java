@@ -428,12 +428,19 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			Attribute attribute = new BasicAttribute(USER_PRINCIPAL_NAME_ATTRIBUTE, principalNameWithDomain);
 			modificationItems.add(new ModificationItem(DirContext.REPLACE_ATTRIBUTE, attribute));
 		}
+		
+		/* Not entirely convinvced by this. The attribute itself gets changed as a 
+		 * normal attribute, why is this here? It looks very intentional. I can't
+		 * seem to find any problems by removing it.
+		 * 
+		 * #LBPR2380 - Updating mobile number on AD user does not update AD itself
+		 */
 
-		String contactDetail = newState.getAddress(com.identity4j.connector.Media.mobile);
-		if (!StringUtil.isNullOrEmpty(contactDetail)) {
-			Attribute attribute = new BasicAttribute(MOBILE_PHONE_NUMBER_ATTRIBUTE, contactDetail);
-			modificationItems.add(new ModificationItem(DirContext.REPLACE_ATTRIBUTE, attribute));
-		}
+//		String contactDetail = newState.getAddress(com.identity4j.connector.Media.mobile);
+//		if (!StringUtil.isNullOrEmpty(contactDetail)) {
+//			Attribute attribute = new BasicAttribute(MOBILE_PHONE_NUMBER_ATTRIBUTE, contactDetail);
+//			modificationItems.add(new ModificationItem(DirContext.REPLACE_ATTRIBUTE, attribute));
+//		}
 	}
 
 	@Override
