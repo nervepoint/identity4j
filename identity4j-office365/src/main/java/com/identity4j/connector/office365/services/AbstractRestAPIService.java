@@ -28,8 +28,12 @@ import java.net.URISyntaxException;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.office365.Office365Configuration;
+import com.identity4j.connector.office365.Office365Connector;
 import com.identity4j.connector.office365.services.token.handler.ADToken;
 import com.identity4j.util.http.HttpPair;
 import com.identity4j.util.http.HttpResponse;
@@ -44,6 +48,7 @@ import com.identity4j.util.json.JsonMapperService;
  *
  */
 public abstract class AbstractRestAPIService {
+	private static final Log log = LogFactory.getLog(Office365Connector.class);
 
 	protected HttpRequestHandler httpRequestHandler;
 	protected Office365Configuration office365Configuration;
@@ -64,10 +69,13 @@ public abstract class AbstractRestAPIService {
 		if(token.willExpireIn(2)){
 			try {
 				TokenHolder.refreshToken(token, office365Configuration);
+				log.info(String.format("New token %s", token.getBearerAccessToken()));
 			} catch (IOException e) {
 				throw new ConnectorException("Problem in getting new token.",e);
 			}
 		}
+		else
+			log.info(String.format("Reusing token %s", token.getBearerAccessToken()));
 		h.add(new HttpPair(Office365Configuration.AUTHORIZATION_HEADER,	token.getBearerAccessToken()));
 		h.add(new HttpPair(Office365Configuration.CONTENT_TYPE,Office365Configuration.contentTypeJSON));
 		return h;
