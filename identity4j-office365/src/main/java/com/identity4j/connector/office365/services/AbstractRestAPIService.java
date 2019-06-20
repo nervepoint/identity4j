@@ -27,6 +27,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.Callable;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -79,6 +80,28 @@ public abstract class AbstractRestAPIService {
 		h.add(new HttpPair(Office365Configuration.AUTHORIZATION_HEADER,	token.getBearerAccessToken()));
 		h.add(new HttpPair(Office365Configuration.CONTENT_TYPE,Office365Configuration.contentTypeJSON));
 		return h;
+	}
+	
+	protected HttpResponse retryIfTokenFails(Callable<HttpResponse> callable) {
+		try {
+			HttpResponse response = callable.call();
+			if(response.status().getCode() == 401) {
+				log.info(String.format("Apparently stale token %s, getting a new one", token.getBearerAccessToken()));
+				TokenHolder.refreshToken(token, office365Configuration);
+				response = callable.call();
+				if(response.status().getCode() == 401) {
+					throw new IllegalStateException(String.format("Failed to get new token. %s", response.status().getError()));
+				}
+				log.info(String.format("New token is %s", token.getBearerAccessToken()));
+			}
+			return response;
+		}
+		catch(IllegalStateException ise) {
+			throw ise;
+		}
+		catch(Exception e) {
+			throw new IllegalStateException("Failed retryable request.", e);
+		}
 	}
 
 	/**

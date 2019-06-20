@@ -1,31 +1,9 @@
 package com.identity4j.connector.office365.services;
 
-/*
- * #%L
- * Identity4J OFFICE 365
- * %%
- * Copyright (C) 2013 - 2017 LogonBox
- * %%
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Lesser Public License for more details.
- * 
- * You should have received a copy of the GNU General Lesser Public
- * License along with this program.  If not, see
- * <http://www.gnu.org/licenses/lgpl-3.0.html>.
- * #L%
- */
-
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 
 import com.identity4j.connector.PrincipalType;
 import com.identity4j.connector.exception.ConnectorException;
@@ -64,11 +42,18 @@ public class UserService extends AbstractRestAPIService {
 	 * @throws PrincipalNotFoundException
 	 * @return
 	 */
-	public User get(String objectId) {
+	public User get(final String objectId) {
 
 		User user = null;
-		HttpResponse response = httpRequestHandler.handleRequestGet(
-				constructURI(String.format("/users/%s", objectId), null), getHeaders().toArray(new HttpPair[0]));
+		
+		HttpResponse response = retryIfTokenFails(new Callable<HttpResponse>() {
+			@Override
+			public HttpResponse call() throws Exception {
+				return httpRequestHandler.handleRequestGet(
+						constructURI(String.format("/users/%s", objectId), null), getHeaders().toArray(new HttpPair[0]));
+			}
+		});
+		
 		try {
 			if (response.status().getCode() == 404) {
 				throw new PrincipalNotFoundException(objectId + " not found.", null, PrincipalType.user);
@@ -102,15 +87,22 @@ public class UserService extends AbstractRestAPIService {
 	 * @return users list
 	 */
 	public Users all(String nextLink) {
-		StringBuilder q = new StringBuilder();
+		final StringBuilder q = new StringBuilder();
 		q.append("$top=");
 		q.append(office365Configuration.getRequestSizeLimit());
 		if (nextLink != null) {
 			q.append("&$skiptoken=");
 			q.append(nextLink.substring(nextLink.indexOf("$skiptoken=") + 11));
 		}
-		HttpResponse response = httpRequestHandler.handleRequestGet(constructURI("/users", q.toString()),
-				getHeaders().toArray(new HttpPair[0]));
+		
+		HttpResponse response = retryIfTokenFails(new Callable<HttpResponse>() {
+			@Override
+			public HttpResponse call() throws Exception {
+				return httpRequestHandler.handleRequestGet(constructURI("/users", q.toString()),
+						getHeaders().toArray(new HttpPair[0]));
+			}
+		});
+		
 		try {
 			String string = response.contentString();
 			return JsonMapperService.getInstance().getObject(Users.class, string);
@@ -129,34 +121,35 @@ public class UserService extends AbstractRestAPIService {
 	 *             for possible json mapping exceptions
 	 * @return
 	 */
-	public User save(User user) {
-		try {
-			HttpResponse response = httpRequestHandler.handleRequestPost(constructURI("/users", null),
-					JsonMapperService.getInstance().getJson(user), getHeaders().toArray(new HttpPair[0]));
-			if (response.status().getCode() == 400) {
-				AppErrorMessage errorMessage = JsonMapperService.getInstance().getObject(AppErrorMessage.class,
-						response.contentString().replaceAll("odata.error", "error"));
-				String err = errorMessage.getError().getMessage().getValue();
-
-				// TODO is there not a better way to test for error messages?
-				// This seems crazy
-
-				if ("A conflicting object with one or more of the specified property values is present in the directory."
-						.equals(err)
-						|| "Another object with the same value for property userPrincipalName already exists."
-								.equals(err)) {
-					throw new PrincipalAlreadyExistsException(
-							"Principal contains conflicting properties which already exists, "
-									+ user.getUserPrincipalName());
-				} else {
-					throw new ConnectorException(err);
-				}
+	public User save(final User user) {
+		HttpResponse response = retryIfTokenFails(new Callable<HttpResponse>() {
+			@Override
+			public HttpResponse call() throws Exception {
+				return httpRequestHandler.handleRequestPost(constructURI("/users", null),
+						JsonMapperService.getInstance().getJson(user), getHeaders().toArray(new HttpPair[0]));
 			}
-			user = JsonMapperService.getInstance().getObject(User.class, response.contentString());
-			return user;
-		} catch (IOException e) {
-			throw new ConnectorException("Problem in saving user", e);
+		});
+		
+		if (response.status().getCode() == 400) {
+			AppErrorMessage errorMessage = JsonMapperService.getInstance().getObject(AppErrorMessage.class,
+					response.contentString().replaceAll("odata.error", "error"));
+			String err = errorMessage.getError().getMessage().getValue();
+
+			// TODO is there not a better way to test for error messages?
+			// This seems crazy
+
+			if ("A conflicting object with one or more of the specified property values is present in the directory."
+					.equals(err)
+					|| "Another object with the same value for property userPrincipalName already exists."
+							.equals(err)) {
+				throw new PrincipalAlreadyExistsException(
+						"Principal contains conflicting properties which already exists, "
+								+ user.getUserPrincipalName());
+			} else {
+				throw new ConnectorException(err);
+			}
 		}
+		return JsonMapperService.getInstance().getObject(User.class, response.contentString());
 	}
 
 	/**
@@ -169,23 +162,24 @@ public class UserService extends AbstractRestAPIService {
 	 * @throws ConnectorException
 	 *             for service related exception.
 	 */
-	public void update(User user) {
-		try {
-			HttpResponse response = httpRequestHandler.handleRequestPatch(
-					constructURI(String.format("/users/%s", user.getObjectId()), null),
-					JsonMapperService.getInstance().getJson(user), getHeaders().toArray(new HttpPair[0]));
+	public void update(final User user) {
 
-			if (response.status().getCode() == 404) {
-				throw new PrincipalNotFoundException(user.getObjectId() + " not found.", null, PrincipalType.user);
+		HttpResponse response = retryIfTokenFails(new Callable<HttpResponse>() {
+			@Override
+			public HttpResponse call() throws Exception {
+				return httpRequestHandler.handleRequestPatch(
+						constructURI(String.format("/users/%s", user.getObjectId()), null),
+						JsonMapperService.getInstance().getJson(user), getHeaders().toArray(new HttpPair[0]));
 			}
+		});
+		
+		if (response.status().getCode() == 404) {
+			throw new PrincipalNotFoundException(user.getObjectId() + " not found.", null, PrincipalType.user);
+		}
 
-			if (response.status().getCode() != 204) {
-				throw new ConnectorException("Problem in updating user as status code is not 204 is "
-						+ response.status().getCode() + ". " + response.status().getError());
-			}
-
-		} catch (IOException e) {
-			throw new ConnectorException("Problem in updating user", e);
+		if (response.status().getCode() != 204) {
+			throw new ConnectorException("Problem in updating user as status code is not 204 is "
+					+ response.status().getCode() + ". " + response.status().getError());
 		}
 	}
 
@@ -198,9 +192,15 @@ public class UserService extends AbstractRestAPIService {
 	 * @throws ConnectorException
 	 *             for service related exception.
 	 */
-	public void delete(String objectId) {
-		HttpResponse response = httpRequestHandler.handleRequestDelete(
-				constructURI(String.format("/users/%s", objectId), null), getHeaders().toArray(new HttpPair[0]));
+	public void delete(final String objectId) {
+		
+		HttpResponse response = retryIfTokenFails(new Callable<HttpResponse>() {
+			@Override
+			public HttpResponse call() throws Exception {
+				return httpRequestHandler.handleRequestDelete(
+						constructURI(String.format("/users/%s", objectId), null), getHeaders().toArray(new HttpPair[0]));
+			}
+		});
 
 		if (response.status().getCode() == 404) {
 			throw new PrincipalNotFoundException(objectId + " not found.", null, PrincipalType.user);
@@ -223,10 +223,17 @@ public class UserService extends AbstractRestAPIService {
 	 * @throws PrincipalNotFoundException
 	 * @return
 	 */
-	public GroupsAndRoles getServicePrincipalGroupsAndRoles(String objectId) {
-		HttpResponse response = httpRequestHandler.handleRequestGet(
-				constructURI(String.format("/servicePrincipals/%s/memberOf", objectId), null),
-				getHeaders().toArray(new HttpPair[0]));
+	public GroupsAndRoles getServicePrincipalGroupsAndRoles(final String objectId) {
+		
+		HttpResponse response = retryIfTokenFails(new Callable<HttpResponse>() {
+			@Override
+			public HttpResponse call() throws Exception {
+				return httpRequestHandler.handleRequestGet(
+						constructURI(String.format("/servicePrincipals/%s/memberOf", objectId), null),
+						getHeaders().toArray(new HttpPair[0]));
+			}
+		});
+		
 		try {
 			if (response.status().getCode() == 404) {
 				throw new PrincipalNotFoundException(objectId + " not found.", null, PrincipalType.user);
@@ -262,10 +269,16 @@ public class UserService extends AbstractRestAPIService {
 	 * @param objectId
 	 * @param user
 	 */
-	public void probeGroupsAndRoles(User user) {
-		HttpResponse response = httpRequestHandler.handleRequestGet(
-				constructURI(String.format("/users/%s/memberOf", user.getObjectId()), null),
-				getHeaders().toArray(new HttpPair[0]));
+	public void probeGroupsAndRoles(final User user) {
+		
+		HttpResponse response = retryIfTokenFails(new Callable<HttpResponse>() {
+			@Override
+			public HttpResponse call() throws Exception {
+				return httpRequestHandler.handleRequestGet(
+						constructURI(String.format("/users/%s/memberOf", user.getObjectId()), null),
+						getHeaders().toArray(new HttpPair[0]));
+			}
+		});
 		try {
 			GroupsAndRoles groupsAndRoles = mapGroupsAndRoles(response);
 			user.setMemberOf(groupsAndRoles.groups);
