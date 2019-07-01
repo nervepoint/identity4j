@@ -65,6 +65,13 @@ public class ADToken {
 		scope = aadjwtToken.scope;
 		notBefore = aadjwtToken.notBefore;
 	}
+	
+	public void recalcExpiresOn() {
+		/* Ensure the expires on is local time by basing it on the current local time
+		 * and the expires in value
+		 */
+		expiresOn = ( System.currentTimeMillis() / 1000 ) + expiresIn;
+	}
 
     @JsonProperty("scope")
 	public String getScope() {
