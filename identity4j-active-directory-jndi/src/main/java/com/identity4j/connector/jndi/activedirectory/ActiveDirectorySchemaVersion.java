@@ -11,7 +11,7 @@ public enum ActiveDirectorySchemaVersion {
 	WINDOWS_2008_R2(47),
 	WINDOWS_2012(56),
     WINDOWS_2012_R2(69),  
-    WINDWOS_2016(87),
+    WINDOWS_2016(87),
     WINDOWS_2019(88),
 	POST_WINDOWS_2019(Integer.MAX_VALUE);
 	

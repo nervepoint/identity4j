@@ -890,7 +890,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
                 	cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2012_R2;
                 	break;
                 case 87:
-                	cachedVersion = ActiveDirectorySchemaVersion.WINDWOS_2016;
+                	cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2016;
                 	break;
                 case 88:
                 	cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2019;
