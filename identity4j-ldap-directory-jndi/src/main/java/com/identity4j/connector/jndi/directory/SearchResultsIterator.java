@@ -251,12 +251,9 @@ public class SearchResultsIterator<T extends Object> implements Iterator<T> {
 							LOG.error("Following referrals is on but partial result was received", e);
 						} else {
 							if (LOG.isDebugEnabled()) {
-								LOG.debug("Partial resluts ignored: " + e.getExplanation());
+								LOG.debug("Partial resuts ignored: " + e.getExplanation());
 							}
 						}
-						// Break out of this loop to get the next DN
-						closeListIterator();
-						dn = null;
 					} catch (NamingException e) {
 						LOG.error("Failed to get results", e);
 						closeListIterator();
