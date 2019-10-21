@@ -62,7 +62,6 @@ public class DirectoryDataServiceAuthorizationHelper {
 	 * @param stsUrl
 	 * @param principalId
 	 * @param clientKey
-	 * 
 	 * @return Json Web Token
 	 * 
 	 * @throws IOException
@@ -79,7 +78,7 @@ public class DirectoryDataServiceAuthorizationHelper {
 			log.info(String.format("Getting new client_credentials access token for %s (resource %s), secret %s, princ %s", tenantName, graphPrincipalId, clientKey, principalId ));
 			HttpResponse resp = client.post(null,
 					Arrays.asList(
-							new HttpPair("grant_type", "client_credentials"),
+							new HttpPair("grant_type","client_credentials"),
 							new HttpPair("resource", graphPrincipalId), 
 							new HttpPair("client_id", principalId),
 							new HttpPair("client_secret", clientKey)),
@@ -90,6 +89,7 @@ public class DirectoryDataServiceAuthorizationHelper {
                     String contentString = resp.contentString();
                     log.info("Full token response " + contentString);
                     ADToken object = JsonMapperService.getInstance().getObject(ADToken.class, contentString);
+                    log.info("New token " + object);
                     object.recalcExpiresOn();
 					return object;
                 } else if(res == 401)

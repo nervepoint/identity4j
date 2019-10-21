@@ -28,7 +28,7 @@ import com.identity4j.connector.office365.Office365Configuration;
 import com.identity4j.connector.office365.services.token.handler.ADToken;
 import com.identity4j.connector.office365.services.token.handler.DirectoryDataServiceAuthorizationHelper;
 
-class TokenHolder{
+public class TokenHolder{
 	
 	/**
 	 * Get or refresh a valid token to authenticate REST Service calls.

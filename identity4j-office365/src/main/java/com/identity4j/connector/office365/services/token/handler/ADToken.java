@@ -64,6 +64,7 @@ public class ADToken {
 		resource = aadjwtToken.resource;
 		scope = aadjwtToken.scope;
 		notBefore = aadjwtToken.notBefore;
+		accessToken = aadjwtToken.accessToken;
 	}
 	
 	public void recalcExpiresOn() {
