@@ -74,9 +74,10 @@ public abstract class AbstractRestAPIService {
 				throw new ConnectorException("Problem in getting new token.",e);
 			}
 		}
-		else
-			log.info(String.format("Reusing token %s", token.getBearerAccessToken()));
-        log.info("Using bearer token " + token.getBearerAccessToken());
+		else if(log.isDebugEnabled())
+			log.debug(String.format("Reusing token %s", token.getBearerAccessToken()));
+		if(log.isDebugEnabled())
+			log.info("Using bearer token " + token.getBearerAccessToken());
 		h.add(new HttpPair(Office365Configuration.AUTHORIZATION_HEADER,	token.getBearerAccessToken()));
 		h.add(new HttpPair(Office365Configuration.CONTENT_TYPE,Office365Configuration.contentTypeJSON));
 		return h;
