@@ -135,7 +135,7 @@ public class GoogleConnector extends AbstractConnector {
 					ConnectorCapability.roles, ConnectorCapability.createRole, ConnectorCapability.deleteRole,
 					ConnectorCapability.updateRole, ConnectorCapability.webAuthentication,
 					ConnectorCapability.identities, ConnectorCapability.accountDisable,
-					ConnectorCapability.identityAttributes, ConnectorCapability.roleAttributes }));
+					ConnectorCapability.identityAttributes, ConnectorCapability.roleAttributes, ConnectorCapability.forcePasswordChange }));
 
 	@Override
 	public PasswordCharacteristics getPasswordCharacteristics() {
