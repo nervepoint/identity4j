@@ -77,6 +77,10 @@ public class Office365Configuration extends AbstractConnectorConfiguration{
 	 * Configuration property key for excludes
 	 */
 	public static final String OFFICE365_INCLUDED_GROUPS = "office365IncludedGroups";
+	/**
+	 * Configuration property key for preload groups users
+	 */
+	public static final String OFFICE365_PRELOAD_GROUPS_USERS = "office365PreloadGroupsUser";
 	
 	public Office365Configuration(MultiMap configurationParameters) {
 		super(configurationParameters);
@@ -210,6 +214,10 @@ public class Office365Configuration extends AbstractConnectorConfiguration{
 	@Override
 	public String getHostnameHint() {
 		return null;
+	}
+	
+	public boolean isPreloadGroupsUsers() {
+		return "true".equals(configurationParameters.getStringOrDefault(OFFICE365_PRELOAD_GROUPS_USERS, "true"));
 	}
 	
 	public Set<String> getIncludedGroups() {

@@ -36,7 +36,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  *
  */
 @JsonIgnoreProperties(ignoreUnknown=true)
-public class Groups {
+public class Groups extends Principals<Group> {
 
 	@JsonProperty("value")
 	private List<Group> groups;
@@ -49,5 +49,9 @@ public class Groups {
 		this.groups = groups;
 	}
 
+	@Override
+	public List<Group> getPrincipals() {
+		return getGroups();
+	}
 	
 }

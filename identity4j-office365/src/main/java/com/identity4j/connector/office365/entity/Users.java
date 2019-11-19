@@ -36,17 +36,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  *
  */
 @JsonIgnoreProperties(ignoreUnknown=true)
-public class Users {
+public class Users extends Principals<User> {
 
 	@JsonProperty("value")
 	private List<User> users;
-	
-	@JsonProperty("odata.nextLink")
-	private String nextLink;
-	
-	public String getNextLink() {
-		return nextLink;
-	}
 
 	public List<User> getUsers() {
 		return users;
@@ -54,5 +47,10 @@ public class Users {
 
 	public void setUsers(List<User> users) {
 		this.users = users;
+	}
+
+	@Override
+	public List<User> getPrincipals() {
+		return getUsers();
 	}
 }

@@ -30,42 +30,12 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
  * @author gaurav
  */
 @JsonIgnoreProperties(ignoreUnknown=true)
-public class Group {
+public class Group extends Principal {
 	
-	private String objectId;	
-	private String description;
-	private String dirSyncEnabled;
-	private String displayName;
+	private String description;	
 	private String lastDirSyncTime;
-	private String mail;
 	private String mailEnabled;
 	private String securityEnabled;
-	private String mailNickname;
-
-	/**
-	 * @return The objectId of this Group.
-	 */
-	public String getObjectId() {
-		return objectId;
-	}
-	/**
-	 * @param objectId The objectId to set.
-	 */
-	public void setObjectId(String objectId) {
-		this.objectId = objectId;
-	}
-	/**
-	 * @return The dirSyncEnabled attribute of this Group.
-	 */
-	public String getDirSyncEnabled() {
-		return dirSyncEnabled;
-	}
-	/**
-	 * @param dirSyncEnabled The dirSyncEnabled to set.
-	 */
-	public void setDirSyncEnabled(String dirSyncEnabled) {
-		this.dirSyncEnabled = dirSyncEnabled;
-	}
 	/**
 	 * @return The description of the Group.
 	 */
@@ -79,18 +49,6 @@ public class Group {
 		this.description = description;
 	}
 	/**
-	 * @return The displayName of this Group.
-	 */
-	public String getDisplayName() {
-		return displayName;
-	}
-	/**
-	 * @param displayName The displayName to set to this Group.
-	 */
-	public void setDisplayName(String displayName) {
-		this.displayName = displayName;
-	}
-	/**
 	 * @return The lastDirSyncTime of this Group.
 	 */
 	public String getLastDirSyncTime() {
@@ -101,18 +59,6 @@ public class Group {
 	 */
 	public void setLastDirSyncTime(String lastDirSyncTime) {
 		this.lastDirSyncTime = lastDirSyncTime;
-	}
-	/**
-	 * @return The mail attribute of this Group.
-	 */
-	public String getMail() {
-		return this.mail;
-	}
-	/**
-	 * @param mail The mail to set to this Group.
-	 */
-	public void setMail(String mail) {
-		this.mail = mail;
 	}
 	/**
 	 * @return The mailEnabled attribute of this Group.
@@ -138,12 +84,6 @@ public class Group {
 	public void setSecurityEnabled(String securityEnabled) {
 		this.securityEnabled = securityEnabled;
 	}
-	public String getMailNickname() {
-		return mailNickname;
-	}
-	public void setMailNickname(String mailNickname) {
-		this.mailNickname = mailNickname;
-	}
-	
+
 
 }
