@@ -41,6 +41,7 @@ import java.util.UUID;
 
 import javax.naming.InvalidNameException;
 import javax.naming.Name;
+import javax.naming.NameAlreadyBoundException;
 import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
 import javax.naming.directory.Attribute;
@@ -163,7 +164,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 	public static final String UNIVERSAL = "-2147483640";
 
 	private ActiveDirectorySchemaVersion cachedVersion;
-	
+
 	@Override
 	public Set<ConnectorCapability> getCapabilities() {
 		if (!capabilities.contains(ConnectorCapability.hasPasswordPolicy)) {
@@ -207,8 +208,8 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			INITIALS_ATTRIBUTE, DESCRIPTION_ATTRIBUTE, OFFICE_ATTRIBUTE, HOME_PAGE_ATTRIBUTE, PROFILE_PATH_ATTRIBUTE,
 			SCRIPT_PATH_ATTRIBUTE, HOME_DIR_ATTRIBUTE, HOME_DRIVE_ATTRIBUTE, HOME_PHONE_ATTRIBUTE, PAGER_ATTRIBUTE,
 			FAX_ATTRIBUTE, IPPHONE_ATTRIBUTE, INFO_ATTRIBUTE, TITLE_ATTRIBUTE, DEPARTMENT_ATTRIBUTE, COMPANY_ATTRIBUTE,
-			MANAGER_ATTRIBUTE, DISPLAY_NAME_ATTRIBUTE, PASSWORD_POLICY_APPLIES, PROXY_ADDRESSES, COUNTRY, COUNTRY_CODE, CITY, STATE,
-			STREET_ADRESS, POST_OFFICE_BOX, POSTAL_CODE
+			MANAGER_ATTRIBUTE, DISPLAY_NAME_ATTRIBUTE, PASSWORD_POLICY_APPLIES, PROXY_ADDRESSES, COUNTRY, COUNTRY_CODE,
+			CITY, STATE, STREET_ADRESS, POST_OFFICE_BOX, POSTAL_CODE
 
 	});
 
@@ -256,7 +257,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 				}
 			}
 		}
-		
+
 		getSchemaVersion();
 		getPasswordCharacteristics();
 	}
@@ -303,12 +304,21 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 
 	@Override
 	protected void assignRole(LdapName userDn, Role role) throws NamingException, IOException {
+		if(role.getPrincipalName().equals("Domain Users")) {
+			LOG.warn(String.format("%s is automatically assigned to Domain Users", userDn));
+			return;
+		}
 
 		List<ModificationItem> modificationItems = new ArrayList<ModificationItem>();
 		Attribute attribute = new BasicAttribute(MEMBER_ATTRIBUTE, userDn.toString());
 		modificationItems.add(new ModificationItem(DirContext.ADD_ATTRIBUTE, attribute));
 
-		ldapService.update(((ActiveDirectoryGroup) role).getDn(), modificationItems.toArray(new ModificationItem[0]));
+		try {
+			ldapService.update(((ActiveDirectoryGroup) role).getDn(),
+					modificationItems.toArray(new ModificationItem[0]));
+		} catch (Exception nme) {
+			LOG.warn(String.format("%s is already assigned to %s", userDn, role.getPrincipalName()), nme);
+		}
 	}
 
 	@Override
@@ -421,17 +431,19 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 
 		super.processUserAttributes(modificationItems, previousState, newState);
 
-		String principalNameWithDomain = newState.getPrincipalName() + "@" + getActiveDirectoryConfiguration().getDomain();
+		String principalNameWithDomain = newState.getPrincipalName() + "@"
+				+ getActiveDirectoryConfiguration().getDomain();
 		if (!newState.getPrincipalName().equalsIgnoreCase(previousState.getAttribute(USER_PRINCIPAL_NAME_ATTRIBUTE))
 				&& !principalNameWithDomain
 						.equalsIgnoreCase(previousState.getAttribute(USER_PRINCIPAL_NAME_ATTRIBUTE))) {
 			Attribute attribute = new BasicAttribute(USER_PRINCIPAL_NAME_ATTRIBUTE, principalNameWithDomain);
 			modificationItems.add(new ModificationItem(DirContext.REPLACE_ATTRIBUTE, attribute));
 		}
-		
-		/* Not entirely convinvced by this. The attribute itself gets changed as a 
-		 * normal attribute, why is this here? It looks very intentional. I can't
-		 * seem to find any problems by removing it.
+
+		/*
+		 * Not entirely convinvced by this. The attribute itself gets changed as a
+		 * normal attribute, why is this here? It looks very intentional. I can't seem
+		 * to find any problems by removing it.
 		 * 
 		 * #LBPR2380 - Updating mobile number on AD user does not update AD itself
 		 */
@@ -848,81 +860,81 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 
 	@SuppressWarnings("unused")
 	private boolean isUsePSO() {
-        int version = getSchemaVersion().getVersion();
-        return version >= ActiveDirectorySchemaVersion.WINDOWS_2008.getVersion();
-    }
-	
+		int version = getSchemaVersion().getVersion();
+		return version >= ActiveDirectorySchemaVersion.WINDOWS_2008.getVersion();
+	}
+
 	protected ActiveDirectorySchemaVersion getSchemaVersion() {
 
-        if (cachedVersion != null) {
-            return cachedVersion;
-        }
-
-        try {
-        	
-        	/**
-        	 * TODO we need to fix this for child domains
-        	 */
-        	LdapName schemaDn = new LdapName("CN=Schema,CN=Configuration,"  + getRootDn().toString());
-        	String value = getAttributeValue(schemaDn, "objectVersion");
-        	
-            int version = Integer.parseInt(value);
-            switch (version) {
-                case 13:
-                    cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2000;
-                    break;
-                case 30:
-                	cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2003;
-                	break;
-                case 31:
-                	cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2003_R2;
-                	break;
-                case 44:
-                	cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2008;
-                	break;
-                case 47:
-                	cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2008_R2;
-                	break;
-                case 56:
-                	cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2012;
-                	break;
-                case 69:
-                	cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2012_R2;
-                	break;
-                case 87:
-                	cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2016;
-                	break;
-                case 88:
-                	cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2019;
-                	break;
-                default:
-                    LOG.info("Could not determine Active Directory schema version from value " + value);
-                    if(version < ActiveDirectorySchemaVersion.WINDOWS_2000.getVersion()) {
-                    	cachedVersion = ActiveDirectorySchemaVersion.PRE_WINDOWS_2000;
-                    } else if(version > ActiveDirectorySchemaVersion.WINDOWS_2019.getVersion()) {
-                    	cachedVersion = ActiveDirectorySchemaVersion.POST_WINDOWS_2019;
-                    } else {
-                    	cachedVersion = ActiveDirectorySchemaVersion.UNKNOWN;
-                    }
-                    break;
-            }
-           
-        } catch (NumberFormatException  e) {
-            LOG.info("Could not determine Active Directory schema version", e);
-            cachedVersion = ActiveDirectorySchemaVersion.UNKNOWN;
-        } catch (Throwable e) {
-        	LOG.info("Could not determine Active Directory schema version", e);
-            cachedVersion = ActiveDirectorySchemaVersion.UNKNOWN;
+		if (cachedVersion != null) {
+			return cachedVersion;
 		}
-        
-        if(LOG.isInfoEnabled()) {
-        	LOG.info("Active Directory schema version is " + cachedVersion.name().replaceAll("_", " "));
-        }
-        
-        return cachedVersion;
 
-    }
-	
+		try {
+
+			/**
+			 * TODO we need to fix this for child domains
+			 */
+			LdapName schemaDn = new LdapName("CN=Schema,CN=Configuration," + getRootDn().toString());
+			String value = getAttributeValue(schemaDn, "objectVersion");
+
+			int version = Integer.parseInt(value);
+			switch (version) {
+			case 13:
+				cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2000;
+				break;
+			case 30:
+				cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2003;
+				break;
+			case 31:
+				cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2003_R2;
+				break;
+			case 44:
+				cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2008;
+				break;
+			case 47:
+				cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2008_R2;
+				break;
+			case 56:
+				cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2012;
+				break;
+			case 69:
+				cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2012_R2;
+				break;
+			case 87:
+				cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2016;
+				break;
+			case 88:
+				cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2019;
+				break;
+			default:
+				LOG.info("Could not determine Active Directory schema version from value " + value);
+				if (version < ActiveDirectorySchemaVersion.WINDOWS_2000.getVersion()) {
+					cachedVersion = ActiveDirectorySchemaVersion.PRE_WINDOWS_2000;
+				} else if (version > ActiveDirectorySchemaVersion.WINDOWS_2019.getVersion()) {
+					cachedVersion = ActiveDirectorySchemaVersion.POST_WINDOWS_2019;
+				} else {
+					cachedVersion = ActiveDirectorySchemaVersion.UNKNOWN;
+				}
+				break;
+			}
+
+		} catch (NumberFormatException e) {
+			LOG.info("Could not determine Active Directory schema version", e);
+			cachedVersion = ActiveDirectorySchemaVersion.UNKNOWN;
+		} catch (Throwable e) {
+			LOG.info("Could not determine Active Directory schema version", e);
+			cachedVersion = ActiveDirectorySchemaVersion.UNKNOWN;
+		}
+
+		if (LOG.isInfoEnabled()) {
+			LOG.info("Active Directory schema version is " + cachedVersion.name().replaceAll("_", " "));
+		}
+
+		return cachedVersion;
+
+	}
+
 	protected String processNamingException(NamingException nme) {
 		DirectoryExceptionParser dep = new DirectoryExceptionParser(nme);
 		String reason = dep.getReason();
@@ -945,12 +957,14 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			throw new PasswordPolicyViolationException(message);
 		} else if (reason.equals("00000056") || reason.equals("00000057")) {
 			throw new PasswordPolicyViolationException(
-					"The new password does not comply with the rules enforced by Active Directory. It is also likely you very recently made another password change.", nme);
+					"The new password does not comply with the rules enforced by Active Directory. It is also likely you very recently made another password change.",
+					nme);
 		} else if (reason.equals("00000524")) {
 			throw new ConnectorException("Attempt to create account with username that already exists.", nme);
 		} else if (reason.equals("0000001F")) {
 			throw new ConnectorException(
-					"Could not perform the requested operation. Please configure the server to connect to your Active Directory securely over SSL.", nme);
+					"Could not perform the requested operation. Please configure the server to connect to your Active Directory securely over SSL.",
+					nme);
 		} else if (reason.equals("80090308") && "773".equals(dep.getData())) {
 			throw new PasswordChangeRequiredException(
 					"Cannot change password when changePasswordPasswordAtNextLogin is set, must use setPassword");
@@ -992,7 +1006,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 	protected void setPassword(Identity identity, char[] password, boolean forcePasswordChangeAtLogon,
 			PasswordResetType type) throws ConnectorException {
 		try {
-			
+
 			if (forcePasswordChangeAtLogon) {
 				switch (identity.getPasswordStatus().getType()) {
 				case neverExpires:
@@ -1008,13 +1022,14 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			}
 			String newQuotedPassword = "\"" + new String(password) + "\"";
 			byte[] newUnicodePassword = newQuotedPassword.getBytes("UTF-16LE");
-			boolean enforce = getConfiguration().getConfigurationParameters().getBoolean(ActiveDirectoryConfiguration.ACTIVE_DIRECTORy_ENFORCE_PASSWORD_RULES);
-			
+			boolean enforce = getConfiguration().getConfigurationParameters()
+					.getBoolean(ActiveDirectoryConfiguration.ACTIVE_DIRECTORy_ENFORCE_PASSWORD_RULES);
+
 			if (type == PasswordResetType.USER) {
-				if(!enforce) {
+				if (!enforce) {
 					ldapService.setPassword(((DirectoryIdentity) identity).getDn().toString(), newUnicodePassword);
 				} else {
-					if(getSchemaVersion().ordinal() >= ActiveDirectorySchemaVersion.WINDOWS_2008_R2.ordinal()) {
+					if (getSchemaVersion().ordinal() >= ActiveDirectorySchemaVersion.WINDOWS_2008_R2.ordinal()) {
 						ldapService.setPassword(((DirectoryIdentity) identity).getDn().toString(), newUnicodePassword,
 								new BasicControl(LDAP_SERVER_POLICY_HINTS_OID, true, controlData));
 					} else {
@@ -1066,7 +1081,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			while (it.hasNext()) {
 				ActiveDirectoryGroup group = (ActiveDirectoryGroup) it.next();
 				String dn = group.getDn().toString();
-				
+
 				/**
 				 * LDP: Removed as part of Invalid name fix
 				 */
@@ -1093,7 +1108,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 
 				@Override
 				public Identity apply(SearchResult result) throws NamingException {
-					
+
 					Attributes attributes = result.getAttributes();
 
 					byte[] guidBytes = (byte[]) getAttribute(attributes.get(OBJECT_GUID_ATTRIBUTE));
@@ -1136,7 +1151,8 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 						directoryIdentity.setAddress(Media.mobile, phoneNumber);
 					}
 
-					LdapName ou = new LdapName((String) getAttribute(attributes.get(config.getDistinguishedNameAttribute())));
+					LdapName ou = new LdapName(
+							(String) getAttribute(attributes.get(config.getDistinguishedNameAttribute())));
 					ou.remove(ou.size() - 1);
 					directoryIdentity.setAttribute(OU_ATTRIBUTE, ou.toString());
 
@@ -1251,8 +1267,8 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 								String dn = groupDnsItr.next();
 
 								/**
-								 * LDP - This is causing Invalid name exception when group
-								 * is retrieved via lookupContext
+								 * LDP - This is causing Invalid name exception when group is retrieved via
+								 * lookupContext
 								 */
 								// https://jira.springsource.org/browse/LDAP-109
 //								dn = dn.replace("\\\\", "\\\\\\");
@@ -1557,7 +1573,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 		}
 		Date lastPasswordChange = identity.getPasswordStatus().getLastChange();
 		int days = getMinimumPasswordAge();
-		if(days > 0) {
+		if (days > 0) {
 			if (lastPasswordChange != null && !Util.isDatePast(lastPasswordChange, days)) {
 				throw new PasswordChangeTooSoonException(lastPasswordChange);
 			}
@@ -1588,7 +1604,8 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 				group.setAttribute(attribute.getID(), getElements(attribute));
 			}
 
-			LdapName ou = new LdapName((String) getAttribute(attributes.get(getActiveDirectoryConfiguration().getDistinguishedNameAttribute())));
+			LdapName ou = new LdapName((String) getAttribute(
+					attributes.get(getActiveDirectoryConfiguration().getDistinguishedNameAttribute())));
 			ou.remove(ou.size() - 1);
 			group.setAttribute(OU_ATTRIBUTE, ou.toString());
 
