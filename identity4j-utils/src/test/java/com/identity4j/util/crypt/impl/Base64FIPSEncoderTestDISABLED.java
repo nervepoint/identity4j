@@ -38,7 +38,7 @@ public class Base64FIPSEncoderTestDISABLED extends AbstractEncoderTest {
              */
             byte[] noise = new byte[128];
             byte[] passphrase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456".getBytes("US-ASCII");
-            new NssTokenDatabase(noise, passphrase);
+            new NssTokenDatabase(noise, passphrase).start();;
         } catch (Exception e) {
             System.err.println("Failed to initialize token database correctly");
             e.printStackTrace();

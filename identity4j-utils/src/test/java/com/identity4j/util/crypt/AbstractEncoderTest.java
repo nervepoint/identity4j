@@ -28,13 +28,18 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.UnsupportedEncodingException;
 
+import org.apache.log4j.BasicConfigurator;
 import org.junit.Test;
 
-import com.identity4j.util.crypt.Encoder;
-import com.identity4j.util.crypt.EncoderException;
 import com.identity4j.util.crypt.impl.DefaultEncoderManager;
+import com.identity4j.util.crypt.nss.DefaultNssTokenDatabase;
 
 public abstract class AbstractEncoderTest {
+	
+	static {
+		BasicConfigurator.configure();
+	}
+	
 	private final Encoder encoder;
 	private final boolean twoWay;
 	protected String[] testStrings;

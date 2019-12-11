@@ -41,6 +41,7 @@ import java.security.SecureRandom;
 import java.security.Security;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
+import java.util.Properties;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -50,11 +51,26 @@ import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 public class NssTokenDatabase {
+
+    private static NssTokenDatabase instance;
+
+    public static NssTokenDatabase getInstance() throws KeyStoreException, NoSuchAlgorithmException, CertificateException,
+                    IOException, InterruptedException {
+        if (instance == null)
+            throw new IllegalStateException(
+                            "State NssTokenDatabase not initialized, please construct an instance once to register an instance.");
+        return instance;
+    }
+
+    {
+        instance = this;
+    }
 
 	static Log log = LogFactory.getLog(NssTokenDatabase.class);
 
@@ -66,6 +82,7 @@ public class NssTokenDatabase {
 	private File privateDir;
 	private byte[] passphrase;
 	private String keyName = "nam";
+	private boolean fipsMode = true;
 
 	public NssTokenDatabase() throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException,
 			InterruptedException {
@@ -101,20 +118,30 @@ public class NssTokenDatabase {
 		return keyName;
 	}
 
+	public boolean isFipsMode() {
+		return fipsMode;
+	}
+
+	public void setFipsMode(boolean fipsMode) {
+		if(keystore != null)
+			throw new IllegalStateException("FIPS mode cannot be changed if the keystore is started.");
+		this.fipsMode = fipsMode;
+	}
+
 	public void setKeyName(String keyName) {
 		this.keyName = keyName;
 	}
 
 	public void start() throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException {
 		if (!dbDir.exists() && !dbDir.mkdirs()) {
-			throw new IOException(String.format(
+			throw new IllegalStateException(String.format(
 					"Could not create database directory %s.  Please ensure user %s has permissions to write to the parent directory.",
 					dbDir, System.getProperty("user.name")));
 		}
 
 		this.privateDir = new File(dbDir, ".private");
 		if (!privateDir.exists() && !privateDir.mkdirs()) {
-			throw new IOException(String.format(
+			throw new IllegalStateException(String.format(
 					"Could not create database private directory %s.  Please ensure user %s has permissions to write to the parent directory.",
 					privateDir, System.getProperty("user.name")));
 		}
@@ -185,13 +212,37 @@ public class NssTokenDatabase {
 			try {
 				pw.println("name = NSScrypto");
 				pw.println("attributes = compatibility");
-				// pw.println("nssLibraryDirectory =
-				// /usr/lib/x86_64-linux-gnu");
 				pw.println("nssSecmodDirectory = " + privateDir.getAbsolutePath());
 				pw.println("nssDbMode = readWrite");
-				pw.println("nssModule = fips");
+				if(fipsMode) {
+					pw.println("nssModule = fips");
+				}
+				
+				// Only OpenJDK
+				//pw.println("handleStartupErrors = ignoreMultipleInitialisation");
+				
 			} finally {
 				pw.close();
+			}
+		}
+		else {
+			Properties p = new Properties();
+			try(FileInputStream fin = new FileInputStream(configFile)) {
+				p.load(fin);
+			}
+			boolean changed= false;
+			if(fipsMode && !"fips".equals(p.getProperty("nssModule"))) {
+				p.setProperty("nssModule", "fips");
+				changed = true;
+			}
+			else if(!fipsMode && "fips".equals(p.getProperty("nssModule"))) {
+				p.remove("nssModule");
+				changed = true;
+			}
+			if(changed) {
+				try(FileOutputStream fos = new FileOutputStream(configFile)) {
+					p.store(fos, "Identity4J NSS configuration");
+				}
 			}
 		}
 
@@ -202,8 +253,15 @@ public class NssTokenDatabase {
         Class<?> clz;
         try {
             clz = Class.forName("sun.security.pkcs11.SunPKCS11");
-            Constructor<?> constructor = clz.getConstructor(String.class);
-            cryptoProvider = (Provider) constructor.newInstance(configFile.getAbsolutePath());
+            try {
+	            Constructor<?> constructor = clz.getConstructor(String.class);
+	            cryptoProvider = (Provider) constructor.newInstance(configFile.getAbsolutePath());
+            }
+            catch(NoSuchMethodException nsme) {
+	            Constructor<?> constructor = clz.getConstructor();
+	            cryptoProvider = (Provider) constructor.newInstance();
+	            cryptoProvider.getClass().getMethod("configure", String.class).invoke(cryptoProvider, configFile.getAbsolutePath());
+            }
             dbPassword = IOUtils.toString(new FileInputStream(keyFile), "US-ASCII");
             char[] nssDBPassword = dbPassword.toCharArray();
             keystore = KeyStore.getInstance("PKCS11", cryptoProvider);
@@ -257,15 +315,15 @@ public class NssTokenDatabase {
 		}
 	}
 
-	private void createDatabase(File keyFile) throws IOException {
+	private void createDatabase(File keyFile) throws IOException, KeyStoreException {
 
 		/* Sanity check */
 		if (check("certutil") != 1) {
-			throw new IOException("Could not detect certutil. Please ensure this is installed (for "
+			throw new IllegalStateException("Could not detect certutil. Please ensure this is installed (for "
 					+ "example, on Debian this would be the libnss3-tools package.");
 		}
 		if (check("modutil") != 1) {
-			throw new IOException("Could not detect modutil. Please ensure this is installed (for "
+			throw new IllegalStateException("Could not detect modutil. Please ensure this is installed (for "
 					+ "example, on Debian this would be the libnss3-tools package.");
 		}
 
@@ -284,6 +342,7 @@ public class NssTokenDatabase {
 
 		File noiseFile = File.createTempFile("id4jnoise", ".dat");
 		noiseFile.deleteOnExit();
+		boolean ok = false;
 		try {
 
 			FileOutputStream out = new FileOutputStream(noiseFile);
@@ -309,17 +368,28 @@ public class NssTokenDatabase {
 			String db = privateDir.getAbsolutePath();
 
 			String[] createCmd = new String[] { "certutil", "-N", "-d", db, "-f", db + "/.key" };
-			exec(false, createCmd);
+			if(exec(false, createCmd) != 0) {
+				throw new IllegalStateException("Failed to create new private key for FIPS mode, check log output.");
+			}
 			String[] makeFips = new String[] { "modutil", "-fips", "true", "-dbdir", db, "-force" };
-			exec(false, makeFips);
+			if(exec(false, makeFips) !=0) {
+				log.error("Failed to enable FIPS mode, check log output.");
+//				throw new IllegalStateException("Failed to enable FIPS mode, check log output.");
+			}
 			String[] certCmd = new String[] { "certutil", "-S", "-s", "CN=Access Manager", "-n", keyName, "-x", "-t",
 					"CT,C,C", "-v", "120", "-m", "1234", "-d", db, "-z", noiseFile.getAbsolutePath(), "-f",
 					db + "/.key", "-g", "2048" };
-			exec(false, certCmd);
+			if(exec(false, certCmd) !=0) {
+				throw new IllegalStateException("Failed to create certificate, check log output.");
+			}
 			exec(false, new String[] { "chmod", "400", keyFile.getAbsolutePath() });
 			exec(false, new String[] { "chmod", "500", privateDir.getAbsolutePath() });
+			ok = true;
 		} finally {
 			noiseFile.delete();
+			if(!ok) {
+				FileUtils.deleteDirectory(privateDir);
+			}
 		}
 
 	}

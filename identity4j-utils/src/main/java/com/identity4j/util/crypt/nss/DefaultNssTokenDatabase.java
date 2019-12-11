@@ -30,20 +30,6 @@ import java.security.cert.CertificateException;
 
 public class DefaultNssTokenDatabase extends NssTokenDatabase {
 
-    private static NssTokenDatabase instance;
-
-    public static NssTokenDatabase getInstance() throws KeyStoreException, NoSuchAlgorithmException, CertificateException,
-                    IOException, InterruptedException {
-        if (instance == null)
-            throw new IOException(
-                            "State NssTokenDatabase not initialized, please construct an instance once to register an instance.");
-        return instance;
-    }
-
-    {
-        instance = this;
-    }
-
     public DefaultNssTokenDatabase() throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException,
         InterruptedException {
         super();
