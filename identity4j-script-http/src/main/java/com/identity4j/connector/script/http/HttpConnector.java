@@ -1,30 +1,48 @@
 /* HEADER */
 package com.identity4j.connector.script.http;
 
+/*
+ * #%L
+ * Identity4J Scripted HTTP Connector
+ * %%
+ * Copyright (C) 2013 - 2017 LogonBox
+ * %%
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Lesser Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Lesser Public
+ * License along with this program.  If not, see
+ * <http://www.gnu.org/licenses/lgpl-3.0.html>.
+ * #L%
+ */
+
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
 
 import javax.script.Invocable;
 import javax.script.ScriptException;
 
-import org.apache.commons.httpclient.Credentials;
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.UsernamePasswordCredentials;
-import org.apache.commons.httpclient.auth.AuthScope;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.identity4j.connector.ConnectorConfigurationParameters;
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.script.ScriptConnector;
+import com.identity4j.util.http.Http;
+import com.identity4j.util.http.HttpProviderClient;
 
 public class HttpConnector extends ScriptConnector {
 
 	private final static Log LOG = LogFactory.getLog(HttpConnector.class);
 
 	private HttpConfiguration httpConfiguration;
-	private HttpClient client;
+	private HttpProviderClient client;
 
 	public HttpConnector() {
 		super();
@@ -39,27 +57,21 @@ public class HttpConnector extends ScriptConnector {
 	protected String getScriptContent() throws IOException {
 		return httpConfiguration.getScriptContent();
 	}
-
-	@Override
 	protected void onOpen(ConnectorConfigurationParameters parameters) {
 		httpConfiguration = (HttpConfiguration) parameters;
 		super.onOpen(parameters);
-		client = new HttpClient();
-		try {
-			URL url = new URL(httpConfiguration.getUrl());
-			if (httpConfiguration.getServiceAccountUsername().length() > 0) {
-				Credentials defaultcreds = new UsernamePasswordCredentials(
-						httpConfiguration.getServiceAccountUsername(), httpConfiguration.getServiceAccountPassword());
-				String realm = httpConfiguration.getServiceAccountRealm();
-				client.getState()
-						.setCredentials(new AuthScope(url.getHost(),
-								url.getPort() == -1 ? (httpConfiguration.isHTTPS() ? 443 : 80) : url.getPort(),
-								realm.length() == 0 ? AuthScope.ANY_REALM : realm), defaultcreds);
-			}
-			getEngine().put("httpClient", new HttpClientWrapper(client, (HttpConfiguration) getConfiguration()));
-		} catch (MalformedURLException mrle) {
-			throw new IllegalArgumentException(mrle);
-		}
+	}
+
+	@Override
+	protected void onOpened(ConnectorConfigurationParameters parameters) {
+		httpConfiguration = (HttpConfiguration) parameters;
+		client = Http.getProvider().getClient(httpConfiguration.getUrl(),  
+				httpConfiguration.getServiceAccountUsername(), 
+				httpConfiguration.getServiceAccountPassword() == null ? null : httpConfiguration.getServiceAccountPassword().toCharArray(),
+				httpConfiguration.getServiceAccountRealm());
+		getEngine().put("httpClient", new HttpClientWrapper(client, (HttpConfiguration) getConfiguration()));
+		getEngine().put("httpProvider", Http.getProvider());
+		super.onOpened(parameters);
 
 	}
 

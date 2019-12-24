@@ -1,7 +1,30 @@
 /* HEADER */
 package com.identity4j.connector.jndi.activedirectory;
 
+/*
+ * #%L
+ * Identity4J Active Directory JNDI
+ * %%
+ * Copyright (C) 2013 - 2017 LogonBox
+ * %%
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Lesser Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Lesser Public
+ * License along with this program.  If not, see
+ * <http://www.gnu.org/licenses/lgpl-3.0.html>.
+ * #L%
+ */
+
 import java.io.IOException;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -18,6 +41,7 @@ import java.util.UUID;
 
 import javax.naming.InvalidNameException;
 import javax.naming.Name;
+import javax.naming.NameAlreadyBoundException;
 import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
 import javax.naming.directory.Attribute;
@@ -28,12 +52,13 @@ import javax.naming.directory.ModificationItem;
 import javax.naming.directory.SearchControls;
 import javax.naming.directory.SearchResult;
 import javax.naming.ldap.BasicControl;
+import javax.naming.ldap.LdapContext;
 import javax.naming.ldap.LdapName;
 import javax.naming.ldap.Rdn;
 
 import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.lang.ArrayUtils;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -41,6 +66,7 @@ import com.identity4j.connector.ConnectorCapability;
 import com.identity4j.connector.ConnectorConfigurationParameters;
 import com.identity4j.connector.Media;
 import com.identity4j.connector.exception.ConnectorException;
+import com.identity4j.connector.exception.InvalidLoginCredentialsException;
 import com.identity4j.connector.exception.PasswordChangeRequiredException;
 import com.identity4j.connector.exception.PasswordPolicyViolationException;
 import com.identity4j.connector.jndi.directory.DirectoryConnector;
@@ -59,14 +85,38 @@ import com.identity4j.util.StringUtil;
 import com.identity4j.util.Util;
 import com.identity4j.util.passwords.PasswordCharacteristics;
 
+import jcifs.UniAddress;
+import jcifs.smb.NtlmPasswordAuthentication;
+import jcifs.smb.SmbException;
+import jcifs.smb.SmbSession;
+
 public class ActiveDirectoryConnector extends DirectoryConnector {
 
-	public static final Iterator<String> STRING_ITERATOR = CollectionUtil
-			.emptyIterator(String.class);
+	public static final Iterator<String> STRING_ITERATOR = CollectionUtil.emptyIterator(String.class);
 
 	final static Log LOG = LogFactory.getLog(ActiveDirectoryConnector.class);
 
 	public static final String SAM_ACCOUNT_NAME_ATTRIBUTE = "sAMAccountName";
+	public static final String DISPLAY_NAME_ATTRIBUTE = "displayName";
+	public static final String GIVEN_NAME_ATTRIBUTE = "givenName";
+	public static final String SURNAME_ATTRIBUTE = "sn";
+	public static final String INITIALS_ATTRIBUTE = "initials";
+	public static final String DESCRIPTION_ATTRIBUTE = "description";
+	public static final String OFFICE_ATTRIBUTE = "physicalDeliveryOfficeName";
+	public static final String HOME_PAGE_ATTRIBUTE = "wWWHomePage";
+	public static final String PROFILE_PATH_ATTRIBUTE = "profilePath";
+	public static final String SCRIPT_PATH_ATTRIBUTE = "scriptPath";
+	public static final String HOME_DIR_ATTRIBUTE = "homeDirectory";
+	public static final String HOME_DRIVE_ATTRIBUTE = "homeDrive";
+	public static final String HOME_PHONE_ATTRIBUTE = "homePhone";
+	public static final String PAGER_ATTRIBUTE = "pager";
+	public static final String FAX_ATTRIBUTE = "facsimileTelephoneNumber";
+	public static final String IPPHONE_ATTRIBUTE = "ipPhone";
+	public static final String INFO_ATTRIBUTE = "info";
+	public static final String TITLE_ATTRIBUTE = "title";
+	public static final String DEPARTMENT_ATTRIBUTE = "department";
+	public static final String COMPANY_ATTRIBUTE = "company";
+	public static final String MANAGER_ATTRIBUTE = "manager";
 	public static final String USER_PRINCIPAL_NAME_ATTRIBUTE = "userPrincipalName";
 	public static final String OBJECT_GUID_ATTRIBUTE = "objectGUID";
 	public static final String USER_ACCOUNT_CONTROL_ATTRIBUTE = "userAccountControl";
@@ -91,8 +141,19 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 	public static final String OBJECT_SID_ATTRIBUTE = "objectSID";
 	public static final String PWD_PROPERTIES_ATTRIBUTE = "pwdProperties";
 	public static final String OU_ATTRIBUTE = "ou";
-	public static final String PASSWORD_POLICY_APPLIES = "msDS-PSOApplied";
-	
+	public static final String PASSWORD_POLICY_APPLIES = "msDS-ResultantPSO";
+	public static final String PASSWORD_EXPIRY_COMPUTED = "msDS-UserPasswordExpiryTimeComputed";
+	public static final String PROXY_ADDRESSES = "proxyAddresses";
+	public static final String COUNTRY_CODE = "c";
+	public static final String COUNTRY = "co";
+	public static final String CITY = "l";
+	public static final String STATE = "st";
+	public static final String STREET_ADRESS = "streetAddress";
+	public static final String POST_OFFICE_BOX = "postOfficeBox";
+	public static final String POSTAL_CODE = "postalCode";
+
+	public static final String GROUP_TYPE_ATTRIBUTE = "groupType";
+
 	/**
 	 * This is a special attribute we add to mimic the Office365 ImmutableID
 	 */
@@ -101,7 +162,9 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 	public static final String GLOBAL = "-2147483646";
 	public static final String DOMAIN_LOCAL = "-2147483644";
 	public static final String UNIVERSAL = "-2147483640";
-	
+
+	private ActiveDirectorySchemaVersion cachedVersion;
+
 	@Override
 	public Set<ConnectorCapability> getCapabilities() {
 		if (!capabilities.contains(ConnectorCapability.hasPasswordPolicy)) {
@@ -109,56 +172,53 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			capabilities.add(ConnectorCapability.caseInsensitivePrincipalNames);
 			capabilities.add(ConnectorCapability.accountLocking);
 			capabilities.add(ConnectorCapability.accountDisable);
+			capabilities.add(ConnectorCapability.createRole);
+			capabilities.add(ConnectorCapability.updateRole);
+			capabilities.add(ConnectorCapability.deleteRole);
+			capabilities.add(ConnectorCapability.forcePasswordChange);
 		}
 		return capabilities;
 	}
 
 	/**
-	 * These are the attributes we need for operation, but are not stored as
-	 * actual attributes in our local database
+	 * These are the attributes we need for operation, but are not stored as actual
+	 * attributes in our local database
 	 */
-	private static Collection<String> DEFAULT_USER_ATTRIBUTES = Arrays
-			.asList(new String[] { MEMBER_ATTRIBUTE, OBJECT_GUID_ATTRIBUTE,
-					OU_ATTRIBUTE, DISTINGUISHED_NAME_ATTRIBUTE,
-					PRIMARY_GROUP_ID_ATTRIBUTE });
+	private static Collection<String> DEFAULT_USER_ATTRIBUTES = Arrays.asList(new String[] { MEMBER_ATTRIBUTE,
+			OBJECT_GUID_ATTRIBUTE, OU_ATTRIBUTE, DISTINGUISHED_NAME_ATTRIBUTE, PRIMARY_GROUP_ID_ATTRIBUTE });
 	/**
-	 * These are attributes we need for operation and want to store as
-	 * attributes as well.
+	 * These are attributes we need for operation and want to store as attributes as
+	 * well.
 	 */
 	private static Collection<String> ATTRIBUTES_TO_EXCLUDE_FROM_UPDATE = Arrays
-			.asList(new String[] { USER_ACCOUNT_CONTROL_ATTRIBUTE,
-					LAST_LOGON_ATTRIBUTE, 
-					LAST_LOGON_TIMESTAMP_ATTRIBUTE,
-					PWD_LAST_SET_ATTRIBUTE, 
-					OU_ATTRIBUTE, 
-					COMMON_NAME_ATTRIBUTE, 
-					IMMUTABLE_ID_ATTR });
+			.asList(new String[] { USER_ACCOUNT_CONTROL_ATTRIBUTE, LAST_LOGON_ATTRIBUTE, LAST_LOGON_TIMESTAMP_ATTRIBUTE,
+					PWD_LAST_SET_ATTRIBUTE, OU_ATTRIBUTE, COMMON_NAME_ATTRIBUTE, IMMUTABLE_ID_ATTR });
 
 	/**
-	 * These are attributes we need for operation and want to store as
-	 * attributes as well.
+	 * These are attributes we need for operation and want to store as attributes as
+	 * well.
 	 */
-	private static Collection<String> ALL_USER_ATTRIBUTES = Arrays
-			.asList(new String[] { SAM_ACCOUNT_NAME_ATTRIBUTE,
-					USER_PRINCIPAL_NAME_ATTRIBUTE,
-					USER_ACCOUNT_CONTROL_ATTRIBUTE, ACCOUNT_EXPIRES_ATTRIBUTE,
-					LOCKOUT_TIME_ATTRIBUTE, LOCKOUT_DURATION_ATTRIBUTE,
-					LAST_LOGON_ATTRIBUTE, LAST_LOGON_TIMESTAMP_ATTRIBUTE,
-					PWD_LAST_SET_ATTRIBUTE, MINIMUM_PASSWORD_AGE_ATTRIBUTE,
-					MAXIMUM_PASSWORD_AGE_ATTRIBUTE, COMMON_NAME_ATTRIBUTE,
-					MEMBER_OF_ATTRIBUTE, OBJECT_SID_ATTRIBUTE,
-					PWD_PROPERTIES_ATTRIBUTE, MAIL_ATTRIBUTE,
-					PHONE_NUMBER_ATTRIBUTE, MOBILE_PHONE_NUMBER_ATTRIBUTE,
-					OTHER_PHONE_NUMBER_ATTRIBUTE, OU_ATTRIBUTE,
-					DISTINGUISHED_NAME_ATTRIBUTE });
+	private static Collection<String> ALL_USER_ATTRIBUTES = Arrays.asList(new String[] { SAM_ACCOUNT_NAME_ATTRIBUTE,
+			USER_PRINCIPAL_NAME_ATTRIBUTE, USER_ACCOUNT_CONTROL_ATTRIBUTE, ACCOUNT_EXPIRES_ATTRIBUTE,
+			LOCKOUT_TIME_ATTRIBUTE, LOCKOUT_DURATION_ATTRIBUTE, LAST_LOGON_ATTRIBUTE, LAST_LOGON_TIMESTAMP_ATTRIBUTE,
+			PWD_LAST_SET_ATTRIBUTE, MINIMUM_PASSWORD_AGE_ATTRIBUTE, MAXIMUM_PASSWORD_AGE_ATTRIBUTE,
+			COMMON_NAME_ATTRIBUTE, MEMBER_OF_ATTRIBUTE, OBJECT_SID_ATTRIBUTE, PWD_PROPERTIES_ATTRIBUTE, MAIL_ATTRIBUTE,
+			PHONE_NUMBER_ATTRIBUTE, MOBILE_PHONE_NUMBER_ATTRIBUTE, OTHER_PHONE_NUMBER_ATTRIBUTE, OU_ATTRIBUTE,
+			DISTINGUISHED_NAME_ATTRIBUTE, PASSWORD_EXPIRY_COMPUTED, GIVEN_NAME_ATTRIBUTE, SURNAME_ATTRIBUTE,
+			INITIALS_ATTRIBUTE, DESCRIPTION_ATTRIBUTE, OFFICE_ATTRIBUTE, HOME_PAGE_ATTRIBUTE, PROFILE_PATH_ATTRIBUTE,
+			SCRIPT_PATH_ATTRIBUTE, HOME_DIR_ATTRIBUTE, HOME_DRIVE_ATTRIBUTE, HOME_PHONE_ATTRIBUTE, PAGER_ATTRIBUTE,
+			FAX_ATTRIBUTE, IPPHONE_ATTRIBUTE, INFO_ATTRIBUTE, TITLE_ATTRIBUTE, DEPARTMENT_ATTRIBUTE, COMPANY_ATTRIBUTE,
+			MANAGER_ATTRIBUTE, DISPLAY_NAME_ATTRIBUTE, PASSWORD_POLICY_APPLIES, PROXY_ADDRESSES, COUNTRY, COUNTRY_CODE,
+			CITY, STATE, STREET_ADRESS, POST_OFFICE_BOX, POSTAL_CODE
 
-	private static Collection<String> CORE_IDENTITY_ATTRIBUTES = Arrays.asList(new
-	 String[] { COMMON_NAME_ATTRIBUTE, SAM_ACCOUNT_NAME_ATTRIBUTE, 
-			 USER_PRINCIPAL_NAME_ATTRIBUTE, OBJECT_CLASS_ATTRIBUTE });
+	});
+
+	private static Collection<String> CORE_IDENTITY_ATTRIBUTES = Arrays.asList(new String[] { COMMON_NAME_ATTRIBUTE,
+			SAM_ACCOUNT_NAME_ATTRIBUTE, USER_PRINCIPAL_NAME_ATTRIBUTE, OBJECT_CLASS_ATTRIBUTE });
 
 	private static Collection<String> ALL_ROLE_ATTRIBUTES = Arrays
-			.asList(new String[] { OBJECT_SID_ATTRIBUTE, OBJECT_GUID_ATTRIBUTE,
-					COMMON_NAME_ATTRIBUTE, DISTINGUISHED_NAME_ATTRIBUTE });
+			.asList(new String[] { OBJECT_SID_ATTRIBUTE, OBJECT_GUID_ATTRIBUTE, GROUP_TYPE_ATTRIBUTE,
+					COMMON_NAME_ATTRIBUTE, DISTINGUISHED_NAME_ATTRIBUTE, PASSWORD_POLICY_APPLIES, MEMBER_ATTRIBUTE });
 
 	public static final int CHANGE_PASSWORD_AT_NEXT_LOGON_FLAG = 0;
 	public static final int CHANGE_PASSWORD_AT_NEXT_LOGON_CANCEL_FLAG = -1;
@@ -166,13 +226,11 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 	// Bit mask values for pwdProperties
 	public static final int DOMAIN_PASSWORD_COMPLEX = 0x01;
 
-	private List<String> identityAttributesToRetrieve = new ArrayList<String>(
-			ALL_USER_ATTRIBUTES);
+	private List<String> identityAttributesToRetrieve = new ArrayList<String>(ALL_USER_ATTRIBUTES);
 
 	// Controls for Win2008 R2 password history on admin reset
 	final byte[] controlData = { 48, (byte) 132, 0, 0, 0, 3, 2, 1, 1 };
 	final String LDAP_SERVER_POLICY_HINTS_OID = "1.2.840.113556.1.4.2066";
-
 
 	@Override
 	public PasswordCharacteristics getPasswordCharacteristics() {
@@ -182,23 +240,16 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			int val = Integer.parseInt(value);
 			complex = (val & DOMAIN_PASSWORD_COMPLEX) != 0;
 		}
-		String minPwdLengthField = getAttributeValue(getRootDn(),
-				"minPwdLength");
+		String minPwdLengthField = getAttributeValue(getRootDn(), "minPwdLength");
 		return new ADPasswordCharacteristics(complex,
-				minPwdLengthField == null ? 6 : Integer
-						.parseInt(minPwdLengthField),
-				getPasswordHistoryLength(), getMaximumPasswordAge(),
-				getMinimumPasswordAge(),
-				0,
-				"Default Group Policy",
-				null);
+				minPwdLengthField == null ? 6 : Integer.parseInt(minPwdLengthField), getPasswordHistoryLength(),
+				getMaximumPasswordAge(), getMinimumPasswordAge(), 0, "Default Group Policy", null);
 	}
 
 	@Override
 	protected void onOpen(ConnectorConfigurationParameters parameters) {
 		super.onOpen(parameters);
-		Collection<String> connectorIdentityAttributesToRetrieve = parameters
-				.getIdentityAttributesToRetrieve();
+		Collection<String> connectorIdentityAttributesToRetrieve = parameters.getIdentityAttributesToRetrieve();
 		if (connectorIdentityAttributesToRetrieve != null) {
 			for (String s : connectorIdentityAttributesToRetrieve) {
 				if (!identityAttributesToRetrieve.contains(s)) {
@@ -206,68 +257,96 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 				}
 			}
 		}
+
+		getSchemaVersion();
+		getPasswordCharacteristics();
 	}
 
-	@Override
-	public void deleteIdentity(String principalName) throws ConnectorException {
-		try {
-			Identity identity = getIdentityByName(principalName);
-			String identityOU = identity
-					.getAttribute(DISTINGUISHED_NAME_ATTRIBUTE);
+	protected boolean areCredentialsValid(Identity identity, char[] password) throws ConnectorException {
 
-			ldapService.unbind(new LdapName(identityOU));
-		} catch (InvalidNameException e) {
-			LOG.error("Problem in delete identity", e);
-		} catch (NamingException e) {
-			LOG.error("Problem in delete identity", e);
-		} catch (IOException e) {
-			LOG.error("Problem in delete identity", e);
+		String authType = getConfiguration().getConfigurationParameters()
+				.getString(ActiveDirectoryConfiguration.ACTIVE_DIRECTORY_AUTHENTICATION);
+		if (StringUtils.isBlank(authType) || "ldap".equals(authType)) {
+			return super.areCredentialsValid(identity, password);
+		} else {
+			doNTLMAuthentication(identity.getPrincipalName(), password);
+			return true;
 		}
 	}
 
-	private void assignRole(LdapName userDn, Role role) throws NamingException, IOException {
-		
-		List<ModificationItem> modificationItems = new ArrayList<ModificationItem>();
-		Attribute attribute = new BasicAttribute(MEMBER_ATTRIBUTE, userDn.toString());
-		modificationItems.add(new ModificationItem(
-				DirContext.ADD_ATTRIBUTE, attribute));
-		
-		ldapService.update(((ActiveDirectoryGroup)role).getDn(),
-				modificationItems.toArray(new ModificationItem[0]));
+	private void doNTLMAuthentication(String username, char[] password) throws ConnectorException {
+		try {
+			UniAddress uniaddress = UniAddress.getByName(getConfiguration().getConfigurationParameters()
+					.getString(ActiveDirectoryConfiguration.DIRECTORY_HOSTNAME));
+			NtlmPasswordAuthentication ntlmpasswordauthentication = new NtlmPasswordAuthentication(
+					getDomain(getRootDn()), username, new String(password));
+			SmbSession.logon(uniaddress, ntlmpasswordauthentication);
+		} catch (UnknownHostException e) {
+			throw new ConnectorException(e.getMessage(), e);
+		} catch (SmbException e) {
+			throw new ConnectorException(e.getMessage(), e);
+		}
 	}
-	
-	private void revokeRole(LdapName userDn, Role role) throws NamingException, IOException {
-		
-		List<ModificationItem> modificationItems = new ArrayList<ModificationItem>();
-		Attribute attribute = new BasicAttribute(MEMBER_ATTRIBUTE, userDn.toString());
-		modificationItems.add(new ModificationItem(
-				DirContext.REMOVE_ATTRIBUTE, attribute));
 
-		ldapService.update(((ActiveDirectoryGroup)role).getDn(),
-				modificationItems.toArray(new ModificationItem[0]));
+	@Override
+	public boolean checkCredentialsOptimised(String username, String remoteIdentifier, char[] password)
+			throws ConnectorException {
+
+		String authType = getConfiguration().getConfigurationParameters()
+				.getString(ActiveDirectoryConfiguration.ACTIVE_DIRECTORY_AUTHENTICATION);
+		if (StringUtils.isBlank(authType) || "ldap".equals(authType)) {
+			return super.checkCredentialsOptimised(username, remoteIdentifier, password);
+		} else {
+			doNTLMAuthentication(username, password);
+			return true;
+		}
 	}
-	
-	protected void processAttributes(
-			List<ModificationItem> modificationItems, 
-			Principal previousState, 
+
+	@Override
+	protected void assignRole(LdapName userDn, Role role) throws NamingException, IOException {
+		if(role.getPrincipalName().equals("Domain Users")) {
+			LOG.warn(String.format("%s is automatically assigned to Domain Users", userDn));
+			return;
+		}
+
+		List<ModificationItem> modificationItems = new ArrayList<ModificationItem>();
+		Attribute attribute = new BasicAttribute(MEMBER_ATTRIBUTE, userDn.toString());
+		modificationItems.add(new ModificationItem(DirContext.ADD_ATTRIBUTE, attribute));
+
+		try {
+			ldapService.update(((ActiveDirectoryGroup) role).getDn(),
+					modificationItems.toArray(new ModificationItem[0]));
+		} catch (Exception nme) {
+			LOG.warn(String.format("%s is already assigned to %s", userDn, role.getPrincipalName()), nme);
+		}
+	}
+
+	@Override
+	protected void revokeRole(LdapName userDn, Role role) throws NamingException, IOException {
+
+		List<ModificationItem> modificationItems = new ArrayList<ModificationItem>();
+		Attribute attribute = new BasicAttribute(MEMBER_ATTRIBUTE, userDn.toString());
+		modificationItems.add(new ModificationItem(DirContext.REMOVE_ATTRIBUTE, attribute));
+
+		ldapService.update(((ActiveDirectoryGroup) role).getDn(), modificationItems.toArray(new ModificationItem[0]));
+	}
+
+	protected void processGroupAttributes(List<ModificationItem> modificationItems, Principal previousState,
 			Principal newState) {
-		
-		for (Map.Entry<String, String[]> entry : newState.getAttributes()
-				.entrySet()) {
-			if (!isExcludeForUpdate(entry.getKey())) {
-				if (!previousState.getAttributes()
-						.containsKey(entry.getKey())) {
+
+		for (Map.Entry<String, String[]> entry : newState.getAttributes().entrySet()) {
+			if (!isExcludeForGroupUpdate(entry.getKey())) {
+				if (!previousState.getAttributes().containsKey(entry.getKey())) {
 					// New
 					if (entry.getValue().length > 0) {
 
 						String[] value = entry.getValue();
 						if (value.length > 0 && !StringUtils.isEmpty(value[0])) {
 							Attribute attr = new BasicAttribute(entry.getKey());
-							for(String val : value) {
+							for (String val : value) {
 								attr.add(val);
 							}
-							modificationItems.add(new ModificationItem(
-									DirContext.ADD_ATTRIBUTE, attr));
+							modificationItems.add(new ModificationItem(DirContext.ADD_ATTRIBUTE, attr));
 						}
 					}
 				} else {
@@ -278,182 +357,117 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 						String[] value = entry.getValue();
 						if (value.length > 0 && !StringUtils.isEmpty(value[0])) {
 							Attribute attr = new BasicAttribute(entry.getKey());
-							for(String val : value) {
+							for (String val : value) {
 								attr.add(val);
 							}
-							modificationItems.add(new ModificationItem(
-									DirContext.REPLACE_ATTRIBUTE, attr));
+							modificationItems.add(new ModificationItem(DirContext.REPLACE_ATTRIBUTE, attr));
 						} else {
 							Attribute attr = new BasicAttribute(entry.getKey());
-							modificationItems.add(new ModificationItem(
-									DirContext.REMOVE_ATTRIBUTE, attr));
+							modificationItems.add(new ModificationItem(DirContext.REMOVE_ATTRIBUTE, attr));
 						}
 					}
 				}
 			}
 		}
 	}
-	
+
 	@Override
 	public void updateRole(final Role role) throws ConnectorException {
-		
+
 		try {
 			List<ModificationItem> modificationItems = new ArrayList<ModificationItem>();
 			Role oldRole = getRoleByName(role.getPrincipalName());
 
 			// OU may have been provided
-			String roleOu = role.getAttribute(DISTINGUISHED_NAME_ATTRIBUTE);
+			String roleOu = role.getAttribute(getActiveDirectoryConfiguration().getDistinguishedNameAttribute());
 			LdapName roleDn = new LdapName(roleOu);
 			String principalName = role.getPrincipalName();
 
-			processAttributes(modificationItems, oldRole, role);
+			processGroupAttributes(modificationItems, oldRole, role);
 
-			if (Util.differs(
-					oldRole.getAttribute(SAM_ACCOUNT_NAME_ATTRIBUTE),
-					principalName)) {
-				Attribute attribute = new BasicAttribute(
-						SAM_ACCOUNT_NAME_ATTRIBUTE, principalName);
-				modificationItems.add(new ModificationItem(
-						DirContext.REPLACE_ATTRIBUTE, attribute));
+			if (Util.differs(oldRole.getAttribute(SAM_ACCOUNT_NAME_ATTRIBUTE), principalName)) {
+				Attribute attribute = new BasicAttribute(SAM_ACCOUNT_NAME_ATTRIBUTE, principalName);
+				modificationItems.add(new ModificationItem(DirContext.REPLACE_ATTRIBUTE, attribute));
 			}
 
+			ldapService.update(roleDn, modificationItems.toArray(new ModificationItem[0]));
 
-			ldapService.update(roleDn,
-					modificationItems.toArray(new ModificationItem[0]));
-
-			
 			// Update roles
-//			List<Role> toRemove = new ArrayList<Role>(Arrays.asList(oldIdentity.getRoles()));
-//			List<Role> toAdd = new ArrayList<Role>(Arrays.asList(identity.getRoles()));
-//			toRemove.removeAll(Arrays.asList(identity.getRoles()));
-//			toAdd.removeAll(Arrays.asList(oldIdentity.getRoles()));
-//			
-//			for(Role r : toRemove) {
-//				revokeRole(usersDn, r);
-//			}
-//			
-//			for(Role r : toAdd) {
-//				assignRole(usersDn, r);
-//			}
-			
-			if (Util.differs(
-					oldRole.getAttribute(COMMON_NAME_ATTRIBUTE),
-					role.getAttribute(COMMON_NAME_ATTRIBUTE))) {
+			// List<Role> toRemove = new ArrayList<Identity>(Arrays.asList(oldRole.));
+			// List<Role> toAdd = new ArrayList<Role>(Arrays.asList(identity.getRoles()));
+			// toRemove.removeAll(Arrays.asList(identity.getRoles()));
+			// toAdd.removeAll(Arrays.asList(oldIdentity.getRoles()));
+			//
+			// for(Role r : toRemove) {
+			// revokeRole(usersDn, r);
+			// }
+			//
+			// for(Role r : toAdd) {
+			// assignRole(usersDn, r);
+			// }
+
+			if (Util.differs(oldRole.getAttribute(COMMON_NAME_ATTRIBUTE), role.getAttribute(COMMON_NAME_ATTRIBUTE))) {
 				LdapName newDN = new LdapName(roleDn.toString());
 				newDN.remove(newDN.size() - 1);
-				newDN.add(newDN.size(),
-						"CN=" + role.getAttribute(COMMON_NAME_ATTRIBUTE));
+				newDN.add(newDN.size(), "CN=" + role.getAttribute(COMMON_NAME_ATTRIBUTE));
 				ldapService.rename(roleDn, newDN);
-			} else if (Util.differs(oldRole.getAttribute(OU_ATTRIBUTE),
-					role.getAttribute(OU_ATTRIBUTE))) {
-				LdapName newDN = new LdapName("CN="
-						+ role.getAttribute(COMMON_NAME_ATTRIBUTE) + ","
-						+ role.getAttribute(OU_ATTRIBUTE));
+			} else if (Util.differs(oldRole.getAttribute(OU_ATTRIBUTE), role.getAttribute(OU_ATTRIBUTE))) {
+				LdapName newDN = new LdapName(
+						"CN=" + role.getAttribute(COMMON_NAME_ATTRIBUTE) + "," + role.getAttribute(OU_ATTRIBUTE));
 				ldapService.rename(roleDn, newDN);
 			}
 
 		} catch (NamingException e) {
-			LOG.error("Problem in update role", e);
+			processNamingException(e);
+			throw new IllegalStateException("Unreachable code");
 		} catch (IOException e) {
-			LOG.error("Problem in update role", e);
+			throw new ConnectorException(e.getMessage(), e);
 		}
 	}
-	
-	
+
 	@Override
-	public void updateIdentity(final Identity identity)
-			throws ConnectorException {
+	protected void processUserAttributes(List<ModificationItem> modificationItems, Identity previousState,
+			Identity newState) {
 
-		try {
-			List<ModificationItem> modificationItems = new ArrayList<ModificationItem>();
-			Identity oldIdentity = getIdentityByName(identity
-					.getPrincipalName());
+		super.processUserAttributes(modificationItems, previousState, newState);
 
-			final ActiveDirectoryConfiguration config = getActiveDirectoryConfiguration();
-
-			// OU may have been provided
-			String identityOU = identity
-					.getAttribute(DISTINGUISHED_NAME_ATTRIBUTE);
-			LdapName usersDn = new LdapName(identityOU);
-			String principalName = identity.getPrincipalName();
-
-			processAttributes(modificationItems, oldIdentity, identity);
-
-			String principalNameWithDomain = principalName + "@"
-					+ config.getDomain();
-			if (!principalName.equalsIgnoreCase(
-					oldIdentity.getAttribute(USER_PRINCIPAL_NAME_ATTRIBUTE))
-					&& !principalNameWithDomain.equalsIgnoreCase(
-							oldIdentity.getAttribute(USER_PRINCIPAL_NAME_ATTRIBUTE))) {
-				Attribute attribute = new BasicAttribute(
-						USER_PRINCIPAL_NAME_ATTRIBUTE, principalNameWithDomain);
-				modificationItems.add(new ModificationItem(
-						DirContext.REPLACE_ATTRIBUTE, attribute));
-			}
-
-			String contactDetail = identity
-					.getAddress(com.identity4j.connector.Media.mobile);
-			if (!StringUtil.isNullOrEmpty(contactDetail)) {
-				Attribute attribute = new BasicAttribute(
-						MOBILE_PHONE_NUMBER_ATTRIBUTE, contactDetail);
-				modificationItems.add(new ModificationItem(
-						DirContext.REPLACE_ATTRIBUTE, attribute));
-			}
-
-			ldapService.update(usersDn,
-					modificationItems.toArray(new ModificationItem[0]));
-
-			
-			// Update roles
-			List<Role> toRemove = new ArrayList<Role>(Arrays.asList(oldIdentity.getRoles()));
-			List<Role> toAdd = new ArrayList<Role>(Arrays.asList(identity.getRoles()));
-			toRemove.removeAll(Arrays.asList(identity.getRoles()));
-			toAdd.removeAll(Arrays.asList(oldIdentity.getRoles()));
-			
-			for(Role r : toRemove) {
-				revokeRole(usersDn, r);
-			}
-			
-			for(Role r : toAdd) {
-				assignRole(usersDn, r);
-			}
-			
-			if (Util.differs(oldIdentity.getFullName(), identity.getFullName())) {
-				LdapName newDN = new LdapName(usersDn.getSuffix(1).toString());
-				newDN.add(0, "CN=" + identity.getFullName());
-				ldapService.rename(usersDn, newDN);
-			} else if (Util.differs(
-					oldIdentity.getAttribute(COMMON_NAME_ATTRIBUTE),
-					identity.getAttribute(COMMON_NAME_ATTRIBUTE))) {
-				LdapName newDN = new LdapName(usersDn.toString());
-				newDN.remove(newDN.size() - 1);
-				newDN.add(newDN.size(),
-						"CN=" + identity.getAttribute(COMMON_NAME_ATTRIBUTE));
-				ldapService.rename(usersDn, newDN);
-			} else if (Util.differs(oldIdentity.getAttribute(OU_ATTRIBUTE),
-					identity.getAttribute(OU_ATTRIBUTE))) {
-				LdapName newDN = new LdapName("CN="
-						+ identity.getAttribute(COMMON_NAME_ATTRIBUTE) + ","
-						+ identity.getAttribute(OU_ATTRIBUTE));
-				ldapService.rename(usersDn, newDN);
-			}
-
-		} catch (NamingException e) {
-			LOG.error("Problem in update identity", e);
-			throw new ConnectorException(e);
-		} catch (IOException e) {
-			LOG.error("Problem in update identity", e);
-			throw new ConnectorException(e);
+		String principalNameWithDomain = newState.getPrincipalName() + "@"
+				+ getActiveDirectoryConfiguration().getDomain();
+		if (!newState.getPrincipalName().equalsIgnoreCase(previousState.getAttribute(USER_PRINCIPAL_NAME_ATTRIBUTE))
+				&& !principalNameWithDomain
+						.equalsIgnoreCase(previousState.getAttribute(USER_PRINCIPAL_NAME_ATTRIBUTE))) {
+			Attribute attribute = new BasicAttribute(USER_PRINCIPAL_NAME_ATTRIBUTE, principalNameWithDomain);
+			modificationItems.add(new ModificationItem(DirContext.REPLACE_ATTRIBUTE, attribute));
 		}
 
+		/*
+		 * Not entirely convinvced by this. The attribute itself gets changed as a
+		 * normal attribute, why is this here? It looks very intentional. I can't seem
+		 * to find any problems by removing it.
+		 * 
+		 * #LBPR2380 - Updating mobile number on AD user does not update AD itself
+		 */
+
+//		String contactDetail = newState.getAddress(com.identity4j.connector.Media.mobile);
+//		if (!StringUtil.isNullOrEmpty(contactDetail)) {
+//			Attribute attribute = new BasicAttribute(MOBILE_PHONE_NUMBER_ATTRIBUTE, contactDetail);
+//			modificationItems.add(new ModificationItem(DirContext.REPLACE_ATTRIBUTE, attribute));
+//		}
 	}
 
-	private boolean isExcludeForUpdate(String attributeName) {
-		return ATTRIBUTES_TO_EXCLUDE_FROM_UPDATE.contains(attributeName);
+	@Override
+	protected boolean isExcludeForUserUpdate(String attributeName) {
+		return !ALL_USER_ATTRIBUTES.contains(attributeName)
+				|| ATTRIBUTES_TO_EXCLUDE_FROM_UPDATE.contains(attributeName);
+	}
+
+	private boolean isExcludeForGroupUpdate(String attributeName) {
+		return !ALL_ROLE_ATTRIBUTES.contains(attributeName)
+				|| ATTRIBUTES_TO_EXCLUDE_FROM_UPDATE.contains(attributeName);
 	}
 
 	public Role createRole(Role role) throws ConnectorException {
-		
+
 		try {
 			final ActiveDirectoryConfiguration config = getActiveDirectoryConfiguration();
 
@@ -470,7 +484,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			} else {
 				roleDN = new LdapName(roleOU);
 			}
-			
+
 			role.setAttribute(OU_ATTRIBUTE, "");
 
 			LdapName roleDn = new LdapName(roleDN.toString());
@@ -480,24 +494,22 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 
 			Name baseDn = getConfiguration().getBaseDn();
 			if (!roleDn.toString().toLowerCase().endsWith(baseDn.toString().toLowerCase())) {
-				throw new ConnectorException("The User DN (" + roleDn
-						+ ") must be a child of the Base DN (" + baseDn
+				throw new ConnectorException("The Role DN (" + roleDn + ") must be a child of the Base DN (" + baseDn
 						+ " configured for the Active Directory connector.");
 			}
 
 			/*
-			 * Set up the attributes for the primary details. Some of these may
-			 * already have been in the generic attributes
+			 * Set up the attributes for the primary details. Some of these may already have
+			 * been in the generic attributes
 			 */
 			List<Attribute> attributes = new ArrayList<Attribute>();
 
 			// First copy in the generic attributes
-			for (Map.Entry<String, String[]> entry : role.getAttributes()
-					.entrySet()) {
+			for (Map.Entry<String, String[]> entry : role.getAttributes().entrySet()) {
 				String[] value = entry.getValue();
 				if (value.length > 0 && !StringUtils.isEmpty(value[0])) {
 					Attribute attr = new BasicAttribute(entry.getKey());
-					for(String val : value) {
+					for (String val : value) {
 						attr.add(val);
 					}
 					attributes.add(attr);
@@ -505,200 +517,88 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			}
 
 			String[] objectClasses = new String[] { "top", "group" };
-			BasicAttribute objectClassAttributeValues = new BasicAttribute(
-					OBJECT_CLASS_ATTRIBUTE);
+			BasicAttribute objectClassAttributeValues = new BasicAttribute(OBJECT_CLASS_ATTRIBUTE);
 			for (String objectClass : objectClasses) {
 				objectClassAttributeValues.add(objectClass);
 			}
 			attributes.add(objectClassAttributeValues);
-			
+
 			String sAMAccountName = role.getPrincipalName();
-			
-			if(StringUtils.isEmpty(sAMAccountName)) {
+
+			if (StringUtils.isEmpty(sAMAccountName)) {
 				sAMAccountName = principalName;
-				if(sAMAccountName.contains("@")) {
+				if (sAMAccountName.contains("@")) {
 					sAMAccountName = sAMAccountName.substring(0, sAMAccountName.indexOf("@"));
 				}
 			}
-			
-			attributes.add(new BasicAttribute(SAM_ACCOUNT_NAME_ATTRIBUTE,
-					sAMAccountName));
+
+			attributes.add(new BasicAttribute(SAM_ACCOUNT_NAME_ATTRIBUTE, sAMAccountName));
 
 			ldapService.bind(roleDn, attributes.toArray(new Attribute[0]));
-			
+
 			return getRoleByName(role.getPrincipalName());
 
-		} catch (InvalidNameException e) {
-			LOG.error("Problem in create group", e);
-			throw new ConnectorException("Failed to create group; " + e.getMessage(), e);
 		} catch (NamingException e) {
-			LOG.error("Problem in create group", e);
-			throw new ConnectorException("Failed to create group; " + e.getMessage(), e);
+			processNamingException(e);
+			throw new IllegalStateException("Unreachable code");
 		} catch (IOException e) {
-			LOG.error("Problem in create group", e);
-			throw new ConnectorException("Failed to create group; " + e.getMessage(), e);
+			throw new ConnectorException(e.getMessage(), e);
 		}
-		
-		
+
 	}
-	
+
+	protected Collection<String> getCoreIdentityAttributes() {
+		return CORE_IDENTITY_ATTRIBUTES;
+	}
+
 	@Override
-	public Identity createIdentity(final Identity identity, char[] password)
-			throws ConnectorException {
-		try {
-			final ActiveDirectoryConfiguration config = getActiveDirectoryConfiguration();
+	protected void finaliseCreate(DirectoryIdentity directoryIdentity, boolean forceChange) {
+		setForcePasswordChangeAtNextLogon(directoryIdentity, forceChange);
+	}
 
-			// OU may have been provided
-			String identityOU = identity.getAttribute(OU_ATTRIBUTE);
-			LdapName usersDn;
-			if (StringUtil.isNullOrEmpty(identityOU)) {
-				usersDn = new LdapName(getRootDn().toString());
-				if (StringUtil.isNullOrEmpty(config.getOU())) {
-					usersDn.add(new Rdn("CN=Users"));
-				} else {
-					usersDn.add(new Rdn(config.getOU()));
-				}
+	@Override
+	protected String finaliseCreate(Identity identity, String principalName, List<Attribute> attributes) {
+		String upn = identity.getAttribute(USER_PRINCIPAL_NAME_ATTRIBUTE);
+
+		if (StringUtils.isEmpty(upn)) {
+			if (!principalName.contains("@")) {
+				upn = principalName + "@" + getActiveDirectoryConfiguration().getDomain();
+				attributes.add(new BasicAttribute(USER_PRINCIPAL_NAME_ATTRIBUTE, upn));
 			} else {
-				usersDn = new LdapName(identityOU);
+				attributes.add(new BasicAttribute(USER_PRINCIPAL_NAME_ATTRIBUTE, principalName));
 			}
-
-			LdapName userDn = new LdapName(usersDn.toString());
-			String principalName = identity.getPrincipalName();
-
-			StringBuilder tmp = new StringBuilder();
-			tmp.append(identity.getAttribute("givenName"));
-			String initials = identity.getAttribute("initials");
-			if(StringUtils.isNotBlank(initials)) {
-				tmp.append(" ");
-				tmp.append(initials);
-				tmp.append(".");
-			}
-			tmp.append(" ");
-			tmp.append(identity.getAttribute("sn"));
-			
-			userDn.add("CN=" +  tmp.toString());
-
-			identity.setFullName(tmp.toString());
-			identity.setAttribute("cn", tmp.toString());
-			
-			Name baseDn = getConfiguration().getBaseDn();
-			if (!userDn.toString().toLowerCase().endsWith(baseDn.toString().toLowerCase())) {
-				throw new ConnectorException("The User DN (" + userDn
-						+ ") must be a child of the Base DN (" + baseDn
-						+ " configured for the Active Directory connector.");
-			}
-
-			/*
-			 * Set up the attributes for the primary details. Some of these may
-			 * already have been in the generic attributes
-			 */
-			List<Attribute> attributes = new ArrayList<Attribute>();
-
-			// First copy in the generic attributes
-			for (Map.Entry<String, String[]> entry : identity.getAttributes()
-					.entrySet()) {
-				if(CORE_IDENTITY_ATTRIBUTES.contains(entry.getKey())) {
-					continue;
-				}
-				String[] value = entry.getValue();
-				if (value.length > 0 && !StringUtils.isEmpty(value[0])) {
-					if(value.length==1) {
-						attributes.add(new BasicAttribute(entry.getKey(), value[0]));
-					} else {
-						Attribute attr = new BasicAttribute(entry.getKey());
-						for(String val : value) {
-							LOG.info("Setting " + entry.getKey() + " = " + val);
-							attr.add(val);
-						}
-						attributes.add(attr);
-					}
-				}
-			}
-
-			String[] objectClasses = new String[] { "top", "user", "person",
-					"organizationalPerson" };
-			BasicAttribute objectClassAttributeValues = new BasicAttribute(
-					OBJECT_CLASS_ATTRIBUTE);
-			for (String objectClass : objectClasses) {
-				objectClassAttributeValues.add(objectClass);
-			}
-			
-			attributes.add(objectClassAttributeValues);
-			attributes.add(new BasicAttribute(COMMON_NAME_ATTRIBUTE, identity.getFullName()));
-			
-			String upn = identity.getAttribute(USER_PRINCIPAL_NAME_ATTRIBUTE);
-			
-			if(StringUtils.isEmpty(upn)) {
-				if(!principalName.contains("@")) {
-					upn = principalName + "@"
-							+ config.getDomain();
-					attributes.add(new BasicAttribute(USER_PRINCIPAL_NAME_ATTRIBUTE,
-							upn));
-				} else {
-					attributes.add(new BasicAttribute(USER_PRINCIPAL_NAME_ATTRIBUTE,
-							principalName));
-				}
-			} else {
-				attributes.add(new BasicAttribute(USER_PRINCIPAL_NAME_ATTRIBUTE,
-						upn));
-			}
-			
-			String sAMAccountName = identity.getAttribute(SAM_ACCOUNT_NAME_ATTRIBUTE);
-			
-			if(StringUtils.isEmpty(sAMAccountName)) {
-				sAMAccountName = principalName;
-				if(sAMAccountName.contains("@")) {
-					sAMAccountName = sAMAccountName.substring(0, sAMAccountName.indexOf("@"));
-				}
-			}
-			
-			attributes.add(new BasicAttribute(SAM_ACCOUNT_NAME_ATTRIBUTE,
-					sAMAccountName));
-
-			if (!StringUtil.isNullOrEmpty(identity
-					.getAddress(com.identity4j.connector.Media.mobile))) {
-				attributes
-						.add(new BasicAttribute(
-								MOBILE_PHONE_NUMBER_ATTRIBUTE,
-								identity.getAddress(com.identity4j.connector.Media.mobile)));
-			}
-
-			ldapService.bind(userDn, attributes.toArray(new Attribute[0]));
-			ldapService.setPassword(userDn.toString(), password);
-
-			DirectoryIdentity directoryIdentity = (DirectoryIdentity) getIdentityByName(upn);
-			setForcePasswordChangeAtNextLogon(directoryIdentity, false);
-			enableIdentity(directoryIdentity);
-
-			for(Role r : identity.getRoles()) {
-				assignRole(usersDn, r);
-			}
-			
-			return directoryIdentity;
-
-		} catch (InvalidNameException e) {
-			LOG.error("Problem in create identity", e);
-		} catch (NamingException e) {
-			LOG.error("Problem in create identity", e);
-		} catch (IOException e) {
-			LOG.error("Problem in create identity", e);
+		} else {
+			attributes.add(new BasicAttribute(USER_PRINCIPAL_NAME_ATTRIBUTE, upn));
 		}
-		
-		throw new ConnectorException("Failed to create identity " + identity.getPrincipalName());
+
+		String sAMAccountName = identity.getAttribute(SAM_ACCOUNT_NAME_ATTRIBUTE);
+
+		if (StringUtils.isEmpty(sAMAccountName)) {
+			sAMAccountName = principalName;
+			if (sAMAccountName.contains("@")) {
+				sAMAccountName = sAMAccountName.substring(0, sAMAccountName.indexOf("@"));
+			}
+		}
+
+		attributes.add(new BasicAttribute(SAM_ACCOUNT_NAME_ATTRIBUTE, sAMAccountName));
+
+		if (!StringUtil.isNullOrEmpty(identity.getAddress(com.identity4j.connector.Media.mobile))) {
+			attributes.add(new BasicAttribute(MOBILE_PHONE_NUMBER_ATTRIBUTE,
+					identity.getAddress(com.identity4j.connector.Media.mobile)));
+		}
+
+		return upn;
 	}
 
 	@Override
 	public void unlockIdentity(Identity identity) throws ConnectorException {
 		if (!(identity instanceof DirectoryIdentity)) {
-			throw new IllegalArgumentException(
-					"May only unlock LDAP identities.");
+			throw new IllegalArgumentException("May only unlock LDAP identities.");
 		}
-		if (identity.getAccountStatus().getType()
-				.equals(AccountStatusType.expired)) {
+		if (identity.getAccountStatus().getType().equals(AccountStatusType.expired)) {
 			throw new IllegalStateException("May not unlock expired accounts.");
 		}
-		if (identity.getAccountStatus().getType()
-				.equals(AccountStatusType.unlocked)) {
+		if (identity.getAccountStatus().getType().equals(AccountStatusType.unlocked)) {
 			throw new IllegalStateException("Account already unlocked.");
 		}
 		try {
@@ -708,8 +608,11 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			ldapService.update(((DirectoryIdentity) identity).getDn(),
 					items.toArray(new ModificationItem[items.size()]));
 			identity.getAccountStatus().unlock();
-		} catch (Exception e) {
-			throw new ConnectorException("Lock account failure during write", e);
+		} catch (NamingException e) {
+			processNamingException(e);
+			throw new IllegalStateException("Unreachable code");
+		} catch (IOException e) {
+			throw new ConnectorException(e.getMessage(), e);
 		}
 	}
 
@@ -718,25 +621,24 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 		if (!(identity instanceof DirectoryIdentity)) {
 			throw new IllegalArgumentException("May only lock LDAP identities.");
 		}
-		if (identity.getAccountStatus().getType()
-				.equals(AccountStatusType.expired)) {
+		if (identity.getAccountStatus().getType().equals(AccountStatusType.expired)) {
 			throw new IllegalStateException("May not lock expired accounts.");
 		}
-		if (identity.getAccountStatus().getType()
-				.equals(AccountStatusType.locked)) {
+		if (identity.getAccountStatus().getType().equals(AccountStatusType.locked)) {
 			throw new IllegalStateException("Account already locked.");
 		}
 		try {
 			Collection<ModificationItem> items = new ArrayList<ModificationItem>();
-			items.add(new ModificationItem(DirContext.REPLACE_ATTRIBUTE,
-					new BasicAttribute(LOCKOUT_TIME_ATTRIBUTE, String
-							.valueOf(ActiveDirectoryDateUtil
-									.javaDataToADTime(new Date())))));
+			items.add(new ModificationItem(DirContext.REPLACE_ATTRIBUTE, new BasicAttribute(LOCKOUT_TIME_ATTRIBUTE,
+					String.valueOf(ActiveDirectoryDateUtil.javaDataToADTime(new Date())))));
 			ldapService.update(((DirectoryIdentity) identity).getDn(),
 					items.toArray(new ModificationItem[items.size()]));
 			identity.getAccountStatus().lock();
-		} catch (Exception e) {
-			throw new ConnectorException("Lock account failure during write", e);
+		} catch (NamingException e) {
+			processNamingException(e);
+			throw new IllegalStateException("Unreachable code");
+		} catch (IOException e) {
+			throw new ConnectorException(e.getMessage(), e);
 		}
 	}
 
@@ -744,33 +646,28 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 	public void disableIdentity(Identity identity) throws ConnectorException {
 		try {
 			if (!(identity instanceof DirectoryIdentity)) {
-				throw new IllegalArgumentException(
-						"May only disable LDAP identities.");
+				throw new IllegalArgumentException("May only disable LDAP identities.");
 			}
-			if (identity.getAccountStatus().getType()
-					.equals(AccountStatusType.disabled)) {
+			if (identity.getAccountStatus().getType().equals(AccountStatusType.disabled)) {
 				throw new IllegalStateException("Account already disabled.");
 			}
 
 			DirectoryIdentity directoryIdentity = (DirectoryIdentity) identity;
 			Collection<ModificationItem> items = new ArrayList<ModificationItem>();
-			items.add(new ModificationItem(
-					DirContext.REPLACE_ATTRIBUTE,
-					new BasicAttribute(
-							USER_ACCOUNT_CONTROL_ATTRIBUTE,
-							String.valueOf(UserAccountControl.getUserAccountControlFlag(
-									Integer.valueOf(directoryIdentity
-											.getAttributeOrDefault(
-													USER_ACCOUNT_CONTROL_ATTRIBUTE,
-													"0")), false, Collections
-											.<String, Boolean> emptyMap())))));
+			items.add(new ModificationItem(DirContext.REPLACE_ATTRIBUTE, new BasicAttribute(
+					USER_ACCOUNT_CONTROL_ATTRIBUTE,
+					String.valueOf(UserAccountControl.getUserAccountControlFlag(
+							Integer.valueOf(
+									directoryIdentity.getAttributeOrDefault(USER_ACCOUNT_CONTROL_ATTRIBUTE, "0")),
+							false, Collections.<String, Boolean>emptyMap())))));
 
 			ldapService.update(((DirectoryIdentity) identity).getDn(),
 					items.toArray(new ModificationItem[items.size()]));
 		} catch (NamingException e) {
-			LOG.error("Problem in disable identity", e);
+			processNamingException(e);
+			throw new IllegalStateException("Unreachable code");
 		} catch (IOException e) {
-			LOG.error("Problem in disable identity", e);
+			throw new ConnectorException(e.getMessage(), e);
 		}
 
 	}
@@ -779,65 +676,57 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 	public void enableIdentity(Identity identity) throws ConnectorException {
 		try {
 			if (!(identity instanceof DirectoryIdentity)) {
-				throw new IllegalArgumentException(
-						"May only disable LDAP identities.");
+				throw new IllegalArgumentException("May only disable LDAP identities.");
 			}
-			if (!identity.getAccountStatus().getType()
-					.equals(AccountStatusType.disabled)) {
+			if (!identity.getAccountStatus().getType().equals(AccountStatusType.disabled)) {
 				throw new IllegalStateException("Account already enabled.");
 			}
 
 			DirectoryIdentity directoryIdentity = (DirectoryIdentity) identity;
 			Collection<ModificationItem> items = new ArrayList<ModificationItem>();
-			items.add(new ModificationItem(
-					DirContext.REPLACE_ATTRIBUTE,
-					new BasicAttribute(
-							USER_ACCOUNT_CONTROL_ATTRIBUTE,
-							String.valueOf(UserAccountControl.getUserAccountControlFlag(
-									Integer.valueOf(directoryIdentity
-											.getAttributeOrDefault(
-													USER_ACCOUNT_CONTROL_ATTRIBUTE,
-													"0")), true, Collections
-											.<String, Boolean> emptyMap())))));
+			items.add(new ModificationItem(DirContext.REPLACE_ATTRIBUTE, new BasicAttribute(
+					USER_ACCOUNT_CONTROL_ATTRIBUTE,
+					String.valueOf(UserAccountControl.getUserAccountControlFlag(
+							Integer.valueOf(
+									directoryIdentity.getAttributeOrDefault(USER_ACCOUNT_CONTROL_ATTRIBUTE, "0")),
+							true, Collections.<String, Boolean>emptyMap())))));
 
 			ldapService.update(((DirectoryIdentity) identity).getDn(),
 					items.toArray(new ModificationItem[items.size()]));
+
+			directoryIdentity.getAccountStatus().setDisabled(false);
+			directoryIdentity.getAccountStatus().calculateType();
+
 		} catch (NamingException e) {
-			LOG.error("Problem in enable identity", e);
+			processNamingException(e);
+			throw new IllegalStateException("Unreachable code");
 		} catch (IOException e) {
-			LOG.error("Problem in enable identity", e);
+			throw new ConnectorException(e.getMessage(), e);
 		}
 
 	}
 
-	protected void setForcePasswordChangeAtNextLogon(
-			DirectoryIdentity identity, boolean forcePasswordChangeAtLogon) {
+	protected void setForcePasswordChangeAtNextLogon(DirectoryIdentity identity, boolean forcePasswordChangeAtLogon) {
 
-			Collection<ModificationItem> items = new ArrayList<ModificationItem>();
-			if (forcePasswordChangeAtLogon) {
-				items.add(new ModificationItem(DirContext.REPLACE_ATTRIBUTE,
-						new BasicAttribute(PWD_LAST_SET_ATTRIBUTE, String
-								.valueOf(CHANGE_PASSWORD_AT_NEXT_LOGON_FLAG))));
-			} else {
-				items.add(new ModificationItem(DirContext.REMOVE_ATTRIBUTE,
-						new BasicAttribute(PWD_LAST_SET_ATTRIBUTE)));
-				items.add(new ModificationItem(
-						DirContext.ADD_ATTRIBUTE,
-						new BasicAttribute(
-								PWD_LAST_SET_ATTRIBUTE,
-								String.valueOf(CHANGE_PASSWORD_AT_NEXT_LOGON_CANCEL_FLAG))));
-			}
+		Collection<ModificationItem> items = new ArrayList<ModificationItem>();
+		if (forcePasswordChangeAtLogon) {
+			items.add(new ModificationItem(DirContext.REPLACE_ATTRIBUTE,
+					new BasicAttribute(PWD_LAST_SET_ATTRIBUTE, String.valueOf(CHANGE_PASSWORD_AT_NEXT_LOGON_FLAG))));
+		} else {
+			items.add(new ModificationItem(DirContext.REMOVE_ATTRIBUTE, new BasicAttribute(PWD_LAST_SET_ATTRIBUTE)));
+			items.add(new ModificationItem(DirContext.ADD_ATTRIBUTE, new BasicAttribute(PWD_LAST_SET_ATTRIBUTE,
+					String.valueOf(CHANGE_PASSWORD_AT_NEXT_LOGON_CANCEL_FLAG))));
+		}
 
-			try {
-				ldapService.update(((DirectoryIdentity) identity).getDn(),
-						items.toArray(new ModificationItem[items.size()]));
-			} catch (NamingException e) {
-				throw new ConnectorException(
-						"Failed to change password. Reason code "
-								+ processNamingException(e));
-			} catch (IOException e) {
-				throw new ConnectorException("Failed to connect: " + e.getMessage(), e);
-			}
+		try {
+			ldapService.update(((DirectoryIdentity) identity).getDn(),
+					items.toArray(new ModificationItem[items.size()]));
+		} catch (NamingException e) {
+			processNamingException(e);
+			throw new IllegalStateException("Unreachable code");
+		} catch (IOException e) {
+			throw new ConnectorException(e.getMessage(), e);
+		}
 
 	}
 
@@ -846,10 +735,8 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 	}
 
 	private int getMaximumPasswordAge() {
-		int maxPasswordAgeDays = ((ActiveDirectoryConfiguration) getConfiguration())
-				.getMaxPasswordAgeDays();
-		return maxPasswordAgeDays < 1 ? getPasswordAge(MAXIMUM_PASSWORD_AGE_ATTRIBUTE)
-				: maxPasswordAgeDays;
+		int maxPasswordAgeDays = ((ActiveDirectoryConfiguration) getConfiguration()).getMaxPasswordAgeDays();
+		return maxPasswordAgeDays < 1 ? getPasswordAge(MAXIMUM_PASSWORD_AGE_ATTRIBUTE) : maxPasswordAgeDays;
 	}
 
 	private int getPasswordHistoryLength() {
@@ -861,8 +748,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 	}
 
 	private int getPasswordAge(String attributeName) {
-		String value = getAttributeValue(getConfiguration().getBaseDn(),
-				attributeName);
+		String value = getAttributeValue(getRootDn(), attributeName);
 		if (StringUtil.isNullOrEmpty(value)) {
 			return 0;
 		}
@@ -878,26 +764,26 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 				public Role apply(SearchResult result) throws NamingException {
 					return mapRole(result);
 				}
-				
+
 				public boolean isApplyFilters() {
 					return true;
 				}
-			});
+			}, configureRoleSearchControls(ldapService.getSearchControls()));
 		} catch (NamingException e) {
-			LOG.error("Problem in getting roles", e);
+			processNamingException(e);
+			throw new IllegalStateException("Unreachable code");
 		} catch (IOException e) {
-			LOG.error("Problem in getting roles", e);
+			throw new ConnectorException(e.getMessage(), e);
 		}
-		return ROLE_ITERATOR;
 
 	}
-	
+
 	private String buildPSOFilter() {
 		return ldapService.buildObjectClassFilter("msDS-PasswordSettings", "cn", WILDCARD_SEARCH);
 	}
 
 	public Iterator<ADPasswordCharacteristics> getPasswordPolicies() {
-		
+
 		try {
 			return ldapService.search(buildPSOFilter(), new ResultMapper<ADPasswordCharacteristics>() {
 
@@ -905,21 +791,21 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 				public ADPasswordCharacteristics apply(SearchResult result) throws NamingException, IOException {
 					return loadCharacteristics(result);
 				}
+
 				public boolean isApplyFilters() {
 					return false;
 				}
-			});
+			}, ldapService.getSearchControls());
 		} catch (NamingException e) {
-			LOG.error("Problem in getting PSOs", e);
+			processNamingException(e);
+			throw new IllegalStateException("Unreachable code");
 		} catch (IOException e) {
-			LOG.error("Problem in getting PSOs", e);
+			throw new ConnectorException(e.getMessage(), e);
 		}
-		
-		return CollectionUtil.emptyIterator(ADPasswordCharacteristics.class);
 	}
+
 	@Override
-	protected SearchControls configureSearchControls(
-			SearchControls searchControls) {
+	protected SearchControls configureSearchControls(SearchControls searchControls) {
 		searchControls = super.configureSearchControls(searchControls);
 		List<String> attr = new ArrayList<String>(identityAttributesToRetrieve);
 		attr.addAll(DEFAULT_USER_ATTRIBUTES);
@@ -927,9 +813,15 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 		return searchControls;
 	}
 
+	protected SearchControls configurePSOSearchControls(SearchControls searchControls) {
+		searchControls = super.configureSearchControls(searchControls);
+		List<String> attr = new ArrayList<String>(Arrays.asList("cn", "msDS-PSOAppliesTo"));
+		searchControls.setReturningAttributes(attr.toArray(new String[0]));
+		return searchControls;
+	}
+
 	@Override
-	protected SearchControls configureRoleSearchControls(
-			SearchControls searchControls) {
+	protected SearchControls configureRoleSearchControls(SearchControls searchControls) {
 		searchControls = super.configureSearchControls(searchControls);
 		List<String> attr = new ArrayList<String>(ALL_ROLE_ATTRIBUTES);
 		searchControls.setReturningAttributes(attr.toArray(new String[0]));
@@ -937,8 +829,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 	}
 
 	@Override
-	protected final void changePassword(Identity identity, char[] oldPassword,
-			char[] password) {
+	protected final void changePassword(Identity identity, char[] oldPassword, char[] password) {
 		try {
 			ActiveDirectoryConfiguration directoryConfiguration = (ActiveDirectoryConfiguration) getConfiguration();
 			String newQuotedPassword = "\"" + new String(password) + "\"";
@@ -947,33 +838,104 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			byte[] newUnicodePassword = newQuotedPassword.getBytes("UTF-16LE");
 			byte[] oldUnicodePassword = oldQuotedPassword.getBytes("UTF-16LE");
 
-			ModificationItem item1 = new ModificationItem(
-					DirContext.REMOVE_ATTRIBUTE,
-					new BasicAttribute(directoryConfiguration
-							.getIdentityPasswordAttribute(), oldUnicodePassword));
-			ModificationItem item2 = new ModificationItem(
-					DirContext.ADD_ATTRIBUTE,
-					new BasicAttribute(directoryConfiguration
-							.getIdentityPasswordAttribute(), newUnicodePassword));
-			ldapService.update(((DirectoryIdentity) identity).getDn(),
-					new ModificationItem[] { item1, item2 });
+			ModificationItem item1 = new ModificationItem(DirContext.REMOVE_ATTRIBUTE,
+					new BasicAttribute(directoryConfiguration.getIdentityPasswordAttribute(), oldUnicodePassword));
+			ModificationItem item2 = new ModificationItem(DirContext.ADD_ATTRIBUTE,
+					new BasicAttribute(directoryConfiguration.getIdentityPasswordAttribute(), newUnicodePassword));
+			ldapService.update(((DirectoryIdentity) identity).getDn(), new ModificationItem[] { item1, item2 });
 
-		} catch (NamingException nme) {
+		} catch (NamingException e) {
 			try {
-				throw new ConnectorException(
-						"Failed to change password. Reason code "
-								+ processNamingException(nme));
+				processNamingException(e);
+				throw new IllegalStateException("Unreachable code");
 			} catch (PasswordChangeRequiredException pcre) {
-				LOG.warn("Could not use change password because 'Change Password At Next Login' was set. Falling back to setPassword. Depending on the version of Active Directory in use, this may bypass password history checks.");
+				LOG.warn(
+						"Could not use change password because 'Change Password At Next Login' was set. Falling back to setPassword. Depending on the version of Active Directory in use, this may bypass password history checks.");
 				setPassword(identity, password, false, PasswordResetType.USER);
 			}
 		} catch (IOException e) {
-			LOG.error("Problem in change password for identity", e);
+			throw new ConnectorException(e.getMessage(), e);
 		}
 	}
-    
-	protected String processNamingException(NamingException nme) {
 
+	@SuppressWarnings("unused")
+	private boolean isUsePSO() {
+		int version = getSchemaVersion().getVersion();
+		return version >= ActiveDirectorySchemaVersion.WINDOWS_2008.getVersion();
+	}
+
+	protected ActiveDirectorySchemaVersion getSchemaVersion() {
+
+		if (cachedVersion != null) {
+			return cachedVersion;
+		}
+
+		try {
+
+			/**
+			 * TODO we need to fix this for child domains
+			 */
+			LdapName schemaDn = new LdapName("CN=Schema,CN=Configuration," + getRootDn().toString());
+			String value = getAttributeValue(schemaDn, "objectVersion");
+
+			int version = Integer.parseInt(value);
+			switch (version) {
+			case 13:
+				cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2000;
+				break;
+			case 30:
+				cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2003;
+				break;
+			case 31:
+				cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2003_R2;
+				break;
+			case 44:
+				cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2008;
+				break;
+			case 47:
+				cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2008_R2;
+				break;
+			case 56:
+				cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2012;
+				break;
+			case 69:
+				cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2012_R2;
+				break;
+			case 87:
+				cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2016;
+				break;
+			case 88:
+				cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2019;
+				break;
+			default:
+				LOG.info("Could not determine Active Directory schema version from value " + value);
+				if (version < ActiveDirectorySchemaVersion.WINDOWS_2000.getVersion()) {
+					cachedVersion = ActiveDirectorySchemaVersion.PRE_WINDOWS_2000;
+				} else if (version > ActiveDirectorySchemaVersion.WINDOWS_2019.getVersion()) {
+					cachedVersion = ActiveDirectorySchemaVersion.POST_WINDOWS_2019;
+				} else {
+					cachedVersion = ActiveDirectorySchemaVersion.UNKNOWN;
+				}
+				break;
+			}
+
+		} catch (NumberFormatException e) {
+			LOG.info("Could not determine Active Directory schema version", e);
+			cachedVersion = ActiveDirectorySchemaVersion.UNKNOWN;
+		} catch (Throwable e) {
+			LOG.info("Could not determine Active Directory schema version", e);
+			cachedVersion = ActiveDirectorySchemaVersion.UNKNOWN;
+		}
+
+		if (LOG.isInfoEnabled()) {
+			LOG.info("Active Directory schema version is " + cachedVersion.name().replaceAll("_", " "));
+		}
+
+		return cachedVersion;
+
+	}
+
+	protected String processNamingException(NamingException nme) {
 		DirectoryExceptionParser dep = new DirectoryExceptionParser(nme);
 		String reason = dep.getReason();
 		// Now for specific errors. These will hopefully build up over
@@ -984,8 +946,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			String message = "The new password does not comply with current rules.";
 			int minPasswordAge = getMinimumPasswordAge();
 			if (minPasswordAge > 0) {
-				message += " Your password policy also has a minimum password age of "
-						+ minPasswordAge
+				message += " Your password policy also has a minimum password age of " + minPasswordAge
 						+ " days, you will not be able to change password until your current password is older than this.";
 			}
 			int passwordHistoryLength = getPasswordHistoryLength();
@@ -996,118 +957,109 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			throw new PasswordPolicyViolationException(message);
 		} else if (reason.equals("00000056") || reason.equals("00000057")) {
 			throw new PasswordPolicyViolationException(
-					"The new password does not comply with the rules enforced by Active Directory. It is also likely you very recently made another password change.");
+					"The new password does not comply with the rules enforced by Active Directory. It is also likely you very recently made another password change.",
+					nme);
 		} else if (reason.equals("00000524")) {
-			throw new ConnectorException(
-					"Attempt to create account with username that already exists.");
+			throw new ConnectorException("Attempt to create account with username that already exists.", nme);
 		} else if (reason.equals("0000001F")) {
 			throw new ConnectorException(
-					"Could not perform the requested operation. Please configure the server to connect to your Active Directory securely over SSL.");
+					"Could not perform the requested operation. Please configure the server to connect to your Active Directory securely over SSL.",
+					nme);
 		} else if (reason.equals("80090308") && "773".equals(dep.getData())) {
 			throw new PasswordChangeRequiredException(
 					"Cannot change password when changePasswordPasswordAtNextLogin is set, must use setPassword");
 		} else if (reason.equals("80090308") && "525".equals(dep.getData())) {
-			throw new ConnectorException(
-					"The user cannot be found.");
+			throw new ConnectorException("The user cannot be found.");
 		} else if (reason.equals("80090308") && "52e".equals(dep.getData())) {
-			throw new ConnectorException(
-					"Invalid credentials");
+			throw new InvalidLoginCredentialsException("Invalid credentials");
 		} else if (reason.equals("80090308") && "530".equals(dep.getData())) {
-			throw new ConnectorException(
-					"Not permitted to logon at this time");
+			throw new ConnectorException("Not permitted to logon at this time");
 		} else if (reason.equals("80090308") && "531".equals(dep.getData())) {
-			throw new ConnectorException(
-					"Not permitted to logon at this workstation");
+			throw new ConnectorException("Not permitted to logon at this workstation");
 		} else if (reason.equals("80090308") && "532".equals(dep.getData())) {
-			throw new ConnectorException(
-					"The password has expired");
+			throw new PasswordChangeRequiredException("Your password has expired");
 		} else if (reason.equals("80090308") && "533".equals(dep.getData())) {
-			throw new ConnectorException(
-					"Account disabled");
+			throw new ConnectorException("Your account is disabled");
 		} else if (reason.equals("80090308") && "534".equals(dep.getData())) {
-			throw new ConnectorException(
-					"The user has not been granted the requested logon type at this machine");
+			throw new ConnectorException("The user has not been granted the requested logon type at this machine");
 		} else if (reason.equals("80090308") && "701".equals(dep.getData())) {
-			throw new ConnectorException(
-					"Account expired");
+			throw new ConnectorException("Your account has expired");
 		} else if (reason.equals("80090308") && "775".equals(dep.getData())) {
-			throw new ConnectorException(
-					"User account is locked");
-		} else if(reason.equals("00000005") && "0".equals(dep.getData())) {
+			throw new ConnectorException("Your account is locked");
+		} else if (reason.equals("00000005") && "0".equals(dep.getData())) {
 			throw new ConnectorException("The administrator does not allow you to change your password.");
 		}
-		LOG.error(nme.getMessage() + ". Reason code give was " + reason, nme);
-		
+
+		/**
+		 * Errors are typically thrown up and logged so this causes additional spam in
+		 * logs.
+		 */
+		if (LOG.isDebugEnabled()) {
+			LOG.debug(nme.getMessage() + ". Reason code give was " + reason, nme);
+		}
 		super.processNamingException(nme);
-		
+
 		return reason;
 
 	}
 
-	protected void checkNamingException(NamingException nme)
-			throws ConnectorException {
-		processNamingException(nme);
-		DirectoryExceptionParser dep = new DirectoryExceptionParser(nme);
-		String reason = dep.getReason();
-		LOG.error("Processed naming exception. Reason code give was " + reason, nme);
-		throw new ConnectorException(
-				"Failed to perform operation. Reason code " + reason
-						+ ". Please see the logs for more detail.");
-	}
-
-	protected void setPassword(Identity identity, char[] password,
-			boolean forcePasswordChangeAtLogon, PasswordResetType type) throws ConnectorException {
+	protected void setPassword(Identity identity, char[] password, boolean forcePasswordChangeAtLogon,
+			PasswordResetType type) throws ConnectorException {
 		try {
-			
-			if(forcePasswordChangeAtLogon) {
-				switch(identity.getPasswordStatus().getType()) {
-					case neverExpires:
-						throw new ConnectorException("You cannot force password change at next login as the user's password is set to never expire.");
-					case noChangeAllowed:
-						throw new ConnectorException("You cannot force password change at next login as the user is not allowed to change their password.");
-					default:
-					{
-					
-					}
+
+			if (forcePasswordChangeAtLogon) {
+				switch (identity.getPasswordStatus().getType()) {
+				case neverExpires:
+					throw new ConnectorException(
+							"You cannot force password change at next login as the user's password is set to never expire.");
+				case noChangeAllowed:
+					throw new ConnectorException(
+							"You cannot force password change at next login as the user is not allowed to change their password.");
+				default: {
+
+				}
 				}
 			}
 			String newQuotedPassword = "\"" + new String(password) + "\"";
 			byte[] newUnicodePassword = newQuotedPassword.getBytes("UTF-16LE");
+			boolean enforce = getConfiguration().getConfigurationParameters()
+					.getBoolean(ActiveDirectoryConfiguration.ACTIVE_DIRECTORy_ENFORCE_PASSWORD_RULES);
 
-			if(type == PasswordResetType.USER) {
-				ldapService.setPassword(((DirectoryIdentity) identity).getDn()
-						.toString(), newUnicodePassword, 
-						new BasicControl(LDAP_SERVER_POLICY_HINTS_OID, true, controlData));
+			if (type == PasswordResetType.USER) {
+				if (!enforce) {
+					ldapService.setPassword(((DirectoryIdentity) identity).getDn().toString(), newUnicodePassword);
+				} else {
+					if (getSchemaVersion().ordinal() >= ActiveDirectorySchemaVersion.WINDOWS_2008_R2.ordinal()) {
+						ldapService.setPassword(((DirectoryIdentity) identity).getDn().toString(), newUnicodePassword,
+								new BasicControl(LDAP_SERVER_POLICY_HINTS_OID, true, controlData));
+					} else {
+						ldapService.setPassword(((DirectoryIdentity) identity).getDn().toString(), newUnicodePassword);
+					}
+				}
 			} else {
-				ldapService.setPassword(((DirectoryIdentity) identity).getDn()
-						.toString(), newUnicodePassword);
+				ldapService.setPassword(((DirectoryIdentity) identity).getDn().toString(), newUnicodePassword);
 			}
-			
-			setForcePasswordChangeAtNextLogon((DirectoryIdentity)identity, forcePasswordChangeAtLogon);
-		
+
+			setForcePasswordChangeAtNextLogon((DirectoryIdentity) identity, forcePasswordChangeAtLogon);
+
 		} catch (NamingException e) {
-			LOG.error("Problem in set password for identity", e);
 			processNamingException(e);
+			throw new IllegalStateException("Unreachable code");
 		} catch (IOException e) {
-			LOG.error("Problem in set password for identity", e);
 			throw new ConnectorException(e);
 		}
 
 	}
 
-	private String[] getElements(Attribute attribute)
-			throws NamingException {
+	private String[] getElements(Attribute attribute) throws NamingException {
 		Collection<String> values = new ArrayList<String>();
 		for (int index = 0; index < attribute.size(); index++) {
 			// TODO how to decide how non-string attributes are
 			// converted
 			final Object object = attribute.get(index);
 			if (object instanceof byte[]) {
-				values.add(StringUtil
-						.convertByteToString((byte[]) object));
-			} else if (object instanceof String
-					|| object instanceof Number
-					|| object instanceof Boolean) {
+				values.add(StringUtil.convertByteToString((byte[]) object));
+			} else if (object instanceof String || object instanceof Number || object instanceof Boolean) {
 				values.add(object.toString());
 			} else {
 				LOG.warn("Unknown attribute class, assuming String.");
@@ -1116,7 +1068,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 		}
 		return values.toArray(new String[values.size()]);
 	}
-	
+
 	@Override
 	protected Iterator<Identity> getIdentities(String filter) {
 
@@ -1129,12 +1081,17 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			while (it.hasNext()) {
 				ActiveDirectoryGroup group = (ActiveDirectoryGroup) it.next();
 				String dn = group.getDn().toString();
+
+				/**
+				 * LDP: Removed as part of Invalid name fix
+				 */
 				// https://jira.springsource.org/browse/LDAP-109
-				dn = dn.replace("\\\\", "\\\\\\");
-				dn = dn.replace("/", "\\/");
+//				dn = dn.replace("\\\\", "\\\\\\");
+//				dn = dn.replace("/", "\\/");
 
 				groups.put(dn.toLowerCase(), group);
 				groupsByRID.put(group.getRid(), group);
+				Util.memDbg(String.format("Group cache size %6d  Group: %s ", groups.size(), dn));
 			}
 		}
 
@@ -1150,8 +1107,8 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 				}
 
 				@Override
-				public Identity apply(SearchResult result)
-						throws NamingException {
+				public Identity apply(SearchResult result) throws NamingException {
+
 					Attributes attributes = result.getAttributes();
 
 					byte[] guidBytes = (byte[]) getAttribute(attributes.get(OBJECT_GUID_ATTRIBUTE));
@@ -1159,26 +1116,24 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 					Name udn = new LdapName(result.getNameInNamespace());
 					String domain = getDomain(udn);
 					String username = selectUsername(result);
-					DirectoryIdentity directoryIdentity = new DirectoryIdentity(
-							guid, username, udn);
+					Util.memDbg("User " + username);
+					DirectoryIdentity directoryIdentity = new DirectoryIdentity(guid, username, udn);
 
 					// Generate Immutable ID for MSOL services
-					String guidBase64 = org.apache.commons.codec.binary.StringUtils.newStringUtf8(Base64.encodeBase64(guidBytes, false));
+					String guidBase64 = org.apache.commons.codec.binary.StringUtils
+							.newStringUtf8(Base64.encodeBase64(guidBytes, false));
 					directoryIdentity.setAttribute(IMMUTABLE_ID_ATTR, guidBase64.trim());
 
-					for (NamingEnumeration<? extends Attribute> attributeEmun = result
-							.getAttributes().getAll(); attributeEmun
-							.hasMoreElements();) {
+					for (NamingEnumeration<? extends Attribute> attributeEmun = result.getAttributes()
+							.getAll(); attributeEmun.hasMoreElements();) {
 						Attribute attribute = attributeEmun.nextElement();
 						if (isAttributeMapped(attribute)) {
-							directoryIdentity.setAttribute(attribute.getID(),
-									getElements(attribute));
+							directoryIdentity.setAttribute(attribute.getID(), getElements(attribute));
 						}
 					}
 
 					String userPrincipalName = StringUtil
-							.nonNull((String) getAttribute(attributes
-									.get(USER_PRINCIPAL_NAME_ATTRIBUTE)));
+							.nonNull((String) getAttribute(attributes.get(USER_PRINCIPAL_NAME_ATTRIBUTE)));
 
 					// If service account, mark as 'system'
 					String serviceAccountDn = config.getServiceAccountDn();
@@ -1186,114 +1141,99 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 						directoryIdentity.setSystem(true);
 					}
 
-					String otherName = getOtherName(username,
-							userPrincipalName, domain, config);
-					directoryIdentity.setAddress(Media.email,
-							(String) getAttribute(attributes
-									.get(MAIL_ATTRIBUTE)));
-					directoryIdentity
-							.setFullName((String) getAttribute(attributes
-									.get(COMMON_NAME_ATTRIBUTE)));
+					String otherName = getOtherName(username, userPrincipalName, domain, config);
+					directoryIdentity.setAddress(Media.email, (String) getAttribute(attributes.get(MAIL_ATTRIBUTE)));
+					directoryIdentity.setFullName((String) getAttribute(attributes.get(COMMON_NAME_ATTRIBUTE)));
 					directoryIdentity.setOtherName(otherName);
 
-					String phoneNumber = (String) getAttribute(attributes
-							.get(MOBILE_PHONE_NUMBER_ATTRIBUTE));
+					String phoneNumber = (String) getAttribute(attributes.get(MOBILE_PHONE_NUMBER_ATTRIBUTE));
 					if (!StringUtil.isNullOrEmpty(phoneNumber)) {
 						directoryIdentity.setAddress(Media.mobile, phoneNumber);
 					}
 
-					LdapName ou = new LdapName((String) getAttribute(attributes
-							.get(DISTINGUISHED_NAME_ATTRIBUTE)));
+					LdapName ou = new LdapName(
+							(String) getAttribute(attributes.get(config.getDistinguishedNameAttribute())));
 					ou.remove(ou.size() - 1);
 					directoryIdentity.setAttribute(OU_ATTRIBUTE, ou.toString());
 
 					// Last sign on
-					String lastLogonTimestamp = (String) getAttribute(attributes
-							.get(LAST_LOGON_TIMESTAMP_ATTRIBUTE));
+					String lastLogonTimestamp = (String) getAttribute(attributes.get(LAST_LOGON_TIMESTAMP_ATTRIBUTE));
 					if (!StringUtil.isNullOrEmpty(lastLogonTimestamp)) {
 						long lastLogonTime = Long.parseLong(lastLogonTimestamp);
 						if (lastLogonTime > 0) {
 							directoryIdentity
-									.setLastSignOnDate(ActiveDirectoryDateUtil
-											.adTimeToJavaDate(lastLogonTime));
+									.setLastSignOnDate(ActiveDirectoryDateUtil.adTimeToJavaDate(lastLogonTime));
 						}
 					}
-					String lastLogon = (String) getAttribute(attributes
-							.get(LAST_LOGON_ATTRIBUTE));
+					String lastLogon = (String) getAttribute(attributes.get(LAST_LOGON_ATTRIBUTE));
 
-					if (directoryIdentity.getLastSignOnDate() == null
-							&& !StringUtil.isNullOrEmpty(lastLogon)) {
+					if (directoryIdentity.getLastSignOnDate() == null && !StringUtil.isNullOrEmpty(lastLogon)) {
 						long lastLogonTime = Long.parseLong(lastLogon);
 						if (lastLogonTime > 0) {
 							directoryIdentity
-									.setLastSignOnDate(ActiveDirectoryDateUtil
-											.adTimeToJavaDate(lastLogonTime));
+									.setLastSignOnDate(ActiveDirectoryDateUtil.adTimeToJavaDate(lastLogonTime));
 						}
 					}
 
 					// Calculate the password status
-					PasswordStatus passwordStatus = directoryIdentity
-							.getPasswordStatus();
-					Date passwordLastSet = trimDate(getDateAttribute(result,
-							PWD_LAST_SET_ATTRIBUTE));
+					PasswordStatus passwordStatus = directoryIdentity.getPasswordStatus();
+					Date passwordLastSet = trimDate(getDateAttribute(result, PWD_LAST_SET_ATTRIBUTE));
 					passwordStatus.setLastChange(passwordLastSet);
 					boolean passwordChangeAllowed = isPasswordChangeAllowed(result);
 					if (passwordChangeAllowed) {
-						passwordStatus.setUnlocked(getAgedDate(
-								minimumPasswordAge, passwordLastSet));
-					}
-					if (!isPasswordNeverExpire(result)
-							&& passwordLastSet != null) {
-						passwordStatus.setExpire(getAgedDate(
-								maximumPasswordAge, passwordLastSet));
+						passwordStatus.setUnlocked(getAgedDate(minimumPasswordAge, passwordLastSet));
 					}
 
-					String userDn = ActiveDirectoryConfiguration.buildUsername(
-							config.getBaseDn().toString(), config.getDomain(),
-							directoryIdentity.getPrincipalName());
-					if (userDn.equalsIgnoreCase(getConfiguration()
-							.getServiceAccountDn())) {
+					if (!isPasswordNeverExpire(result)) {
+						String passwordexpiryComputed = directoryIdentity.getAttribute(PASSWORD_EXPIRY_COMPUTED);
+						if (LOG.isInfoEnabled()) {
+							LOG.info(String.format("%s's computed password expiry is %s", username,
+									passwordexpiryComputed));
+						}
+
+						if (passwordexpiryComputed != null && StringUtils.isNotBlank(passwordexpiryComputed)) {
+							long expireTime = Long.parseLong(passwordexpiryComputed);
+							if (expireTime > 0 && expireTime < Long.MAX_VALUE) {
+								passwordStatus.setExpire(ActiveDirectoryDateUtil.adTimeToJavaDate(expireTime));
+							}
+						} else if (passwordLastSet != null) {
+							passwordStatus.setExpire(getAgedDate(maximumPasswordAge, passwordLastSet));
+						}
+					}
+
+					String userDn = ActiveDirectoryConfiguration.buildUsername(config.getBaseDn().toString(),
+							config.getDomain(), directoryIdentity.getPrincipalName());
+					if (userDn.equalsIgnoreCase(getConfiguration().getServiceAccountDn())) {
 						// Do not allow the service account password to be reset
-						passwordStatus
-								.setType(PasswordStatusType.noChangeAllowed);
+						passwordStatus.setType(PasswordStatusType.noChangeAllowed);
 					} else if (isPasswordChangeRequired(result)) {
-						passwordStatus
-								.setType(PasswordStatusType.changeRequired);
+						passwordStatus.setType(PasswordStatusType.changeRequired);
 					} else {
 						passwordStatus.calculateType();
 					}
-					String userAccountControl = (String) getAttribute(attributes
-							.get(USER_ACCOUNT_CONTROL_ATTRIBUTE));
+					String userAccountControl = (String) getAttribute(attributes.get(USER_ACCOUNT_CONTROL_ATTRIBUTE));
 
 					// Overrides calculated password status, prevent the user
 					// changing the password at all
-					if (passwordStatus.getType().equals(
-							PasswordStatusType.expired)) {
+					if (passwordStatus.getType().equals(PasswordStatusType.expired)) {
 						if (userAccountControl.length() != 0) {
-							if (UserAccountControl.isValueSet(
-									Integer.valueOf(userAccountControl),
+							if (UserAccountControl.isValueSet(Integer.valueOf(userAccountControl),
 									UserAccountControl.DONT_EXPIRE_PASSWORD_FLAG)) {
-								passwordStatus
-										.setType(PasswordStatusType.neverExpires);
+								passwordStatus.setType(PasswordStatusType.neverExpires);
 							}
 						}
 					}
 					if (!passwordChangeAllowed) {
-						passwordStatus
-								.setType(PasswordStatusType.noChangeAllowed);
+						passwordStatus.setType(PasswordStatusType.noChangeAllowed);
 					}
 
 					// Calculate password status
-					AccountStatus accountStatus = directoryIdentity
-							.getAccountStatus();
-					accountStatus.setExpire(trimDate(getDateAttribute(result,
-							ACCOUNT_EXPIRES_ATTRIBUTE)));
-					accountStatus.setLocked(trimDate(getDateAttribute(result,
-							LOCKOUT_TIME_ATTRIBUTE)));
+					AccountStatus accountStatus = directoryIdentity.getAccountStatus();
+					accountStatus.setExpire(trimDate(getDateAttribute(result, ACCOUNT_EXPIRES_ATTRIBUTE)));
+					accountStatus.setLocked(trimDate(getDateAttribute(result, LOCKOUT_TIME_ATTRIBUTE)));
 					accountStatus.setUnlocked(null);
 					if (userAccountControl.length() != 0) {
-						if (UserAccountControl.isValueSet(
-								Integer.valueOf(userAccountControl),
+						if (UserAccountControl.isValueSet(Integer.valueOf(userAccountControl),
 								UserAccountControl.ACCOUNTDISABLE_FLAG)) {
 							accountStatus.setDisabled(true);
 						}
@@ -1301,11 +1241,9 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 					accountStatus.calculateType();
 
 					// Now if looked, calculate when unlocked
-					if (accountStatus.getType()
-							.equals(AccountStatusType.locked)) {
-						accountStatus.setUnlocked(trimDate(new Date(
-								accountStatus.getLocked().getTime()
-										- (lockoutDuration / 1000))));
+					if (accountStatus.getType().equals(AccountStatusType.locked)) {
+						accountStatus.setUnlocked(
+								trimDate(new Date(accountStatus.getLocked().getTime() - (lockoutDuration / 1000))));
 					}
 
 					if (config.isEnableRoles()) {
@@ -1313,10 +1251,8 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 
 						try {
 							Long rid = Long
-									.parseLong((String) getAttribute(attributes
-											.get(PRIMARY_GROUP_ID_ATTRIBUTE)));
-							ActiveDirectoryGroup primaryGroup = groupsByRID
-									.get(rid);
+									.parseLong((String) getAttribute(attributes.get(PRIMARY_GROUP_ID_ATTRIBUTE)));
+							ActiveDirectoryGroup primaryGroup = groupsByRID.get(rid);
 							if (primaryGroup != null) {
 								directoryIdentity.addRole(primaryGroup);
 							}
@@ -1325,39 +1261,36 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 
 						Iterator<String> groupDnsItr;
 						try {
-							groupDnsItr = memberOfSupported ? getUsersGroups(result)
-									: getGroupsForUser(result);
+							groupDnsItr = memberOfSupported ? getUsersGroups(result) : getGroupsForUser(result);
 
 							while (groupDnsItr.hasNext()) {
 								String dn = groupDnsItr.next();
 
+								/**
+								 * LDP - This is causing Invalid name exception when group is retrieved via
+								 * lookupContext
+								 */
 								// https://jira.springsource.org/browse/LDAP-109
-								dn = dn.replace("\\\\", "\\\\\\");
-								dn = dn.replace("/", "\\/");
+//								dn = dn.replace("\\\\", "\\\\\\");
+//								dn = dn.replace("/", "\\/");
 
 								if (groups.containsKey(dn.toLowerCase())) {
-									directoryIdentity.addRole(groups.get(dn
-											.toLowerCase()));
+									directoryIdentity.addRole(groups.get(dn.toLowerCase()));
 								} else {
-									Attributes roleAttributes;
+									LdapContext ctx = ldapService.lookupContext(new LdapName(dn));
 									try {
-										roleAttributes = ldapService
-												.lookupContext(new LdapName(dn));
-										ActiveDirectoryGroup activeDirectoryGroup = mapRole(
-												dn, roleAttributes);
-										if (activeDirectoryGroup != null) {
-											groups.put(dn.toLowerCase(),
-													activeDirectoryGroup);
-											groupsByRID.put(
-													activeDirectoryGroup
-															.getRid(),
-													activeDirectoryGroup);
-											directoryIdentity
-													.addRole(activeDirectoryGroup);
-										}
 
-									} catch (IOException e) {
-										LOG.error("Problem in getting role", e);
+										ActiveDirectoryGroup activeDirectoryGroup = mapRole(dn, ctx.getAttributes(""));
+										if (activeDirectoryGroup != null) {
+											groups.put(dn.toLowerCase(), activeDirectoryGroup);
+											groupsByRID.put(activeDirectoryGroup.getRid(), activeDirectoryGroup);
+											directoryIdentity.addRole(activeDirectoryGroup);
+										}
+									} finally {
+										try {
+											ctx.close();
+										} catch (Exception e) {
+										}
 									}
 								}
 							}
@@ -1370,26 +1303,23 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 					}
 					return directoryIdentity;
 				}
-				
+
 				public boolean isApplyFilters() {
 					return true;
 				}
-			});
+			}, configureSearchControls(ldapService.getSearchControls()));
 		} catch (NamingException e) {
-			LOG.error("Problem in fetching identity", e);
+			processNamingException(e);
+			throw new IllegalStateException("Unreachable code");
 		} catch (IOException e) {
-			LOG.error("Problem in fetching identity", e);
+			throw new ConnectorException(e.getMessage(), e);
 		}
-		return null;
-
 	}
 
-	private boolean isPasswordChangeRequired(SearchResult result)
-			throws NamingException {
+	private boolean isPasswordChangeRequired(SearchResult result) throws NamingException {
 		try {
 			Attributes attributes = result.getAttributes();
-			String value = (String) getAttribute(attributes
-					.get(PWD_LAST_SET_ATTRIBUTE));
+			String value = (String) getAttribute(attributes.get(PWD_LAST_SET_ATTRIBUTE));
 			long val = Long.parseLong(value);
 			if (val == 0) {
 				return true;
@@ -1406,18 +1336,21 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			Calendar cal = Calendar.getInstance();
 			if (date != null) {
 				cal.setTime(date);
+				cal.add(Calendar.DAY_OF_YEAR, age);
+			} else {
+				// Set a fixed date way in the future
+				cal.setTimeInMillis(0);
+				cal.set(Calendar.YEAR, 3999);
 			}
-			cal.add(Calendar.DAY_OF_YEAR, age);
 			return trimDate(cal.getTime());
 		}
 	}
 
-	private String getOtherName(String username, String userPrincipalName,
-			String domain, ActiveDirectoryConfiguration config) {
+	private String getOtherName(String username, String userPrincipalName, String domain,
+			ActiveDirectoryConfiguration config) {
 		String otherName;
 		if (userPrincipalName.equals("")
-				|| (!domain.equalsIgnoreCase(config.getDomain()) && userPrincipalName
-						.indexOf('@') == -1)) {
+				|| (!domain.equalsIgnoreCase(config.getDomain()) && userPrincipalName.indexOf('@') == -1)) {
 			otherName = username + "@" + domain;
 		} else {
 			otherName = userPrincipalName;
@@ -1431,29 +1364,23 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 		while (e.hasMoreElements()) {
 			String el = e.nextElement();
 			if (el.toLowerCase().startsWith("dc=")) {
-				domain = el.substring(3)
-						+ (domain.equals("") ? "" : "." + domain);
+				domain = el.substring(3) + (domain.equals("") ? "" : "." + domain);
 			}
 		}
 		return domain;
 	}
 
-	private String selectUsername(SearchResult searchResult)
-			throws NamingException {
+	private String selectUsername(SearchResult searchResult) throws NamingException {
 
 		ActiveDirectoryConfiguration config = getActiveDirectoryConfiguration();
 
 		Attributes attributes = searchResult.getAttributes();
 
-		String domain = getDomain(new LdapName(
-				searchResult.getNameInNamespace()));
+		String domain = getDomain(new LdapName(searchResult.getNameInNamespace()));
 		boolean isPrimaryDomain = domain.equalsIgnoreCase(config.getDomain());
-		String samAccountName = StringUtil
-				.nonNull((String) getAttribute(attributes
-						.get(SAM_ACCOUNT_NAME_ATTRIBUTE)));
+		String samAccountName = StringUtil.nonNull((String) getAttribute(attributes.get(SAM_ACCOUNT_NAME_ATTRIBUTE)));
 		String userPrincipalName = StringUtil
-				.nonNull((String) getAttribute(attributes
-						.get(USER_PRINCIPAL_NAME_ATTRIBUTE)));
+				.nonNull((String) getAttribute(attributes.get(USER_PRINCIPAL_NAME_ATTRIBUTE)));
 		String username = StringUtil.getBeforeLast(userPrincipalName, "@");
 
 		if (username.equals(userPrincipalName)) {
@@ -1488,8 +1415,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			}
 		}
 
-		if (StringUtil.getAfterLast(userPrincipalName, "@").equalsIgnoreCase(
-				domain)) {
+		if (StringUtil.getAfterLast(userPrincipalName, "@").equalsIgnoreCase(domain)) {
 			return StringUtil.getBefore(userPrincipalName, "@");
 		} else {
 			return userPrincipalName;
@@ -1498,8 +1424,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 
 	private long getBaseLongAttribute(String attributeName) {
 		try {
-			String value = getAttributeValue(getConfiguration().getBaseDn(),
-					attributeName);
+			String value = getAttributeValue(getConfiguration().getBaseDn(), attributeName);
 			long val = Long.parseLong(value);
 			return val;
 		} catch (NumberFormatException nfe) {
@@ -1514,24 +1439,24 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 		Calendar cal = Calendar.getInstance();
 		cal.setTime(date);
 		if (cal.get(Calendar.YEAR) > 3999) {
-			return null;
-			// cal.setTimeInMillis(0);
-			// cal.set(Calendar.YEAR, 3999);
+			cal.setTimeInMillis(0);
+			cal.set(Calendar.YEAR, 3999);
 		}
 		return cal.getTime();
 	}
 
-	private Date getDateAttribute(SearchResult result, String dateAttribute)
-			throws NamingException {
+	private Date getDateAttribute(SearchResult result, String dateAttribute) throws NamingException {
 
 		try {
 			Attributes attributes = result.getAttributes();
 
-			String value = StringUtil.nonNull((String) getAttribute(attributes
-					.get(dateAttribute)));
+			String value = StringUtil.nonNull((String) getAttribute(attributes.get(dateAttribute)));
 
+			/**
+			 * LDP - Long.MAX_VALUE also indicates non-expiry of account/password
+			 */
 			long val = Long.parseLong(value);
-			if (val > 0) {
+			if (val > 0 && val < Long.MAX_VALUE) {
 				return ActiveDirectoryDateUtil.adTimeToJavaDate(val);
 			}
 		} catch (NumberFormatException nfe) {
@@ -1540,22 +1465,20 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 	}
 
 	/**
-	 * The userAccountControl flag is used to check this. If they don't have one
-	 * or it's not an Integer (neither of which should actually be possible),
-	 * then we simply assume it's not allowed.
+	 * The userAccountControl flag is used to check this. If they don't have one or
+	 * it's not an Integer (neither of which should actually be possible), then we
+	 * simply assume it's not allowed.
 	 * 
 	 * @param attributes
 	 * @return true if the last password change date should be required
 	 * @throws NamingException
 	 */
-	private boolean isPasswordChangeAllowed(SearchResult result)
-			throws NamingException {
+	private boolean isPasswordChangeAllowed(SearchResult result) throws NamingException {
 
 		Attributes attributes = result.getAttributes();
 
 		String attributeValue = StringUtil
-				.nonNull((String) getAttribute(attributes
-						.get(USER_ACCOUNT_CONTROL_ATTRIBUTE)));
+				.nonNull((String) getAttribute(attributes.get(USER_ACCOUNT_CONTROL_ATTRIBUTE)));
 
 		if (attributeValue.length() == 0) {
 			return false;
@@ -1563,20 +1486,17 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 
 		try {
 			int userAccountControl = Integer.valueOf(attributeValue);
-			return UserAccountControl
-					.isPasswordChangePermitted(userAccountControl);
+			return UserAccountControl.isPasswordChangePermitted(userAccountControl);
 		} catch (NumberFormatException nfe) {
 			return true;
 		}
 	}
 
-	private boolean isPasswordNeverExpire(SearchResult result)
-			throws NamingException {
+	private boolean isPasswordNeverExpire(SearchResult result) throws NamingException {
 		Attributes attributes = result.getAttributes();
 
 		String attributeValue = StringUtil
-				.nonNull((String) getAttribute(attributes
-						.get(USER_ACCOUNT_CONTROL_ATTRIBUTE)));
+				.nonNull((String) getAttribute(attributes.get(USER_ACCOUNT_CONTROL_ATTRIBUTE)));
 		if (attributeValue.length() == 0) {
 			return false;
 		}
@@ -1594,28 +1514,23 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 
 		String identityNameWithDomainSearchFilter = "";
 		String userPrincipalName = identityName;
-		if (!activeDirectoryConfiguration.isUsernameSamAccountName()
-				&& !userPrincipalName.equals(WILDCARD_SEARCH)) {
+		if (!activeDirectoryConfiguration.isUsernameSamAccountName() && !userPrincipalName.equals(WILDCARD_SEARCH)) {
 			int idx = userPrincipalName.indexOf('@');
 			if (idx == -1) {
-				userPrincipalName += "@"
-						+ activeDirectoryConfiguration.getDomain();
-				identityNameWithDomainSearchFilter = String.format("(%s=%s)",
-						USER_PRINCIPAL_NAME_ATTRIBUTE, userPrincipalName);
+				userPrincipalName += "@" + activeDirectoryConfiguration.getDomain();
+				identityNameWithDomainSearchFilter = String.format("(%s=%s)", USER_PRINCIPAL_NAME_ATTRIBUTE,
+						userPrincipalName);
 			}
 		}
 
-		String filter = String.format("(&(!(%s=computer))(%s=user)(|"
-				+ "(%s=%s)" + "(%s=%s)" + "%s))", OBJECT_CLASS_ATTRIBUTE,
-				OBJECT_CLASS_ATTRIBUTE, SAM_ACCOUNT_NAME_ATTRIBUTE,
-				identityName, USER_PRINCIPAL_NAME_ATTRIBUTE, identityName,
-				identityNameWithDomainSearchFilter);
+		String filter = String.format("(&(!(%s=computer))(%s=user)(|" + "(%s=%s)" + "(%s=%s)" + "%s))",
+				OBJECT_CLASS_ATTRIBUTE, OBJECT_CLASS_ATTRIBUTE, SAM_ACCOUNT_NAME_ATTRIBUTE, identityName,
+				USER_PRINCIPAL_NAME_ATTRIBUTE, identityName, identityNameWithDomainSearchFilter);
 
 		return filter;
 	}
 
-	private Iterator<String> getUsersGroups(SearchResult result)
-			throws NamingException {
+	private Iterator<String> getUsersGroups(SearchResult result) throws NamingException {
 		Attributes attributes = result.getAttributes();
 
 		Attribute attribute = attributes.get(MEMBER_OF_ATTRIBUTE);
@@ -1633,10 +1548,8 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 		return STRING_ITERATOR;
 	}
 
-	private Iterator<String> getGroupsForUser(SearchResult result)
-			throws NamingException, IOException {
-		String filter = ldapService.buildObjectClassFilter("group", "member",
-				result.getNameInNamespace());
+	private Iterator<String> getGroupsForUser(SearchResult result) throws NamingException, IOException {
+		String filter = ldapService.buildObjectClassFilter("group", "member", result.getNameInNamespace());
 
 		return ldapService.search(filter, new ResultMapper<String>() {
 
@@ -1644,30 +1557,31 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			public String apply(SearchResult result) throws NamingException {
 				return result.getNameInNamespace();
 			}
-			
+
 			public boolean isApplyFilters() {
 				return true;
 			}
-		});
+		}, configureRoleSearchControls(ldapService.getSearchControls()));
 
 	}
 
 	@Override
-	protected void assertPasswordChangeIsAllowed(Identity identity,
-			char[] oldPassword, char[] password) throws ConnectorException {
-		if(identity.getPasswordStatus().isNeedChange()) {
+	protected void assertPasswordChangeIsAllowed(Identity identity, char[] oldPassword, char[] password)
+			throws ConnectorException {
+		if (identity.getPasswordStatus().isNeedChange()) {
 			return;
 		}
 		Date lastPasswordChange = identity.getPasswordStatus().getLastChange();
-		if (lastPasswordChange != null
-				&& !Util.isDatePast(lastPasswordChange, getMinimumPasswordAge())) {
-			throw new PasswordChangeTooSoonException(lastPasswordChange);
+		int days = getMinimumPasswordAge();
+		if (days > 0) {
+			if (lastPasswordChange != null && !Util.isDatePast(lastPasswordChange, days)) {
+				throw new PasswordChangeTooSoonException(lastPasswordChange);
+			}
 		}
 	}
 
 	@Override
-	protected ActiveDirectoryGroup mapRole(SearchResult result)
-			throws NamingException {
+	protected ActiveDirectoryGroup mapRole(SearchResult result) throws NamingException {
 
 		Attributes attributes = result.getAttributes();
 		return mapRole(result.getNameInNamespace(), attributes);
@@ -1675,39 +1589,29 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 
 	protected ActiveDirectoryGroup mapRole(String dn, Attributes attributes)
 			throws NamingException, InvalidNameException {
-		String commonName = StringUtil.nonNull((String) getAttribute(attributes
-				.get(COMMON_NAME_ATTRIBUTE)));
+		String commonName = StringUtil.nonNull((String) getAttribute(attributes.get(COMMON_NAME_ATTRIBUTE)));
 		if (commonName.length() != 0) {
-			String guid = UUID
-					.nameUUIDFromBytes(
-							(byte[]) getAttribute(attributes
-									.get(OBJECT_GUID_ATTRIBUTE))).toString();
-			byte[] sid = (byte[]) getAttribute(attributes
-					.get(OBJECT_SID_ATTRIBUTE));
-		
-			ActiveDirectoryGroup group = new ActiveDirectoryGroup(guid, 
-					commonName, 
-					new LdapName(dn),
-					sid);
-			
+			Util.memDbg(String.format("Group %s ", dn));
+			String guid = UUID.nameUUIDFromBytes((byte[]) getAttribute(attributes.get(OBJECT_GUID_ATTRIBUTE)))
+					.toString();
+			byte[] sid = (byte[]) getAttribute(attributes.get(OBJECT_SID_ATTRIBUTE));
+
+			ActiveDirectoryGroup group = new ActiveDirectoryGroup(guid, commonName, new LdapName(dn), sid);
+
 			NamingEnumeration<? extends Attribute> en = attributes.getAll();
-			while(en.hasMoreElements()) {
+			while (en.hasMoreElements()) {
 				Attribute attribute = en.nextElement();
-				group.setAttribute(attribute.getID(),
-						getElements(attribute));
+				group.setAttribute(attribute.getID(), getElements(attribute));
 			}
-			
-			
-			LdapName ou = new LdapName((String) getAttribute(attributes
-					.get(DISTINGUISHED_NAME_ATTRIBUTE)));
+
+			LdapName ou = new LdapName((String) getAttribute(
+					attributes.get(getActiveDirectoryConfiguration().getDistinguishedNameAttribute())));
 			ou.remove(ou.size() - 1);
 			group.setAttribute(OU_ATTRIBUTE, ou.toString());
-			
-			
+
 			return group;
 		}
-		
-		
+
 		return null;
 	}
 
@@ -1715,102 +1619,91 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 		return (ActiveDirectoryConfiguration) getConfiguration();
 	}
 
-	protected Name getRootDn() {
-		final Name baseDn = getActiveDirectoryConfiguration().getBaseDn();
-		for (int i = 0; i < baseDn.size(); i++) {
-			if (!baseDn.get(i).toLowerCase().startsWith("dc=")) {
-				final Name suffix = baseDn.getPrefix(i);
-				return suffix;
-			}
-		}
-		return (Name) baseDn.clone();
-	}
-
 	private Object getAttribute(Attribute attribute) throws NamingException {
 		return attribute != null ? attribute.get() : null;
 	}
-	
+
 	protected Object getAttributeValue(Attributes attrs, String attrName) throws NamingException {
 		Attribute attr = attrs.get(attrName);
-		if(attr==null) {
+		if (attr == null) {
 			return null;
 		}
 		return attr.get();
 	}
-	
+
 	protected String getStringAttribute(Attributes attrs, String attrName) throws NamingException {
 		return (String) getAttributeValue(attrs, attrName);
 	}
-	
+
 	protected ADPasswordCharacteristics loadCharacteristics(SearchResult pso) throws NamingException, IOException {
 
-        boolean complex = false;
-        
-        Attributes attributes = pso.getAttributes();
-        
-        String value = getStringAttribute(attributes, "msDS-PasswordComplexityEnabled");
-        if (!StringUtil.isNullOrEmpty(value)) {
-            complex = Boolean.parseBoolean(value);
-        }
+		boolean complex = false;
 
-        PasswordCharacteristics defaults = null;
+		Attributes attributes = pso.getAttributes();
 
-        // Min length
-        String minPwdLengthField = getStringAttribute(attributes, "msDS-MinimumPasswordLength");
-        if (minPwdLengthField == null) {
-            LOG.warn("msDS-MinimumPasswordLength is null. Please check your PSO configuration.");
-            if (defaults == null) {
-                defaults = getPasswordCharacteristics();
-            }
-            minPwdLengthField = String.valueOf(defaults.getMinimumSize());
-        }
+		String value = getStringAttribute(attributes, "msDS-PasswordComplexityEnabled");
+		if (!StringUtil.isNullOrEmpty(value)) {
+			complex = Boolean.parseBoolean(value);
+		}
 
-        // History
-        String historyLength = getStringAttribute(attributes, "msDS-PasswordHistoryLength");
-        if (historyLength == null) {
-            LOG.warn("msDS-PasswordHistoryLength is null. Please check your PSO configuration.");
-            if (defaults == null) {
-                defaults = getPasswordCharacteristics();
-            }
-            String attr = defaults.getAttributes().get("activeDirectory." + ActiveDirectoryConnector.PWD_HISTORY_LENGTH);
-            historyLength = attr == null ? "0" : attr;
-        }
+		PasswordCharacteristics defaults = null;
 
-        // Max age
-        String maxAge = getStringAttribute(attributes, "msDS-MaximumPasswordAge");
-        if (maxAge == null) {
-            LOG.warn("msDS-MaximumPasswordAge is null. Please check your PSO configuration.");
-            if (defaults == null) {
-                defaults = getPasswordCharacteristics();
-            }
-            String attr = defaults.getAttributes()
-                            .get("activeDirectory." + ActiveDirectoryConnector.MAXIMUM_PASSWORD_AGE_ATTRIBUTE);
-            maxAge = attr == null ? "0" : attr;
-        }
+		// Min length
+		String minPwdLengthField = getStringAttribute(attributes, "msDS-MinimumPasswordLength");
+		if (minPwdLengthField == null) {
+			LOG.warn("msDS-MinimumPasswordLength is null. Please check your PSO configuration.");
+			if (defaults == null) {
+				defaults = getPasswordCharacteristics();
+			}
+			minPwdLengthField = String.valueOf(defaults.getMinimumSize());
+		}
 
-        String minAge = getStringAttribute(attributes, "msDS-MinimumPasswordAge");
-        if (minAge == null) {
-            LOG.warn("msDS-MinimumPasswordAge is null. Please check your PSO configuration.");
-            if (defaults == null) {
-                defaults = getPasswordCharacteristics();
-            }
-            String attr = defaults.getAttributes()
-                            .get("activeDirectory." + ActiveDirectoryConnector.MINIMUM_PASSWORD_AGE_ATTRIBUTE);
-            minAge = attr == null ? "0" : attr;
-        }
+		// History
+		String historyLength = getStringAttribute(attributes, "msDS-PasswordHistoryLength");
+		if (historyLength == null) {
+			LOG.warn("msDS-PasswordHistoryLength is null. Please check your PSO configuration.");
+			if (defaults == null) {
+				defaults = getPasswordCharacteristics();
+			}
+			String attr = defaults.getAttributes()
+					.get("activeDirectory." + ActiveDirectoryConnector.PWD_HISTORY_LENGTH);
+			historyLength = attr == null ? "0" : attr;
+		}
 
-        String precedence = getStringAttribute(attributes, "msDS-PasswordSettingsPrecedence");
-        if (precedence == null) {
-            LOG.warn("msDS-PasswordSettingsPrecedence is null. Please check your PSO configuration.");
-            precedence = "0";
-        }
+		// Max age
+		String maxAge = getStringAttribute(attributes, "msDS-MaximumPasswordAge");
+		if (maxAge == null) {
+			LOG.warn("msDS-MaximumPasswordAge is null. Please check your PSO configuration.");
+			if (defaults == null) {
+				defaults = getPasswordCharacteristics();
+			}
+			String attr = defaults.getAttributes()
+					.get("activeDirectory." + ActiveDirectoryConnector.MAXIMUM_PASSWORD_AGE_ATTRIBUTE);
+			maxAge = attr == null ? "0" : attr;
+		}
 
-        return new ADPasswordCharacteristics(complex, Integer.parseInt(minPwdLengthField), Integer.parseInt(historyLength),
-                        ActiveDirectoryDateUtil.adTimeToJavaDays(Long.parseLong(maxAge)),
-                        ActiveDirectoryDateUtil.adTimeToJavaDays(Long.parseLong(minAge)), Integer.parseInt(precedence),
-                        getStringAttribute(attributes, "cn"), pso.getNameInNamespace());
+		String minAge = getStringAttribute(attributes, "msDS-MinimumPasswordAge");
+		if (minAge == null) {
+			LOG.warn("msDS-MinimumPasswordAge is null. Please check your PSO configuration.");
+			if (defaults == null) {
+				defaults = getPasswordCharacteristics();
+			}
+			String attr = defaults.getAttributes()
+					.get("activeDirectory." + ActiveDirectoryConnector.MINIMUM_PASSWORD_AGE_ATTRIBUTE);
+			minAge = attr == null ? "0" : attr;
+		}
 
-    }
+		String precedence = getStringAttribute(attributes, "msDS-PasswordSettingsPrecedence");
+		if (precedence == null) {
+			LOG.warn("msDS-PasswordSettingsPrecedence is null. Please check your PSO configuration.");
+			precedence = "0";
+		}
 
+		return new ADPasswordCharacteristics(complex, Integer.parseInt(minPwdLengthField),
+				Integer.parseInt(historyLength), ActiveDirectoryDateUtil.adTimeToJavaDays(Long.parseLong(maxAge)),
+				ActiveDirectoryDateUtil.adTimeToJavaDays(Long.parseLong(minAge)), Integer.parseInt(precedence),
+				getStringAttribute(attributes, "cn"), pso.getNameInNamespace());
+
+	}
 
 }

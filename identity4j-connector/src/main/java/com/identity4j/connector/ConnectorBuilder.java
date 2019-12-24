@@ -1,9 +1,34 @@
 /* HEADER */
 package com.identity4j.connector;
 
+/*
+ * #%L
+ * Identity4J Connector
+ * %%
+ * Copyright (C) 2013 - 2017 LogonBox
+ * %%
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Lesser Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Lesser Public
+ * License along with this program.  If not, see
+ * <http://www.gnu.org/licenses/lgpl-3.0.html>.
+ * #L%
+ */
+
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
+
+import javax.net.SocketFactory;
 
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.util.MultiMap;
@@ -26,6 +51,28 @@ public class ConnectorBuilder {
 	 * implementation to create.
 	 */
 	public static final String CONFIGURATION_CLASS = "i4jConfigurationClass";
+	
+	private SocketFactory socketFactory;
+	
+	/**
+	 * Get the {@link SocketFactory} to use for this connector (if the connector
+	 * uses sockets and supports this feature).
+	 * 
+	 * @param socketFactory socket factory
+	 */
+	public SocketFactory getSocketFactory() {
+		return socketFactory;
+	}
+
+	/**
+	 * Set the {@link SocketFactory} to use for this connector (if the connector
+	 * uses sockets and supports this feature).
+	 * 
+	 * @param socketFactory socket factory
+	 */
+	public void setSocketFactory(SocketFactory socketFactory) {
+		this.socketFactory = socketFactory;
+	}
 
 	/**
 	 * Creates a <tt>Connector</tt> instance from the supplied configuration
@@ -72,6 +119,8 @@ public class ConnectorBuilder {
 		ConnectorConfigurationParameters connectorConfigurationParameters = buildConfiguration(configurationParameters);
 		String connectionClass = configurationParameters.getStringOrFail(CONNECTOR_CLASS);
 		Connector connector = (Connector) createClassInstance(connectionClass, new Class[] {}, new Object[] {});
+		if(socketFactory != null)
+			connector.setSocketFactory(socketFactory);
 		connector.open(connectorConfigurationParameters);
 		return connector;
 	}
@@ -88,6 +137,8 @@ public class ConnectorBuilder {
 	public final Connector buildConnector(ConnectorConfigurationParameters configurationParameters) throws ConnectorException {
 		String connectionClass = configurationParameters.getConfigurationParameters().getStringOrFail(CONNECTOR_CLASS);
 		Connector connector = (Connector) createClassInstance(connectionClass, new Class[] {}, new Object[] {});
+		if(socketFactory != null)
+			connector.setSocketFactory(socketFactory);
 		connector.open(configurationParameters);
 		return connector;
 	}
@@ -129,17 +180,17 @@ public class ConnectorBuilder {
 			Object o = constructor.newInstance(args);
 			return o;
 		} catch (ClassNotFoundException cnfe) {
-			throw new ConnectorException("failed to createClassInstance", cnfe);
+			throw new ConnectorException("The connector class could not be found", cnfe);
 		} catch (IllegalAccessException iae) {
-			throw new ConnectorException("failed to createClassInstance", iae);
+			throw new ConnectorException("Permissions error creating connector", iae);
 		} catch (IllegalArgumentException iae) {
-			throw new ConnectorException("failed to createClassInstance", iae);
+			throw new ConnectorException("Invalid argument creating connector", iae);
 		} catch (InstantiationException inse) {
-			throw new ConnectorException("failed to createClassInstance", inse);
+			throw new ConnectorException("Instantiation error", inse);
 		} catch (InvocationTargetException ite) {
-			throw new ConnectorException("failed to createClassInstance", ite);
+			throw new ConnectorException(ite.getTargetException().getMessage(), ite.getTargetException());
 		} catch (NoSuchMethodException nsme) {
-			throw new ConnectorException("failed to createClassInstance", nsme);
+			throw new ConnectorException("Connector method missing", nsme);
 		}
 	}
 }

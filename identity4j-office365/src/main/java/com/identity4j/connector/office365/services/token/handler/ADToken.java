@@ -1,10 +1,32 @@
 package com.identity4j.connector.office365.services.token.handler;
 
+/*
+ * #%L
+ * Identity4J OFFICE 365
+ * %%
+ * Copyright (C) 2013 - 2017 LogonBox
+ * %%
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Lesser Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Lesser Public
+ * License along with this program.  If not, see
+ * <http://www.gnu.org/licenses/lgpl-3.0.html>.
+ * #L%
+ */
+
 import java.util.Calendar;
 import java.util.TimeZone;
 
-import org.codehaus.jackson.annotate.JsonIgnoreProperties;
-import org.codehaus.jackson.annotate.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * Represents Azure Active Directory JSON Web Token.
@@ -20,31 +42,16 @@ public class ADToken {
 	 */
 	private static final String bearerTokenPrefix = "Bearer ";
 
-	@JsonProperty("token_type")
+
+    @JsonProperty("token_type")
 	private String tokenType;
-
-	@JsonProperty("access_token")
 	private String accessToken;
-
-	@JsonProperty("not_before")
 	private Long notBefore;
-
-	@JsonProperty("expires_on")
 	private Long expiresOn;
-
-	@JsonProperty("expires_in")
 	private Long expiresIn;
-
-	@JsonProperty("resource")
 	private String resource;
-
-	@JsonProperty("scope")
 	private String scope;
-
-	@JsonProperty("refresh_token")
 	private String refreshToken;
-
-	@JsonProperty("id_token")
 	private String idToken;
 
 	public void from(ADToken aadjwtToken) {
@@ -57,8 +64,17 @@ public class ADToken {
 		resource = aadjwtToken.resource;
 		scope = aadjwtToken.scope;
 		notBefore = aadjwtToken.notBefore;
+		accessToken = aadjwtToken.accessToken;
+	}
+	
+	public void recalcExpiresOn() {
+		/* Ensure the expires on is local time by basing it on the current local time
+		 * and the expires in value
+		 */
+		expiresOn = ( System.currentTimeMillis() / 1000 ) + expiresIn;
 	}
 
+    @JsonProperty("scope")
 	public String getScope() {
 		return scope;
 	}
@@ -67,10 +83,12 @@ public class ADToken {
 		return refreshToken;
 	}
 
+    @JsonProperty("refresh_token")
 	public void setRefreshToken(String refreshToken) {
 		this.refreshToken = refreshToken;
 	}
 
+    @JsonProperty("id_token")
 	public String getIdToken() {
 		return idToken;
 	}
@@ -83,14 +101,18 @@ public class ADToken {
 		this.scope = scope;
 	}
 
+    @JsonProperty("token_type")
 	public String getTokenType() {
 		return tokenType;
 	}
 
+
+    @JsonProperty("token_type")
 	public void setTokenType(String tokenType) {
 		this.tokenType = tokenType;
 	}
 
+    @JsonProperty("access_token")
 	public String getAccessToken() {
 		return accessToken;
 	}
@@ -99,6 +121,7 @@ public class ADToken {
 		this.accessToken = accessToken;
 	}
 
+    @JsonProperty("not_before")
 	public Long getNotBefore() {
 		return notBefore;
 	}
@@ -107,6 +130,7 @@ public class ADToken {
 		this.notBefore = notBefore;
 	}
 
+    @JsonProperty("expires_on")
 	public Long getExpiresOn() {
 		return expiresOn;
 	}
@@ -115,6 +139,7 @@ public class ADToken {
 		this.expiresOn = expiresOn;
 	}
 
+    @JsonProperty("expires_in")
 	public Long getExpiresIn() {
 		return expiresIn;
 	}
@@ -123,6 +148,7 @@ public class ADToken {
 		this.expiresIn = expiresIn;
 	}
 
+    @JsonProperty("resource")
 	public String getResource() {
 		return resource;
 	}

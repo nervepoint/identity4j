@@ -1,8 +1,34 @@
 /* HEADER */
 package com.identity4j.connector;
 
+/*
+ * #%L
+ * Identity4J Connector
+ * %%
+ * Copyright (C) 2013 - 2017 LogonBox
+ * %%
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Lesser Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Lesser Public
+ * License along with this program.  If not, see
+ * <http://www.gnu.org/licenses/lgpl-3.0.html>.
+ * #L%
+ */
+
+
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+
+import javax.net.SocketFactory;
 
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.exception.InvalidLoginCredentialsException;
@@ -17,17 +43,23 @@ import com.identity4j.util.validator.ValidationContext;
 public abstract class AbstractConnector implements Connector, ValidationContext {
 
 	private ConnectorConfigurationParameters parameters;
-
+	private Map<String,Object> attributes = new HashMap<String,Object>();
+	
 	public PasswordCharacteristics getPasswordCharacteristics() {
 		throw new UnsupportedOperationException();
 	}
 	
+	@Override
+	public void setSocketFactory(SocketFactory socketFactory) {
+		throw new UnsupportedOperationException();
+	}
+
 	public Iterator<? extends PasswordCharacteristics> getPasswordPolicies() {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public WebAuthenticationAPI<?> startAuthentication() throws ConnectorException {
+	public WebAuthenticationAPI startAuthentication() throws ConnectorException {
 		throw new UnsupportedOperationException("This connector does not support integrated web authentication.");
 	}
 
@@ -66,12 +98,31 @@ public abstract class AbstractConnector implements Connector, ValidationContext 
 		}
 	}
 
-	public final boolean checkCredentials(String username, char[] password) throws ConnectorException {
-		if (!isIdentityNameInUse(username)) {
+	public boolean supportsOptimisedCheckCredentials() {
+		return false;
+	}
+	
+	public boolean checkCredentialsOptimised(String username, String remoteIdentifier, char[] password) throws ConnectorException {
+		throw new UnsupportedOperationException();
+	}
+	
+	public final boolean checkCredentials(String username, char[] password, IdentityProcessor... processors) throws ConnectorException {
+		
+		/**
+		 * Optimised by LDP to only retrieve Identity once.
+		 */
+		try {
+			Identity identity = getIdentityByName(username);
+			boolean valid = areCredentialsValid(identity, password);
+			if(valid) {
+				for(IdentityProcessor processor : processors) {
+					processor.processIdentity(identity, this);
+				}
+			}
+			return valid;
+		} catch (PrincipalNotFoundException e) {
 			return false;
 		}
-		Identity identity = getIdentityByName(username);
-		return areCredentialsValid(identity, password);
 	}
 
 	/**
@@ -180,6 +231,7 @@ public abstract class AbstractConnector implements Connector, ValidationContext 
 	public Identity getIdentityByName(String name) throws PrincipalNotFoundException, ConnectorException {
 		for (Iterator<Identity> identityIterator = allIdentities(); identityIterator.hasNext();) {
 			Identity identity = identityIterator.next();
+			System.out.println(">> " + identity.getPrincipalName() + "/" + identity.getGuid() + " against " + name);
 			if (identity.getPrincipalName().equals(name)) {
 				return identity;
 			}
@@ -226,6 +278,19 @@ public abstract class AbstractConnector implements Connector, ValidationContext 
 		throw new UnsupportedOperationException("Create identity is not supported");
 	}
 
+	/**
+	 * Default implementation simply returns null. Need to override this to
+	 * create new identity
+	 * 
+	 * @param identity
+	 * @param password
+	 * @throws ConnectorException
+	 */
+	public Identity createIdentity(Identity identity, PasswordCreationCallback passwordCallback, boolean forceChange) throws ConnectorException {
+		Identity newIdentity = createIdentity(identity, null);
+		setPassword(newIdentity.getPrincipalName(), newIdentity.getGuid(), passwordCallback.createPassword(newIdentity), forceChange);
+		return newIdentity;
+	}
 	/**
 	 * Default implementation simply returns null. Need to override this to
 	 * update a identity
@@ -310,5 +375,13 @@ public abstract class AbstractConnector implements Connector, ValidationContext 
 	@Override
 	public void install(Map<String, String> properties) throws Exception {
 		throw new UnsupportedOperationException();
+	}
+	
+	public Object getAttribute(String name) {
+		return attributes.get(name);
+	}
+	
+	public void setAttribute(String name, Object val) {
+		attributes.put(name, val);
 	}
 }

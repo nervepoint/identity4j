@@ -1,5 +1,27 @@
 package com.identity4j.connector.google;
 
+/*
+ * #%L
+ * Identity4J GOOGLE
+ * %%
+ * Copyright (C) 2013 - 2017 LogonBox
+ * %%
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Lesser Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Lesser Public
+ * License along with this program.  If not, see
+ * <http://www.gnu.org/licenses/lgpl-3.0.html>.
+ * #L%
+ */
+
 import java.util.Arrays;
 import java.util.Collection;
 
@@ -124,7 +146,8 @@ public class GoogleConfiguration extends AbstractConnectorConfiguration{
 	 * @return orgunits to exclude
 	 */
 	public Collection<String> getIncludes() {
-		return Arrays.asList(configurationParameters.getStringArrayOrDefault(GOOGLE_INCLUDE_ORGUNITS, new String[0]));
+		String[] includes = configurationParameters.getStringArrayOrDefault(GOOGLE_INCLUDE_ORGUNITS, new String[0]);
+		return Arrays.asList(includes.length == 1 && includes[0].equals("") ? new String[0] : includes);
 	}
 	
 	/**
@@ -134,7 +157,8 @@ public class GoogleConfiguration extends AbstractConnectorConfiguration{
 	 * @return orgunits to exclude
 	 */
 	public Collection<String> getExcludes() {
-		return Arrays.asList(configurationParameters.getStringArrayOrDefault(GOOGLE_EXCLUDE_ORGUNITS, new String[0]));
+		String[] excludes = configurationParameters.getStringArrayOrDefault(GOOGLE_EXCLUDE_ORGUNITS, new String[0]);
+		return Arrays.asList(excludes.length == 1 && excludes[0].equals("") ? new String[0] : excludes);
 	}
 	
 	/**

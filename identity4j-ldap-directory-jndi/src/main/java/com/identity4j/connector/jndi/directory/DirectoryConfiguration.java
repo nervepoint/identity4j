@@ -1,13 +1,37 @@
 /* HEADER */
 package com.identity4j.connector.jndi.directory;
 
+/*
+ * #%L
+ * Idenity4J LDAP Directory JNDI
+ * %%
+ * Copyright (C) 2013 - 2017 LogonBox
+ * %%
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Lesser Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Lesser Public
+ * License along with this program.  If not, see
+ * <http://www.gnu.org/licenses/lgpl-3.0.html>.
+ * #L%
+ */
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.naming.Context;
 import javax.naming.InvalidNameException;
@@ -15,18 +39,18 @@ import javax.naming.Name;
 import javax.naming.NamingException;
 import javax.naming.ldap.LdapName;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.identity4j.connector.AbstractConnectorConfiguration;
+import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.util.DummySSLSocketFactory;
 import com.identity4j.util.MultiMap;
 
 /**
  */
 public class DirectoryConfiguration extends AbstractConnectorConfiguration {
-
 
 	static Log LOG = LogFactory.getLog(DirectoryConfiguration.class);
 
@@ -70,28 +94,50 @@ public class DirectoryConfiguration extends AbstractConnectorConfiguration {
 	 * Configuration property key for excludes
 	 */
 	public static final String DIRECTORY_INCLUDES = "directory.includes";
-	
+
 	/**
 	 * Configuration property key for role reconcilliation
 	 */
 	public static final String DIRECTORY_ENABLE_ROLES = "directory.enableRoles";
-	
+
 	/**
 	 * Follow referrals?
 	 */
 	public static final String DIRECTORY_FOLLOW_REFERRALS = "directory.followReferrals";
-	
+
 	/**
-     */
+	 * Connect timeout
+	 */
+	public static final String DIRECTORY_CONNECT_TIMEOUT = "directory.timeout";
+
+	/**
+	 * Read timeout
+	 */
+	public static final String DIRECTORY_READ_TIMEOUT = "directory.readTimeout";
+
+	/**
+	 * Max page size
+	 */
+	public static final String DIRECTORY_MAX_PAGE_SIZE = "directory.maxPageSize";
+
+	/**
+	 * Use the new search results iterator. This option is temporary and will be 
+	 * removed when the new iterator is proved.
+	 */
+	@Deprecated
+	public static final String DIRECTORY_NEW_ITERATOR = "directory.newIterator";
+
+	/**
+	 */
 	public static final char PORT_SEPARATOR = ':';
-	
+
 	/**
-     */
+	 */
 	public static final String COMMON_NAME = "CN=";
 
 	/**
-	 * Constant for value of {@link #DIRECTORY_SECURITY_PROTOCOL} when SSL
-	 * should be used
+	 * Constant for value of {@link #DIRECTORY_SECURITY_PROTOCOL} when SSL should be
+	 * used
 	 */
 	public static final String SSL = "ssl";
 
@@ -113,11 +159,11 @@ public class DirectoryConfiguration extends AbstractConnectorConfiguration {
 	/**
 	 * @param configurationParameters
 	 */
-    public DirectoryConfiguration(MultiMap configurationParameters) {
+	public DirectoryConfiguration(MultiMap configurationParameters) {
 		super(configurationParameters);
 		try {
 			baseDn = new LdapName(configurationParameters.getStringOrDefault(DIRECTORY_BASE_DN, ""));
-		
+
 			includes = getNames(configurationParameters.getStringArrayOrDefault(DIRECTORY_INCLUDES));
 			excludes = getNames(configurationParameters.getStringArrayOrDefault(DIRECTORY_EXCLUDES));
 			includes.removeAll(excludes);
@@ -133,9 +179,9 @@ public class DirectoryConfiguration extends AbstractConnectorConfiguration {
 
 	/**
 	 * <p>
-	 * The host name or IP address of the directory to connect to. If an IP
-	 * address is used this should be in dotted decimal notation. Otherwise the
-	 * fully qualified hostname should be specified in the standard dns format
+	 * The host name or IP address of the directory to connect to. If an IP address
+	 * is used this should be in dotted decimal notation. Otherwise the fully
+	 * qualified hostname should be specified in the standard dns format
 	 * </p>
 	 * <p>
 	 * Examples: <code>192.168.1.200:443</code>, <code>192.168.1.200</code> or
@@ -145,33 +191,33 @@ public class DirectoryConfiguration extends AbstractConnectorConfiguration {
 	 * @return controller hosts
 	 */
 	public final String[] getControllerHosts() {
-		List<String> l = new ArrayList<String>(Arrays.asList(configurationParameters.getStringArrayOrFail(DIRECTORY_HOSTNAME)));
+		List<String> l = new ArrayList<String>(
+				Arrays.asList(configurationParameters.getStringArrayOrFail(DIRECTORY_HOSTNAME)));
 		String[] tmp = configurationParameters.getStringArrayOrFail(DIRECTORY_BACKUP_HOSTNAMES);
-		for(String t : tmp) {
-			if(StringUtils.isNotBlank(t)) {
+		for (String t : tmp) {
+			if (StringUtils.isNotBlank(t)) {
 				l.add(t);
 			}
 		}
 		return l.toArray(new String[0]);
 	}
-	
+
 	/**
 	 * <p>
 	 * The host name or IP address of the directory to connect to, without the port
-	 * number if one is set. If an IP
-	 * address is used this should be in dotted decimal notation. Otherwise the
-	 * fully qualified hostname should be specified in the standard dns format
+	 * number if one is set. If an IP address is used this should be in dotted
+	 * decimal notation. Otherwise the fully qualified hostname should be specified
+	 * in the standard dns format
 	 * </p>
 	 * <p>
-	 * Examples: <code>192.168.1.200</code> or
-	 * <code>host.directory.com</code>
+	 * Examples: <code>192.168.1.200</code> or <code>host.directory.com</code>
 	 * </p>
 	 * 
 	 * @return controller hosts
 	 */
 	public final String[] getControllerHostnames() {
 		List<String> l = new ArrayList<String>();
-		for(String h : getControllerHosts()) {
+		for (String h : getControllerHosts()) {
 			l.add(getControllerHostWithoutPort(h));
 		}
 		return l.toArray(new String[0]);
@@ -179,8 +225,8 @@ public class DirectoryConfiguration extends AbstractConnectorConfiguration {
 
 	/**
 	 * Get a list of distinguished names to exclude from the search. These are
-	 * relative to the Base DN. If the list is empty, all paths should be
-	 * included unless explicit excludes have been set.
+	 * relative to the Base DN. If the list is empty, all paths should be included
+	 * unless explicit excludes have been set.
 	 * 
 	 * @return paths to exclude
 	 * @throws InvalidNameException
@@ -191,8 +237,8 @@ public class DirectoryConfiguration extends AbstractConnectorConfiguration {
 
 	/**
 	 * Get a list of distinguished names to exclude from the search. These are
-	 * relative to the Base DN. If the list is empty, all paths should be
-	 * included unless explicit includes have been set.
+	 * relative to the Base DN. If the list is empty, all paths should be included
+	 * unless explicit includes have been set.
 	 * 
 	 * @return paths to exclude
 	 * @throws InvalidNameException
@@ -200,7 +246,7 @@ public class DirectoryConfiguration extends AbstractConnectorConfiguration {
 	public Collection<Name> getExcludes() {
 		return excludes;
 	}
-	
+
 	/**
 	 * Get if roles should be enabled at all.
 	 * 
@@ -240,8 +286,8 @@ public class DirectoryConfiguration extends AbstractConnectorConfiguration {
 	}
 
 	/**
-	 * The security protocol to use, this defaults to SSL. This value is used
-	 * for the <code>javax.naming.Context.SECURITY_PROTOCOL</code> parameter.
+	 * The security protocol to use, this defaults to SSL. This value is used for
+	 * the <code>javax.naming.Context.SECURITY_PROTOCOL</code> parameter.
 	 * 
 	 * @return security protocol
 	 */
@@ -252,14 +298,13 @@ public class DirectoryConfiguration extends AbstractConnectorConfiguration {
 	/**
 	 * Should referrals be followed. The Manage Referral control <a
 	 * href=http://www.ietf.org/rfc/rfc3296.txt">(RFC 3296)</a> tells the LDAP
-	 * server to return referral entries as ordinary entries (instead of
-	 * returning "referral" error responses or continuation references). If you
-	 * are using the LDAP v3 and have set Context.REFERRAL to "ignore", then the
-	 * LDAP service provider will automatically send this control along with the
-	 * request. If you are using the LDAP v2, then the control will not be sent
-	 * because it is not applicable in that protocol. When you set
-	 * Context.REFERRAL to any other value, the control will not be sent
-	 * regardless of the protocol version.
+	 * server to return referral entries as ordinary entries (instead of returning
+	 * "referral" error responses or continuation references). If you are using the
+	 * LDAP v3 and have set Context.REFERRAL to "ignore", then the LDAP service
+	 * provider will automatically send this control along with the request. If you
+	 * are using the LDAP v2, then the control will not be sent because it is not
+	 * applicable in that protocol. When you set Context.REFERRAL to any other
+	 * value, the control will not be sent regardless of the protocol version.
 	 * 
 	 * @return follow referrals
 	 */
@@ -275,7 +320,8 @@ public class DirectoryConfiguration extends AbstractConnectorConfiguration {
 	 * @return initial context factory
 	 */
 	public final String getInitialContextFactory() {
-		return configurationParameters.getStringOrDefault("directory.initialContextFactory", "com.sun.jndi.ldap.LdapCtxFactory");
+		return configurationParameters.getStringOrDefault("directory.initialContextFactory",
+				"com.sun.jndi.ldap.LdapCtxFactory");
 	}
 
 	/**
@@ -285,7 +331,7 @@ public class DirectoryConfiguration extends AbstractConnectorConfiguration {
 	 * @return initial context factory
 	 */
 	public final int getTimeout() {
-		return configurationParameters.getIntegerOrDefault("directory.timeout", Integer.valueOf(30)) * 1000;
+		return configurationParameters.getIntegerOrDefault(DIRECTORY_CONNECT_TIMEOUT, Integer.valueOf(30)) * 1000;
 	}
 
 	/**
@@ -294,17 +340,26 @@ public class DirectoryConfiguration extends AbstractConnectorConfiguration {
 	 * @return maximum page size
 	 */
 	public int getMaxPageSize() {
-		return configurationParameters.getIntegerOrDefault("directory.maxPageSize", 1000);
+		return configurationParameters.getIntegerOrDefault(DIRECTORY_MAX_PAGE_SIZE, 1000);
 	}
 
 	/**
-	 * The value to use for <code>java.naming.ldap.version</code>, the default
-	 * is 3.
+	 * The value to use for <code>java.naming.ldap.version</code>, the default is 3.
 	 * 
 	 * @return initial context factory
 	 */
 	public final String getVersion() {
 		return configurationParameters.getStringOrDefault("directory.version", "3");
+	}
+
+	/**
+	 * Get if the new iterator should be used for this connection. This is temporary and
+	 * will be removed when the new iterator is proved.
+	 * 
+	 * @return use new iterator
+	 */
+	public final boolean isNewIterator() {
+		return configurationParameters.getBooleanOrDefault(DIRECTORY_NEW_ITERATOR, true);
 	}
 
 	/**
@@ -316,11 +371,21 @@ public class DirectoryConfiguration extends AbstractConnectorConfiguration {
 		return baseDn;
 	}
 
-	private Collection<Name> getNames(String... values) throws InvalidNameException {
+	private Collection<Name> getNames(String... values) {
 		Collection<Name> names = new ArrayList<Name>();
 		for (String value : values) {
-			if(StringUtils.isNotBlank(value)) {
-				names.add(new LdapName(value).addAll(0, getBaseDn()));
+			if (StringUtils.isNotBlank(value)) {
+				try {
+					LdapName name = new LdapName(value);
+					if (!name.startsWith(getBaseDn())) {
+						name.addAll(0, getBaseDn());
+					}
+					names.add(name);
+				} catch (Exception e) {
+					throw new ConnectorException(String.format(
+							"%s is not a properly formatted DN. Expected format <container>=<name> for example OU=Employees",
+							value));
+				}
 			}
 		}
 		return names;
@@ -328,12 +393,11 @@ public class DirectoryConfiguration extends AbstractConnectorConfiguration {
 
 	/**
 	 * <p>
-	 * The connector performs all operations on the directory using this
-	 * account. The distinguished name of this account should be supplied in
-	 * LDAP format, that is, with the Common Name (cn) of the account first
-	 * followed by the container in which this account resides, then that
-	 * container's container etc. The elements of the distinguished name should
-	 * be separated using commas.
+	 * The connector performs all operations on the directory using this account.
+	 * The distinguished name of this account should be supplied in LDAP format,
+	 * that is, with the Common Name (cn) of the account first followed by the
+	 * container in which this account resides, then that container's container etc.
+	 * The elements of the distinguished name should be separated using commas.
 	 * </p>
 	 * <p>
 	 * For example: <code>cn=admin,ou=employee,o=root</code>
@@ -369,6 +433,22 @@ public class DirectoryConfiguration extends AbstractConnectorConfiguration {
 	}
 
 	/**
+	 * The class names required for an identity to be created.
+	 * 
+	 * @return identity object class
+	 */
+	public final List<String> getIdentityCreationObjectClasses() {
+		if (configurationParameters.containsKey("direcctory.identityCreationObjectClasses"))
+			return Arrays.asList(configurationParameters.getStringOrFail("directory.identityObjectClass").split(","));
+		else {
+			Set<String> n = new LinkedHashSet<String>();
+			n.add("inetOrgPerson");
+			n.add(getIdentityObjectClass());
+			return new ArrayList<String>(n);
+		}
+	}
+
+	/**
 	 * The attribute name which is used to match against the identity username.
 	 * 
 	 * @return identity name attribute
@@ -387,12 +467,39 @@ public class DirectoryConfiguration extends AbstractConnectorConfiguration {
 	}
 
 	/**
+	 * The attribute name which is used to provide the identities primary role GUID.
+	 * 
+	 * @return identity role guid attribute
+	 */
+	public final String getIdentityRoleGuidAttribute() {
+		return configurationParameters.getStringOrNull("directory.identityRoleGuidAttribute");
+	}
+
+	/**
+	 * The attribute name which is used to provide the identities primary role name.
+	 * 
+	 * @return identity role name attribute
+	 */
+	public final String getIdentityRoleNameAttribute() {
+		return configurationParameters.getStringOrNull("directory.identityRoleNameAttribute");
+	}
+
+	/**
 	 * The attribute name which is used to set the identity password.
 	 * 
 	 * @return password attribute
 	 */
 	public final String getIdentityPasswordAttribute() {
 		return configurationParameters.getStringOrFail("directory.identityPasswordAttribute");
+	}
+
+	/**
+	 * The attribute name which contains the distinguished name.
+	 * 
+	 * @return distinguished name attribute
+	 */
+	public final String getDistinguishedNameAttribute() {
+		return configurationParameters.getStringOrDefault("directory.distinguishedNameAttribute", "dn");
 	}
 
 	/**
@@ -475,8 +582,8 @@ public class DirectoryConfiguration extends AbstractConnectorConfiguration {
 
 		configurationParameters.set(DIRECTORY_SECURITY_PROTOCOL, securityProtocol);
 
-		variables.put(Context.PROVIDER_URL,
-			buildProviderUrl(getSecurityProtocol().equalsIgnoreCase(SSL), filteredControllerHosts.toArray(new String[0])));
+		variables.put(Context.PROVIDER_URL, buildProviderUrl(getSecurityProtocol().equalsIgnoreCase(SSL),
+				filteredControllerHosts.toArray(new String[0])));
 		variables.put(Context.SECURITY_PROTOCOL, securityProtocol);
 
 		variables.put(Context.SECURITY_AUTHENTICATION, getServiceAuthenticationType());
@@ -491,10 +598,10 @@ public class DirectoryConfiguration extends AbstractConnectorConfiguration {
 		}
 
 		variables.put("com.sun.jndi.ldap.connect.timeout", String.valueOf(getTimeout()));
+		variables.put("com.sun.jndi.ldap.read.timeout", String.valueOf(getReadTimeout()));
 		variables.put("java.naming.ldap.version", getVersion());
 		variables.put("com.sun.jndi.ldap.connect.pool", "true");
 		variables.put("javax.security.sasl.qop", "auth-conf,auth-int,auth");
-		
 
 		variables.putAll(getInitialConfigurationParameters());
 		return variables;
@@ -526,10 +633,12 @@ public class DirectoryConfiguration extends AbstractConnectorConfiguration {
 					break;
 				default:
 					LOG.warn("Unexpected LDAP port in controller host " + controllerHost);
-					builder.append(ssl ? LDAPS_PROTOCOL : LDAP_PROTOCOL).append(controllerHost).append(":").append(port);
+					builder.append(ssl ? LDAPS_PROTOCOL : LDAP_PROTOCOL).append(controllerHost).append(":")
+							.append(port);
 				}
 			} else {
-				builder.append(ssl ? LDAPS_PROTOCOL : LDAP_PROTOCOL).append(controllerHost).append(":").append(ssl ? 636 : 389);
+				builder.append(ssl ? LDAPS_PROTOCOL : LDAP_PROTOCOL).append(controllerHost).append(":")
+						.append(ssl ? 636 : 389);
 			}
 
 		}
@@ -551,7 +660,8 @@ public class DirectoryConfiguration extends AbstractConnectorConfiguration {
 		buffer.append("', ServiceAuthenticationType='" + getServiceAuthenticationType());
 		buffer.append("', SecurityProtocol='" + getSecurityProtocol());
 		buffer.append("', InitialContextFactory='" + getInitialContextFactory());
-		buffer.append("', Timeout='" + getTimeout());
+		buffer.append("', ConnectTimeout='" + getTimeout());
+		buffer.append("', ReadTimeout='" + getReadTimeout());
 		buffer.append("', Version='" + getVersion());
 		buffer.append("', BaseDn='" + getBaseDn());
 		buffer.append("', ServiceAccountUsername='" + getServiceAccountDn());
@@ -566,8 +676,8 @@ public class DirectoryConfiguration extends AbstractConnectorConfiguration {
 		buffer.append("', RoleGuidAttribute='" + getRoleGuidAttribute()).append("']");
 		return buffer.toString();
 	}
-	
-	@Override 
+
+	@Override
 	public String getUsernameHint() {
 		return getServiceAccountDn();
 	}
@@ -576,4 +686,13 @@ public class DirectoryConfiguration extends AbstractConnectorConfiguration {
 	public String getHostnameHint() {
 		return configurationParameters.getStringOrNull(DIRECTORY_HOSTNAME);
 	}
+
+	public int getReadTimeout() {
+		return configurationParameters.getIntegerOrDefault(DIRECTORY_READ_TIMEOUT, 120000);
+	}
+
+	public String getOU() {
+		return configurationParameters.getString(DIRECTORY_USER_OU);
+	}
+
 }

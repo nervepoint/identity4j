@@ -1,5 +1,27 @@
 package com.identity4j.connector.office365;
 
+/*
+ * #%L
+ * Identity4J OFFICE 365
+ * %%
+ * Copyright (C) 2013 - 2017 LogonBox
+ * %%
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Lesser Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Lesser Public
+ * License along with this program.  If not, see
+ * <http://www.gnu.org/licenses/lgpl-3.0.html>.
+ * #L%
+ */
+
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -55,6 +77,10 @@ public class Office365Configuration extends AbstractConnectorConfiguration{
 	 * Configuration property key for excludes
 	 */
 	public static final String OFFICE365_INCLUDED_GROUPS = "office365IncludedGroups";
+	/**
+	 * Configuration property key for preload groups users
+	 */
+	public static final String OFFICE365_PRELOAD_GROUPS_USERS = "office365PreloadGroupsUser";
 	
 	public Office365Configuration(MultiMap configurationParameters) {
 		super(configurationParameters);
@@ -84,7 +110,11 @@ public class Office365Configuration extends AbstractConnectorConfiguration{
     /**
      * The Error Message that would be shown to the User if ErrorConnectingRestService error is encountered.
      */
-    public static final String ErrorGeneratingTokenMessage = "Sorry! Error Generation was not successful. Please try again."; 
+    public static final String ErrorGeneratingTokenMessage = "Sorry! Token generation was not successful. Please try again."; 
+    /**
+     * The Error Message that would be shown to the User if ErrorConnectingRestService error is encountered.
+     */
+    public static final String ErrorAuthenticatingForToken= "Unauthorized. Please check configration, in particular your key, tenant domain and client ID.";
 
     /**
      * HTTP header content type
@@ -144,7 +174,7 @@ public class Office365Configuration extends AbstractConnectorConfiguration{
 	 * @return the apiVersion
 	 */
 	public  String getApiVersion() {
-		return configurationParameters.getStringOrDefault(OFFICE365_API_VERSION, "api-version=2013-04-05");
+		return configurationParameters.getStringOrDefault(OFFICE365_API_VERSION, "api-version=1.6");
 	}
 	
 	/**
@@ -186,12 +216,18 @@ public class Office365Configuration extends AbstractConnectorConfiguration{
 		return null;
 	}
 	
+	public boolean isPreloadGroupsUsers() {
+		return "true".equals(configurationParameters.getStringOrDefault(OFFICE365_PRELOAD_GROUPS_USERS, "true"));
+	}
+	
 	public Set<String> getIncludedGroups() {
-		return new HashSet<String>(Arrays.asList(configurationParameters.getStringArrayOrDefault(OFFICE365_INCLUDED_GROUPS)));
+		String[] vals = configurationParameters.getStringArrayOrDefault(OFFICE365_INCLUDED_GROUPS);
+		return vals.length == 1 && vals[0].equals("") ? new HashSet<String>() : new HashSet<String>(Arrays.asList(vals));
 	}
 	
 	public Set<String> getExcludedGroups() {
-		return new HashSet<String>(Arrays.asList(configurationParameters.getStringArrayOrDefault(OFFICE365_EXCLUDED_GROUPS)));
+		String[] vals = configurationParameters.getStringArrayOrDefault(OFFICE365_EXCLUDED_GROUPS);
+		return vals.length == 1 && vals[0].equals("") ? new HashSet<String>() : new HashSet<String>(Arrays.asList(vals));
 	}
 
 	/**

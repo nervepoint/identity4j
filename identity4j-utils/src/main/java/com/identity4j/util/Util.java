@@ -1,6 +1,29 @@
 /* HEADER */
 package com.identity4j.util;
 
+/*
+ * #%L
+ * Identity4J Utils
+ * %%
+ * Copyright (C) 2013 - 2017 LogonBox
+ * %%
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Lesser Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Lesser Public
+ * License along with this program.  If not, see
+ * <http://www.gnu.org/licenses/lgpl-3.0.html>.
+ * #L%
+ */
+
+
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
@@ -613,5 +636,13 @@ public final class Util {
 			o2 = new Date((d2.getTime() / 1000) * 1000);
 		}
 		return o1 != null && !o1.equals(o2);
+	}
+
+	public static void memDbg(String ctx) {
+		if("true".equalsIgnoreCase(System.getProperty("identity4j.memDbg", "false")))
+			System.out.println(String.format("Total: %6d MiB   Free: %6d   Used: %6d   Max: %6d    Ctx: %s",
+					Runtime.getRuntime().totalMemory() / 1024 / 1024, Runtime.getRuntime().freeMemory() / 1024 / 1024,
+					(Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024 / 1024,
+					Runtime.getRuntime().maxMemory() / 1024 / 1024, ctx));
 	}
 }

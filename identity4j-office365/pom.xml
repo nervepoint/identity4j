@@ -6,7 +6,7 @@
 	<parent>
 		<groupId>com.nervepoint</groupId>
 		<artifactId>identity4j</artifactId>
-		<version>1.0.1</version>
+		<version>1.0.4</version>
 		<relativePath>..</relativePath>
 	</parent>
 	<dependencies>
@@ -18,6 +18,13 @@
 			<groupId>com.nervepoint</groupId>
 			<artifactId>identity4j-connector</artifactId>
 			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.nervepoint</groupId>
+			<artifactId>identity4j-http</artifactId>
+			<version>${project.version}</version>
+			<!-- <type>test-jar</type>
+			<scope>test</scope> -->
 		</dependency>
 		<dependency>
 			<groupId>com.nervepoint</groupId>
@@ -34,18 +41,5 @@
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
-	<build>
-		<plugins>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.0</version>
-				<configuration>
-					<source>1.6</source>
-					<target>1.6</target>
-					<encoding>UTF-8</encoding>
-				</configuration>
-			</plugin>
-		</plugins>
-	</build>
+
 </project>

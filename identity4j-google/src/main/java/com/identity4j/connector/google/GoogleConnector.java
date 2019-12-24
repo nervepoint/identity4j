@@ -1,5 +1,27 @@
 package com.identity4j.connector.google;
 
+/*
+ * #%L
+ * Identity4J GOOGLE
+ * %%
+ * Copyright (C) 2013 - 2017 LogonBox
+ * %%
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Lesser Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Lesser Public
+ * License along with this program.  If not, see
+ * <http://www.gnu.org/licenses/lgpl-3.0.html>.
+ * #L%
+ */
+
 import static com.identity4j.util.StringUtil.isNullOrEmpty;
 
 import java.io.ByteArrayInputStream;
@@ -112,7 +134,8 @@ public class GoogleConnector extends AbstractConnector {
 					ConnectorCapability.updateUser, ConnectorCapability.hasFullName, ConnectorCapability.hasEmail,
 					ConnectorCapability.roles, ConnectorCapability.createRole, ConnectorCapability.deleteRole,
 					ConnectorCapability.updateRole, ConnectorCapability.webAuthentication,
-					ConnectorCapability.identities, ConnectorCapability.accountDisable }));
+					ConnectorCapability.identities, ConnectorCapability.accountDisable,
+					ConnectorCapability.identityAttributes, ConnectorCapability.roleAttributes, ConnectorCapability.forcePasswordChange }));
 
 	@Override
 	public PasswordCharacteristics getPasswordCharacteristics() {
@@ -265,9 +288,19 @@ public class GoogleConnector extends AbstractConnector {
 			log.warn("Updating google identity " + identity.getPrincipalName());
 		}
 		try {
-			String userKey = identity.getPrincipalName();
+			String userKey = identity.getGuid();
+			if(userKey == null)
+			    throw new PrincipalNotFoundException("Only users with an ID may be updated.", null, PrincipalType.user);
 			checkRequestInterval();
-			directory.users().update(userKey, GoogleModelConvertor.googleIdentityToUser(identity)).execute();
+			directory.users().patch(userKey, GoogleModelConvertor.googleIdentityToUser(identity)).execute();
+			
+			/* I know ... But there IS a delay, and Google says it can be up to 10 minutes. In practice
+			 * though it doesn't seem to be more than 1 minute.  */
+			try {
+                Thread.sleep(1000 * 60 * 2);
+            } catch (InterruptedException e) {
+            }
+			
 			if (configuration.getFetchRoles()) {
 				adjustAdditionRemovalOfRoleOnIdentityUpdate(identity);
 			}
@@ -312,8 +345,8 @@ public class GoogleConnector extends AbstractConnector {
 	 */
 	@Override
 	public Identity getIdentityByName(String name) throws PrincipalNotFoundException, ConnectorException {
-		if (log.isWarnEnabled()) {
-			log.warn("Get google identity " + name);
+		if (log.isInfoEnabled()) {
+			log.info("Get google identity " + name);
 		}
 		try {
 			checkRequestInterval();
@@ -478,8 +511,8 @@ public class GoogleConnector extends AbstractConnector {
 	}
 
 	@Override
-	public WebAuthenticationAPI<?> startAuthentication() throws ConnectorException {
-		return new GoogleOAuth();
+	public WebAuthenticationAPI startAuthentication() throws ConnectorException {
+		return new GoogleOAuth(configuration);
 	}
 
 	@Override
@@ -538,11 +571,11 @@ public class GoogleConnector extends AbstractConnector {
 		}
 		try {
 			User user = new User();
+			user.setId(identity.getGuid());
 			user.setPassword(new String(password));
-			user.setPrimaryEmail(identity.getPrincipalName());
 			user.setChangePasswordAtNextLogin(forcePasswordChangeAtLogon);
 			checkRequestInterval();
-			directory.users().update(identity.getPrincipalName(), user).execute();
+			directory.users().patch(identity.getGuid(), user).execute();
 		} catch (IOException e) {
 			log.error("Problem in set password " + e.getMessage(), e);
 			throw new ConnectorException(e.getMessage(), e);
@@ -1006,7 +1039,7 @@ public class GoogleConnector extends AbstractConnector {
 				// ByteArrayInputStream(json.getBytes("UTF-8")),
 				// createTransport(), JSON_FACTORY);
 				// credential = credential.createScoped(scopes);
-
+ 
 				/*
 				 * Grrr... CANT just use that, because there is no way to
 				 * setServiceAccountUser()! Without this, will not get high
@@ -1016,11 +1049,13 @@ public class GoogleConnector extends AbstractConnector {
 				 */
 
 				JsonObjectParser parser = new JsonObjectParser(JSON_FACTORY);
-				GenericJson fileContents = parser.parseAndClose(new ByteArrayInputStream(json.getBytes("UTF-8")),
+				byte[] jsonStr = json.getBytes("UTF-8");
+				System.out.println(">> " + new String(jsonStr));
+				GenericJson fileContents = parser.parseAndClose(new ByteArrayInputStream(jsonStr),
 						Charset.forName("UTF-8"), GenericJson.class);
 				String fileType = (String) fileContents.get("type");
 				if (fileType == null) {
-					throw new IOException("Error reading credentials from stream, 'type' field not specified.");
+					throw new ConnectorException("The JSON data provided does not appear to be the service_account type.");
 				}
 				if (!"service_account".equals(fileType)) {
 					throw new ConnectorException("The JSON data provided is not for the service_account type.");
@@ -1116,9 +1151,11 @@ public class GoogleConnector extends AbstractConnector {
 	}
 
 	public static HttpTransport createTransport() throws GeneralSecurityException, IOException {
-		return "true".equals(System.getProperty("identity4j.google.useApacheTransport"))
-				? new ApacheHttpTransport(ApacheHttpTransport.newDefaultHttpClient())
-				: GoogleNetHttpTransport.newTrustedTransport();
+		return "true".equals(System.getProperty("identity4j.google.useIdentity4JTransport", "true"))
+				? new Identity4JHTTPTransport()
+				: ("true".equals(System.getProperty("identity4j.google.useApacheTransport"))
+						? new ApacheHttpTransport(ApacheHttpTransport.newDefaultHttpClient())
+						: GoogleNetHttpTransport.newTrustedTransport());
 	}
 
 	/**
@@ -1137,10 +1174,11 @@ public class GoogleConnector extends AbstractConnector {
 	private void identitySuspensionHelper(Identity identity, boolean suspension) {
 		try {
 			User user = new User();
+			user.setId(identity.getGuid());
 			user.setSuspended(suspension);
 			user.setSuspensionReason("ADMIN");
 			checkRequestInterval();
-			directory.users().update(identity.getPrincipalName(), user).execute();
+			directory.users().patch(identity.getGuid(), user).execute();
 			// set the state in passed identity instance
 			identity.getAccountStatus().setDisabled(suspension);
 		} catch (GoogleJsonResponseException e) {

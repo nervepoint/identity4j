@@ -1,20 +1,39 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+	<properties>
+		<maven.checkstyle.plugin>2.17</maven.checkstyle.plugin>
+		<maven.cobertura.plugin>2.7</maven.cobertura.plugin>
+		<maven.doxia.module.markdown.version>1.7</maven.doxia.module.markdown.version>
+		<maven.javadoc.plugin>2.10.4</maven.javadoc.plugin>
+		<maven.jxr.plugin>2.5</maven.jxr.plugin>
+		<maven.pmd.plugin>3.7</maven.pmd.plugin>
+		<maven.project.info.reports.plugin>2.9</maven.project.info.reports.plugin>
+		<maven.site.plugin>3.3</maven.site.plugin>
+		<maven.sonar.plugin>3.2-RC3</maven.sonar.plugin>
+		<maven.surefire.plugin>2.12</maven.surefire.plugin>
+		<maven.taglist.plugin>2.4</maven.taglist.plugin>
+		<maven.versions.plugin>2.3</maven.versions.plugin>
+		<maven.findbugs.plugin>3.0.4</maven.findbugs.plugin>
+
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+		<mysqlGroupId>mysql</mysqlGroupId>
+		<mysqlArtifactId>mysql-connector-java</mysqlArtifactId>
+		<mysqlVersion>8.0.15</mysqlVersion>
+	</properties>
+
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.nervepoint</groupId>
 	<artifactId>identity4j</artifactId>
-	<version>1.0.1</version>
+	<version>1.0.4</version>
 	<name>Identity4J</name>
 	<description>A suite of Java Identity and Authentication Connectors.</description>
 	<url>http://www.nervepoint.com</url>
 	<packaging>pom</packaging>
-
-	<parent>
-		<groupId>org.sonatype.oss</groupId>
-		<artifactId>oss-parent</artifactId>
-		<version>7</version>
-	</parent>
+	<inceptionYear>2013</inceptionYear>
 
 	<licenses>
 		<license>
@@ -23,27 +42,51 @@
 			<distribution>repo</distribution>
 		</license>
 	</licenses>
+
+	<organization>
+		<name>LogonBox</name>
+		<url>http://logonbox.com</url>
+	</organization>
+
 	<scm>
-		<url>https://sourceforge.net/p/identity4j/code/HEAD/tree/</url>
-		<connection>http://svn.code.sf.net/p/identity4j/code</connection>
+		<url>https://github.com/nervepoint/identity4j.git</url>
+		<connection>scm:git:https://github.com/nervepoint/identity4j.git</connection>
 	</scm>
+
+	<distributionManagement>
+		<snapshotRepository>
+			<id>ossrh</id>
+			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
+		</snapshotRepository>
+	</distributionManagement>
+
 	<developers>
 		<developer>
 			<id>lee</id>
 			<name>Lee David Painter</name>
-			<email>lee@nervepoint.com</email>
+			<email>lee@hypersocket.com</email>
+			<organization>Hypersock</organization>
+			<url>http://www.hypersocket.com</url>
+		</developer>
+		<developer>
+			<id>brett</id>
+			<name>Brett Smith</name>
+			<email>brett@hypersocket.com</email>
+			<organization>Hypersock</organization>
+			<url>http://www.hypersocket.com</url>
 		</developer>
 	</developers>
-
 	<modules>
 		<module>identity4j-utils</module>
 		<module>identity4j-vfs</module>
 		<module>identity4j-connector</module>
+		<module>identity4j-http</module>
 		<module>identity4j-flatfile</module>
 		<module>identity4j-unix</module>
 		<module>identity4j-htpasswd</module>
 		<module>identity4j-jdbc</module>
 		<module>identity4j-mysql</module>
+		<module>identity4j-as400</module>
 		<module>identity4j-google</module>
 		<module>identity4j-office365</module>
 		<module>identity4j-salesforce</module>
@@ -54,6 +97,8 @@
 		<module>identity4j-mysql-users-connector</module>
 		<module>identity4j-ldap-directory-jndi</module>
 		<module>identity4j-active-directory-jndi</module>
+		<!-- <module>identity4j-sap</module> -->
+		<module>identity4j-sap-users</module>
 		<!-- <module>identity4j-webauth-test</module> -->
 	</modules>
 
@@ -72,7 +117,71 @@
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
-
+	<reporting>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-report-plugin</artifactId>
+				<version>${maven.surefire.plugin}</version>
+				<configuration>
+					<outputDirectory>${project.reporting.outputDirectory}/testresults</outputDirectory>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-javadoc-plugin</artifactId>
+				<version>${maven.javadoc.plugin}</version>
+				<configuration>
+					<aggregate>true</aggregate>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-checkstyle-plugin</artifactId>
+				<version>${maven.checkstyle.plugin}</version>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-project-info-reports-plugin</artifactId>
+				<version>${maven.project.info.reports.plugin}</version>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jxr-plugin</artifactId>
+				<version>${maven.jxr.plugin}</version>
+				<configuration>
+					<aggregate>true</aggregate>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>cobertura-maven-plugin</artifactId>
+				<version>${maven.cobertura.plugin}</version>
+				<configuration>
+					<aggregate>true</aggregate>
+					<outputDirectory>%{project.reporting.outputDirectory}/cobertura</outputDirectory>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>findbugs-maven-plugin</artifactId>
+				<version>${maven.findbugs.plugin}</version>
+			</plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>versions-maven-plugin</artifactId>
+				<version>${maven.versions.plugin}</version>
+			</plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>taglist-maven-plugin</artifactId>
+				<version>${maven.taglist.plugin}</version>
+				<configuration>
+					<aggregate>true</aggregate>
+				</configuration>
+			</plugin>
+		</plugins>
+	</reporting>
 	<profiles>
 		<profile>
 			<id>release-sign-artifacts</id>
@@ -99,15 +208,33 @@
 						</executions>
 					</plugin>
 					<plugin>
-					  <groupId>org.sonatype.plugins</groupId>
-					  <artifactId>nexus-staging-maven-plugin</artifactId>
-					  <version>1.6.7</version>
-					  <extensions>true</extensions>
-					  <configuration>
-						 <serverId>sonatype-nexus-staging</serverId>
-						 <nexusUrl>https://oss.sonatype.org/</nexusUrl>
-						 <autoReleaseAfterClose>true</autoReleaseAfterClose>
-					  </configuration>
+						<groupId>org.sonatype.plugins</groupId>
+						<artifactId>nexus-staging-maven-plugin</artifactId>
+						<version>1.6.7</version>
+						<extensions>true</extensions>
+						<configuration>
+							<serverId>ossrh-sshtools</serverId>
+							<nexusUrl>https://oss.sonatype.org/</nexusUrl>
+							<autoReleaseAfterClose>true</autoReleaseAfterClose>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		<profile>
+			<id>doclint-java8-disable</id>
+			<activation>
+				<jdk>[1.8,)</jdk>
+			</activation>
+
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-javadoc-plugin</artifactId>
+						<configuration>
+							<additionalparam>-Xdoclint:none</additionalparam>
+						</configuration>
 					</plugin>
 				</plugins>
 			</build>
@@ -115,19 +242,73 @@
 	</profiles>
 
 	<build>
-		<plugins>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<configuration>
-					<source>1.7</source>
-					<target>1.7</target>
-				</configuration>
-				</plugin>
-		</plugins>
 		<pluginManagement>
 			<plugins>
-				
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-javadoc-plugin</artifactId>
+					<version>2.10.3</version>
+					<executions>
+						<execution>
+							<id>release</id>
+							<phase>package</phase>
+							<goals>
+								<goal>jar</goal>
+							</goals>
+						</execution>
+					</executions>
+					<configuration>
+						<encoding>UTF-8</encoding>
+					</configuration>
+				</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-site-plugin</artifactId>
+					<version>${maven.site.plugin}</version>
+					<executions>
+						<!-- used for multiproject builds -->
+						<execution>
+							<id>attach-descriptor</id>
+							<goals>
+								<goal>attach-descriptor</goal>
+							</goals>
+						</execution>
+					</executions>
+					<configuration>
+						<siteDirectory>${basedir}/site</siteDirectory>
+						<locales>en</locales>
+					</configuration>
+					<dependencies>
+						<!-- To use the Markdown format -->
+						<dependency>
+							<groupId>org.apache.maven.doxia</groupId>
+							<artifactId>doxia-module-markdown</artifactId>
+							<version>${maven.doxia.module.markdown.version}</version>
+						</dependency>
+					</dependencies>
+				</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-source-plugin</artifactId>
+					<version>2.2.1</version>
+					<executions>
+						<execution>
+							<id>attach-sources</id>
+							<goals>
+								<goal>jar-no-fork</goal>
+							</goals>
+						</execution>
+					</executions>
+				</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-compiler-plugin</artifactId>
+					<configuration>
+						<source>1.8</source>
+						<target>1.8</target>
+						<encoding>UTF-8</encoding>
+					</configuration>
+				</plugin>
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-surefire-plugin</artifactId>
@@ -140,28 +321,28 @@
 					</configuration>
 				</plugin>
 				<plugin>
-					<groupId>org.eclipse.m2e</groupId>
-					<artifactId>lifecycle-mapping</artifactId>
-					<version>1.0.0</version>
+					<groupId>org.codehaus.mojo</groupId>
+					<artifactId>license-maven-plugin</artifactId>
+					<version>1.6</version>
+
 					<configuration>
-						<lifecycleMappingMetadata>
-							<pluginExecutions>
-								<pluginExecution>
-									<pluginExecutionFilter>
-										<groupId>org.apache.maven.plugins</groupId>
-										<artifactId>maven-enforcer-plugin</artifactId>
-										<versionRange>[1.0.0,)</versionRange>
-										<goals>
-											<goal>enforce</goal>
-										</goals>
-									</pluginExecutionFilter>
-									<action>
-										<ignore />
-									</action>
-								</pluginExecution>
-							</pluginExecutions>
-						</lifecycleMappingMetadata>
+						<licenseName>lgpl_v3</licenseName>
+						<!-- <licenseResolver>${project.baseUri}/../vmcentre-nam-group/src/license</licenseResolver> -->
 					</configuration>
+
+					<executions>
+						<execution>
+							<id>first</id>
+							<goals>
+								<goal>update-file-header</goal>
+							</goals>
+							<phase>process-sources</phase>
+							<configuration>
+								<canUpdateCopyright>true</canUpdateCopyright>
+								<canUpdateDescription>true</canUpdateDescription>
+							</configuration>
+						</execution>
+					</executions>
 				</plugin>
 			</plugins>
 		</pluginManagement>

@@ -1,11 +1,32 @@
 package com.identity4j.connector.zendesk.services;
 
+/*
+ * #%L
+ * Identity4J Zendesk
+ * %%
+ * Copyright (C) 2013 - 2017 LogonBox
+ * %%
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Lesser Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Lesser Public
+ * License along with this program.  If not, see
+ * <http://www.gnu.org/licenses/lgpl-3.0.html>.
+ * #L%
+ */
+
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-import org.codehaus.jackson.type.TypeReference;
-
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.identity4j.connector.PrincipalType;
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.exception.PrincipalAlreadyExistsException;
@@ -15,8 +36,9 @@ import com.identity4j.connector.zendesk.entity.Group;
 import com.identity4j.connector.zendesk.entity.GroupMembership;
 import com.identity4j.connector.zendesk.entity.GroupMemberships;
 import com.identity4j.connector.zendesk.entity.Groups;
+import com.identity4j.util.http.HttpPair;
+import com.identity4j.util.http.HttpResponse;
 import com.identity4j.util.http.request.HttpRequestHandler;
-import com.identity4j.util.http.response.HttpResponse;
 import com.identity4j.util.json.JsonMapperService;
 
 /**
@@ -44,16 +66,21 @@ public class GroupService extends AbstractRestAPIService{
 	 */
 	public Group getByGuid(Integer guid) {
 
-		HttpResponse response = httpRequestHandler.handleRequestGet(constructURI(String.format("groups/%d", guid)), HEADER_HTTP_HOOK);
-		
-		@SuppressWarnings("unchecked")
-		Map<String, Object> records = (Map<String, Object>) JsonMapperService.getInstance().getJsonProperty(response.getData().toString(), "group");
-		
-		if(records == null || records.isEmpty()){
-			throw new PrincipalNotFoundException(guid + " not found.",null,PrincipalType.role);
+		HttpResponse response = httpRequestHandler.handleRequestGet(constructURI(String.format("groups/%d", guid)),
+				getHeaders().toArray(new HttpPair[0]));
+		try {
+			@SuppressWarnings("unchecked")
+			Map<String, Object> records = (Map<String, Object>) JsonMapperService.getInstance()
+					.getJsonProperty(response.contentString(), "group");
+
+			if (records == null || records.isEmpty()) {
+				throw new PrincipalNotFoundException(guid + " not found.", null, PrincipalType.role);
+			}
+
+			return JsonMapperService.getInstance().convert(records, Group.class);
+		} finally {
+			response.release();
 		}
-		
-		return JsonMapperService.getInstance().convert(records, Group.class);
 		
 	}
 	
@@ -68,20 +95,25 @@ public class GroupService extends AbstractRestAPIService{
 	 * @throws PrincipalNotFoundException if principal by guid not present in data source
 	 */
 	public Group getByName(String name){
-		HttpResponse response = httpRequestHandler.handleRequestGet(constructURI("search","query=type:group name:" + name), HEADER_HTTP_HOOK);
+		HttpResponse response = httpRequestHandler.handleRequestGet(constructURI("search","query=type:group name:" + name), getHeaders().toArray(new HttpPair[0]));
+		try {
 		
-		if(response.getHttpStatusCodes().getStatusCode().intValue() == 404){
-			throw new PrincipalNotFoundException(name + " not found.",null,PrincipalType.role);
+			if(response.status().getCode() == 404){
+				throw new PrincipalNotFoundException(name + " not found.",null,PrincipalType.role);
+			}
+			
+			@SuppressWarnings("unchecked")
+			List<String> records = (List<String>) JsonMapperService.getInstance().getJsonProperty(response.contentString(), "results");
+			
+			if(records == null || records.isEmpty()){
+				throw new PrincipalNotFoundException(name + " not found.",null,PrincipalType.role);
+			}
+			
+			return JsonMapperService.getInstance().convert(records.get(0), Group.class);
 		}
-		
-		@SuppressWarnings("unchecked")
-		List<String> records = (List<String>) JsonMapperService.getInstance().getJsonProperty(response.getData().toString(), "results");
-		
-		if(records == null || records.isEmpty()){
-			throw new PrincipalNotFoundException(name + " not found.",null,PrincipalType.role);
+		finally {
+			response.release();
 		}
-		
-		return JsonMapperService.getInstance().convert(records.get(0), Group.class);
 	}
 	
 	/**
@@ -92,8 +124,13 @@ public class GroupService extends AbstractRestAPIService{
 	 * @return groups list
 	 */
 	public Groups all(){
-		HttpResponse response = httpRequestHandler.handleRequestGet(constructURI("search","query=type:group"), HEADER_HTTP_HOOK);
-		return JsonMapperService.getInstance().getObject(Groups.class, response.getData().toString());
+		HttpResponse response = httpRequestHandler.handleRequestGet(constructURI("search", "query=type:group"),
+				getHeaders().toArray(new HttpPair[0]));
+		try {
+			return JsonMapperService.getInstance().getObject(Groups.class, response.contentString());
+		} finally {
+			response.release();
+		}
 	}
 	
 	
@@ -109,14 +146,14 @@ public class GroupService extends AbstractRestAPIService{
 	public Group save(Group group) {
 		try{
 			String json = String.format("{\"group\":  %s}", JsonMapperService.getInstance().getJson(group));
-			HttpResponse response = httpRequestHandler.handleRequestPost(constructURI("groups"),json, HEADER_HTTP_HOOK);
+			HttpResponse response = httpRequestHandler.handleRequestPost(constructURI("groups"),json, getHeaders().toArray(new HttpPair[0]));
 	
-			if(response.getHttpStatusCodes().getStatusCode().intValue() != 201){
-				throw new ConnectorException("Problem in creating principal reason : " + response.getData());
+			if(response.status().getCode() != 201){
+				throw new ConnectorException("Problem in creating principal reason : " + response.contentString());
 			}
 			
 			@SuppressWarnings("unchecked")
-			Map<String, Object> records = (Map<String, Object>) JsonMapperService.getInstance().getJsonProperty(response.getData().toString(), "group");
+			Map<String, Object> records = (Map<String, Object>) JsonMapperService.getInstance().getJsonProperty(response.contentString(), "group");
 			return JsonMapperService.getInstance().convert(records, Group.class);
 		}catch(IOException e){
 			throw new ConnectorException("Problem in saving group " + group.getName(), e);
@@ -138,15 +175,15 @@ public class GroupService extends AbstractRestAPIService{
 			String json = String.format("{\"group\":  %s}", JsonMapperService.getInstance().getJson(group));
 			HttpResponse response = httpRequestHandler.handleRequestPut(
 					constructURI(String.format("groups/%s", group.getId()),
-							null), json, HEADER_HTTP_HOOK);
+							null), json, getHeaders().toArray(new HttpPair[0]));
 			
-			if(response.getHttpStatusCodes().getStatusCode().intValue() == 404){
+			if(response.status().getCode() == 404){
 				throw new PrincipalNotFoundException(group.getId() + " not found.",null,PrincipalType.role);
 			}
 			
-			if(response.getHttpStatusCodes().getStatusCode().intValue() != 200){
+			if(response.status().getCode() != 200){
 				throw new ConnectorException("Problem in updating group as status code is not 200 is " 
-							+ response.getHttpStatusCodes().getStatusCode().intValue() + " " + response.getData());
+							+ response.status().getCode() + " " + response.contentString());
 			}
 			
 		} catch (IOException e) {
@@ -162,15 +199,15 @@ public class GroupService extends AbstractRestAPIService{
 	 * @throws ConnectorException for service related exception.
 	 */
 	public void delete(Integer id) {
-		HttpResponse response = httpRequestHandler.handleRequestDelete(constructURI(String.format("groups/%d", id)), HEADER_HTTP_HOOK);
+		HttpResponse response = httpRequestHandler.handleRequestDelete(constructURI(String.format("groups/%d", id)), getHeaders().toArray(new HttpPair[0]));
 		
-		if(response.getHttpStatusCodes().getStatusCode().intValue() == 404){
+		if(response.status().getCode() == 404){
 			throw new PrincipalNotFoundException(id + " not found.",null,PrincipalType.user);
 		}
 		
-		if(response.getHttpStatusCodes().getStatusCode().intValue() != 200){
+		if(response.status().getCode() != 200){
 			throw new ConnectorException("Problem in deleting group as status code is not 200 is " 
-						+ response.getHttpStatusCodes().getStatusCode().intValue() + " " + response.getData());
+						+ response.status().getCode() + " " + response.contentString());
 		}
 		
 	}
@@ -196,18 +233,17 @@ public class GroupService extends AbstractRestAPIService{
 			String json = String.format("{\"group_membership\": %s}",JsonMapperService.getInstance().getJson(groupMembership));
 			
 			
-			HttpResponse response = httpRequestHandler.handleRequestPost(constructURI("group_memberships"),json, HEADER_HTTP_HOOK);
+			HttpResponse response = httpRequestHandler.handleRequestPost(constructURI("group_memberships"),json, getHeaders().toArray(new HttpPair[0]));
 			
-			if(response.getHttpStatusCodes().getStatusCode().intValue() != 201){
+			if(response.status().getCode() != 201){
 				throw new ConnectorException(
 						"Problem in adding group member "
-								+ response.getHttpStatusCodes().getStatusCode()
-										.intValue() + " : " + response.getData());
+								+ response.status().getCode() + " : " + response.contentString());
 			}
 	
 			@SuppressWarnings("unchecked")
 			Map<String, Object> records = (Map<String, Object>) JsonMapperService.getInstance().getJsonProperty(
-					response.getData().toString(), "group_membership");
+					response.contentString(), "group_membership");
 			return JsonMapperService.getInstance().convert(records, GroupMembership.class);
 		}catch(IOException e){
 			throw new ConnectorException("Problem in saving group membership.",e);
@@ -231,14 +267,13 @@ public class GroupService extends AbstractRestAPIService{
 		
 		//using group member id for deleting relation
 		HttpResponse response = httpRequestHandler.handleRequestDelete(
-				constructURI(String.format("group_memberships/%d",groupMembership.getId())), HEADER_HTTP_HOOK);
+				constructURI(String.format("group_memberships/%d",groupMembership.getId())), getHeaders().toArray(new HttpPair[0]));
 		
 
-		if(response.getHttpStatusCodes().getStatusCode().intValue() != 200){
+		if(response.status().getCode() != 200){
 			throw new ConnectorException(
 					"Problem in deleting group member as status code is not 200 is "
-							+ response.getHttpStatusCodes().getStatusCode()
-									.intValue() + " : " + response.getData());
+							+ response.status().getCode() + " : " + response.contentString());
 		}
 		
 	}
@@ -275,17 +310,24 @@ public class GroupService extends AbstractRestAPIService{
 	public GroupMemberships getGroupMembershipsForUser(Integer userId){
 		try {
 			HttpResponse response = httpRequestHandler
-					.handleRequestGet(constructURI(String.format("users/%d/group_memberships",userId)), HEADER_HTTP_HOOK);
+					.handleRequestGet(constructURI(String.format("users/%d/group_memberships",userId)), getHeaders().toArray(new HttpPair[0]));
 			
-			GroupMemberships groupMemberships = JsonMapperService.getInstance().getObject(GroupMemberships.class,response.getData().toString());
+			GroupMemberships groupMemberships;
+			try {
+				groupMemberships = JsonMapperService.getInstance().getObject(GroupMemberships.class,response.contentString());
+			}
+			finally {
+				response.release();
+			}
 			
 			/**
 			 * Groupmemberships does not have any detailed information about the group it is linking to 
 			 * user, in some scenarios this information is important, hence we fetch it(group info) in a different call
 			 * and set it to appropriate group memebership
 			 */
-			response = httpRequestHandler
-					.handleRequestGet(constructURI(String.format("users/%d/groups",userId)), HEADER_HTTP_HOOK);
+			try {
+				response = httpRequestHandler
+						.handleRequestGet(constructURI(String.format("users/%d/groups",userId)), getHeaders().toArray(new HttpPair[0]));
 			
 			/**
 			 * We have annotated Groups class's groups list to "results" but in this class the property is returned
@@ -297,26 +339,30 @@ public class GroupService extends AbstractRestAPIService{
 			 * and again deserialize it to List of Group.
 			 * 
 			 */
-			List<Group> groups = JsonMapperService.getInstance().getObject(new TypeReference<List<Group>>() {},
-								 JsonMapperService.getInstance().getJson(
-										 	JsonMapperService.getInstance().getJsonProperty(response.getData().toString(), "groups")
-										)
-								 );
-				
-			if (groups != null) {
-				/**
-				 * Mapping group membership to group	
-				 */
-				for (Group group : groups) {
-					for (GroupMembership groupMembership : groupMemberships
-							.getGroupMemberships()) {
-						if (groupMembership.getGroupId().equals(group.getId())) {
-							groupMembership.setGroup(group);
+				List<Group> groups = JsonMapperService.getInstance().getObject(new TypeReference<List<Group>>() {},
+									 JsonMapperService.getInstance().getJson(
+											 	JsonMapperService.getInstance().getJsonProperty(response.contentString(), "groups")
+											)
+									 );
+					
+				if (groups != null) {
+					/**
+					 * Mapping group membership to group	
+					 */
+					for (Group group : groups) {
+						for (GroupMembership groupMembership : groupMemberships
+								.getGroupMemberships()) {
+							if (groupMembership.getGroupId().equals(group.getId())) {
+								groupMembership.setGroup(group);
+							}
 						}
 					}
 				}
+				return groupMemberships;
 			}
-			return groupMemberships;
+			finally {
+				response.release();
+			}
 		
 		} catch (IOException e) {
 			throw new ConnectorException("Problem in fetching group membership.",e);

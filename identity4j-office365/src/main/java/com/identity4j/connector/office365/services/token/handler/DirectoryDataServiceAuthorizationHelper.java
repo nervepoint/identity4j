@@ -1,15 +1,41 @@
 package com.identity4j.connector.office365.services.token.handler;
 
-import java.io.BufferedReader;
+/*
+ * #%L
+ * Identity4J OFFICE 365
+ * %%
+ * Copyright (C) 2013 - 2017 LogonBox
+ * %%
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Lesser Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Lesser Public
+ * License along with this program.  If not, see
+ * <http://www.gnu.org/licenses/lgpl-3.0.html>.
+ * #L%
+ */
+
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.net.URLEncoder;
+import java.util.Arrays;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.office365.Office365Configuration;
+import com.identity4j.connector.office365.services.AbstractRestAPIService;
+import com.identity4j.util.http.Http;
+import com.identity4j.util.http.HttpPair;
+import com.identity4j.util.http.HttpProviderClient;
+import com.identity4j.util.http.HttpResponse;
 import com.identity4j.util.json.JsonMapperService;
 
 /**
@@ -25,6 +51,7 @@ import com.identity4j.util.json.JsonMapperService;
  *
  */
 public class DirectoryDataServiceAuthorizationHelper {
+	private static final Log log = LogFactory.getLog(DirectoryDataServiceAuthorizationHelper.class);
 
 	/**
 	 * Retrieves Json Web Token which is used for authorization of REST API
@@ -35,7 +62,6 @@ public class DirectoryDataServiceAuthorizationHelper {
 	 * @param stsUrl
 	 * @param principalId
 	 * @param clientKey
-	 * 
 	 * @return Json Web Token
 	 * 
 	 * @throws IOException
@@ -45,55 +71,43 @@ public class DirectoryDataServiceAuthorizationHelper {
 			String clientKey) throws IOException {
 
 		OutputStreamWriter wr = null;
-		BufferedReader rd = null;
 		try {
 			stsUrl = String.format(stsUrl, tenantName);
-			URL url = null;
-
-			String data = null;
-
-			data = "grant_type=client_credentials";
-			data += "&resource=" + URLEncoder.encode(graphPrincipalId, "UTF-8");
-			data += "&client_id=" + URLEncoder.encode(principalId, "UTF-8");
-			data += "&client_secret=" + URLEncoder.encode(clientKey, "UTF-8");
-
-			url = new URL(stsUrl);
-
-			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-			conn.setConnectTimeout(60000);
-			conn.setRequestMethod("POST");
-			conn.setRequestProperty("Content-Type",
-					"application/x-www-form-urlencoded");
-
-			conn.setDoOutput(true);
-
-			wr = new OutputStreamWriter(conn.getOutputStream());
-			wr.write(data);
-			wr.flush();
-
-			rd = new BufferedReader(
-					new InputStreamReader(conn.getInputStream()));
-
-			String line, response = "";
-
-			while ((line = rd.readLine()) != null) {
-				response += line;
+			HttpProviderClient client = Http.getProvider().getClient(stsUrl, null, null, null);
+			client.setConnectTimeout(60000);
+			log.info(String.format("Getting new client_credentials access token for %s (resource %s), secret %s, princ %s", tenantName, graphPrincipalId, clientKey, principalId ));
+			HttpResponse resp = client.post(null,
+					Arrays.asList(
+							new HttpPair("grant_type","client_credentials"),
+							new HttpPair("resource", graphPrincipalId), 
+							new HttpPair("client_id", principalId),
+							new HttpPair("client_secret", clientKey)),
+					new HttpPair("Content-Type", "application/x-www-form-urlencoded"));
+			try {
+				int res = resp.status().getCode();
+				if(res == 200) {
+                    String contentString = resp.contentString();
+                    log.info("Full token response " + contentString);
+                    ADToken object = JsonMapperService.getInstance().getObject(ADToken.class, contentString);
+                    log.info("New token " + object);
+                    object.recalcExpiresOn();
+					return object;
+                } else if(res == 401)
+					throw new ConnectorException(Office365Configuration.ErrorGeneratingToken + ":"
+							+ Office365Configuration.ErrorAuthenticatingForToken);
+				else
+					throw new ConnectorException(Office365Configuration.ErrorGeneratingToken + ":"
+							+ Office365Configuration.ErrorGeneratingTokenMessage + ". Response code " + res);
+			} finally {
+				resp.release();
 			}
 
-			return JsonMapperService.getInstance().getObject(ADToken.class,
-					response);
-
 		} catch (Exception e) {
-			throw new ConnectorException(
-					Office365Configuration.ErrorGeneratingToken
-							+ ":"
-							+ Office365Configuration.ErrorGeneratingTokenMessage,
-					e);
+			throw new ConnectorException(Office365Configuration.ErrorGeneratingToken + ":"
+					+ Office365Configuration.ErrorGeneratingTokenMessage, e);
 		} finally {
 			if (wr != null)
 				wr.close();
-			if (rd != null)
-				rd.close();
 		}
 	}
 

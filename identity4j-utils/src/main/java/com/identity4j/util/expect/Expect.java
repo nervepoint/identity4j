@@ -1,5 +1,27 @@
 package com.identity4j.util.expect;
 
+/*
+ * #%L
+ * Identity4J Utils
+ * %%
+ * Copyright (C) 2013 - 2017 LogonBox
+ * %%
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Lesser Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Lesser Public
+ * License along with this program.  If not, see
+ * <http://www.gnu.org/licenses/lgpl-3.0.html>.
+ * #L%
+ */
+
 import java.io.BufferedInputStream;
 import java.io.EOFException;
 import java.io.IOException;
@@ -186,9 +208,13 @@ public class Expect {
 	 */
 	public synchronized boolean expect(String pattern, boolean consumeRemainingLine, long timeout, long maxLines)
 			throws ExpectTimeoutException, IOException {
-		String chat = chat(pattern, consumeRemainingLine, timeout, maxLines, false);
-		boolean matched = chat != null;
-		return matched;
+		try {
+			String chat = chat(pattern, consumeRemainingLine, timeout, maxLines, false);
+			boolean matched = chat != null;
+			return matched;
+		} catch (EOFException e) {
+			return false;
+		}
 	}
 
 	public synchronized boolean maybeExpectNextLine(String pattern, boolean consumeRemainingLine, long timeout)
@@ -229,7 +255,7 @@ public class Expect {
 
 	public synchronized boolean maybeExpect(String pattern, boolean consumeRemainingLine, long timeout, long maxLines)
 			throws ExpectTimeoutException, IOException {
-		in.mark(1024);
+		in.mark(32768);
 		try {
 			String chat = chat(pattern, consumeRemainingLine, timeout, maxLines, false);
 			boolean matched = chat != null;
@@ -237,9 +263,12 @@ public class Expect {
 				in.reset();
 			}
 			return matched;
+		} catch (EOFException e) {
+			in.reset();
+			return false;
 		} catch (ExpectTimeoutException e) {
 			in.reset();
-			throw e;
+			return false;
 		}
 	}
 	/**
@@ -265,54 +294,59 @@ public class Expect {
 		
 		while (System.currentTimeMillis() - time < timeout || timeout == 0) {
 
-			if (maxLines > 0 && lines >= maxLines)
-				return null;
-
-			int ch = read(timeout);
-			if (ch == -1) {
-				open = false;
-				
-				if(line.length() > 0 && matches(line.toString(), pattern)) {
-					return line.toString();
-				} else {
+			try {
+				if (maxLines > 0 && lines >= maxLines)
 					return null;
-				}
-			}
-			else if(ch == Integer.MIN_VALUE) {
-				// Timeout
-				continue;
-			}
-			
-			if (ch != '\n' && ch != '\r') {
-				line.append((char) ch);
-			}
 
-			if (log.isDebugEnabled()) {
-				log.debug("Checking if '" + line + "' is '" + pattern + "'");
-			}
-			if (matches(line.toString(), pattern)) {
-				if (log.isDebugEnabled()) {
-					log.debug("Matched: [" + pattern + "] " + line.toString());
+				int ch = read(timeout);
+				if (ch == -1) {
+										
+					if(line.length() > 0 && matches(line.toString(), pattern)) {
+						open = false;
+						return line.toString();
+					} else {
+						throw new EOFException();
+					}
 				}
-				if (consumeRemainingLine && ch != '\n' && ch != -1) {
-					do {
+				else if(ch == Integer.MIN_VALUE) {
+					// Timeout
+					continue;
+				}
+				
+				if (ch != '\n' && ch != '\r') {
+					line.append((char) ch);
+				}
 
-					} while (ch != '\n' && ch != -1);
-				}
 				if (log.isDebugEnabled()) {
-					log.debug("Matched shell output: " + line.toString());
+					log.debug("Checking if '" + line + "' is '" + pattern + "'");
 				}
-				return line.toString();
-			}
+				if (matches(line.toString(), pattern)) {
+					if (log.isDebugEnabled()) {
+						log.debug("Matched: [" + pattern + "] " + line.toString());
+					}
+					if (consumeRemainingLine && ch != '\n' && ch != -1) {
+						do {
 
-			if (ch == '\n') {
-				if(!ignoreEmptyLines) { 
-					lines++;
+						} while (ch != '\n' && ch != -1);
+					}
+					if (log.isDebugEnabled()) {
+						log.debug("Matched shell output: " + line.toString());
+					}
+					return line.toString();
 				}
-				if (log.isDebugEnabled()) {
-					log.debug("Unmatched shell output: " + line.toString());
+
+				if (ch == '\n') {
+					if(!ignoreEmptyLines) { 
+						lines++;
+					}
+					if (log.isDebugEnabled()) {
+						log.debug("Unmatched shell output: " + line.toString());
+					}
+					line.delete(0, line.length());
 				}
-				line.delete(0, line.length());
+			} catch (IOException e) {
+				open = false;
+				throw e;
 			}
 		}
 
@@ -352,7 +386,9 @@ public class Expect {
 				}
 			}
 			
-			return in.read();
+			int read = in.read();
+
+			return read;
 		
 		} catch(EOFException e) {
 			if(log.isDebugEnabled()) {

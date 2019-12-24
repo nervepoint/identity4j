@@ -1,9 +1,34 @@
 /* HEADER */
 package com.identity4j.connector;
 
+/*
+ * #%L
+ * Identity4J Connector
+ * %%
+ * Copyright (C) 2013 - 2017 LogonBox
+ * %%
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Lesser Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Lesser Public
+ * License along with this program.  If not, see
+ * <http://www.gnu.org/licenses/lgpl-3.0.html>.
+ * #L%
+ */
+
+
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+
+import javax.net.SocketFactory;
 
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.exception.InvalidLoginCredentialsException;
@@ -45,6 +70,12 @@ public interface Connector {
         USER
     }
 
+    /**
+     * Get the capabilities. Return <code>null</code> if the capabilities are no different
+     * than the default returned by the {@link ConnectorConfigurationParameters} implementation.
+     *  
+     * @return 
+     */
 	Set<ConnectorCapability> getCapabilities();
 	
 	/**
@@ -85,7 +116,7 @@ public interface Connector {
 	 *         failure.
 	 * @throws ConnectorException
 	 */
-	WebAuthenticationAPI<? extends ConnectorConfigurationParameters> startAuthentication() throws ConnectorException;
+	WebAuthenticationAPI startAuthentication() throws ConnectorException;
 
 	/**
 	 * Check the given credentials but do not actually logon.
@@ -96,7 +127,7 @@ public interface Connector {
 	 *         failure.
 	 * @throws ConnectorException
 	 */
-	boolean checkCredentials(String username, char[] password) throws ConnectorException;
+	boolean checkCredentials(String username, char[] password, IdentityProcessor... processors) throws ConnectorException;
 
 	/**
 	 * Change your password. This method is used by an identity to change their
@@ -246,6 +277,17 @@ public interface Connector {
 	 * @throws ConnectorException
 	 */
 	Identity createIdentity(Identity identity, char[] password) throws ConnectorException;
+	
+	
+	/**
+	 * Default implementation simply calls PasswordCreationCallback and passes result into createIdentity(Identity,char[])
+	 * 
+	 * @param identity
+	 * @param passwordCallback
+	 * @throws ConnectorException
+	 */
+	public Identity createIdentity(Identity identity, PasswordCreationCallback passwordCallback, boolean forceChange) throws ConnectorException;
+	
 	/**
 	 * Update an identity's details.
 	 * 
@@ -331,4 +373,26 @@ public interface Connector {
 	 * @throws UnsupportedOperationExcetion if not supported
 	 */
 	void install(Map<String, String> properties) throws Exception;
+
+	/**
+	 * Set the {@link SocketFactory} to use for this connector (if the connector
+	 * uses sockets and supports this feature).
+	 * 
+	 * @param socketFactory socket factory
+	 */
+	void setSocketFactory(SocketFactory socketFactory);
+	
+	/**
+	 * Get an attribute previously set on this connector.
+	 * @param name
+	 * @return
+	 */
+	Object getAttribute(String name);
+	
+	/**
+	 * Store a value against the connector.
+	 * @param name
+	 * @param value
+	 */
+	void setAttribute(String name, Object value);
 }

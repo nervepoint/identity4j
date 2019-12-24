@@ -1,6 +1,29 @@
 /* HEADER */
 package com.identity4j.connector.jndi.activedirectory;
 
+/*
+ * #%L
+ * Identity4J Active Directory JNDI
+ * %%
+ * Copyright (C) 2013 - 2017 LogonBox
+ * %%
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Lesser Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Lesser Public
+ * License along with this program.  If not, see
+ * <http://www.gnu.org/licenses/lgpl-3.0.html>.
+ * #L%
+ */
+
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -20,9 +43,12 @@ public class ActiveDirectoryConfiguration extends DirectoryConfiguration {
 	private static final String USE_GLOBAL_CATALOG = "directory.isGlobalCatalog";
 	private static final String CHILD_DOMAIN_CONTROLLERS = "directory.childDomainControllers";
 
+	public static final String ACTIVE_DIRECTORY_AUTHENTICATION = "activeDirectory.authenticationType";
 	public static final String ACTIVE_DIRECTORY_INCLUDE_DEFAULT_USERS = "activeDirectory.includeDefaultUsers";
 	public static final String ACTIVE_DIRECTORY_INCLUDE_BUILTN_GROUPS = "activeDirectory.includeBuiltInGroups";
 	public static final String ACTIVE_DIRECTORY_USERNAME_IS_SAMACCOUNTNAME = "activeDirectory.usernameSamAccountName";
+	
+	public static final String ACTIVE_DIRECTORy_ENFORCE_PASSWORD_RULES = "activeDirectory.enforcePasswordRules";
 	
 	public ActiveDirectoryConfiguration(MultiMap configurationParameters) {
 		super(addConfigurationParameters(configurationParameters));
@@ -43,7 +69,11 @@ public class ActiveDirectoryConfiguration extends DirectoryConfiguration {
 		setIncludeBuiltInGroups(configurationParameters);
 		setIncludeDefaultUsers(configurationParameters);
 
+		/**
+		 * LDP - I believe the  attribute directory.identityObjectClass is now obsolete?
+		 */
 		configurationParameters.set("directory.identityObjectClass", "user");
+		
 		configurationParameters.set("directory.identityNameAttribute",
 				"samAccountName");
 		configurationParameters.set("directory.identityGuidAttribute",
@@ -57,6 +87,13 @@ public class ActiveDirectoryConfiguration extends DirectoryConfiguration {
 				"samAccountName");
 		configurationParameters
 				.set("directory.roleGuidAttribute", "objectGUID");
+		
+		
+		/**
+		 * LDP - Missing attribute....
+		 */
+		configurationParameters.set("direcctory.identityCreationObjectClasses", "user");
+		configurationParameters.set("directory.distinguishedNameAttribute", "distinguishedName");
 		return configurationParameters;
 	}
 
@@ -226,18 +263,32 @@ public class ActiveDirectoryConfiguration extends DirectoryConfiguration {
 	}
 
 	private static String getDomain(MultiMap configurationParameters) {
-		String[] domains = configurationParameters
-				.getStringArrayOrDefault(DIRECTORY_DOMAIN);
+		String[] domains = configurationParameters.getStringArrayOrDefault(DIRECTORY_DOMAIN);
 		if (domains.length > 0 && !domains[0].equals("")) {
 			return domains[0];
 		} else {
-			String[] hostNames = configurationParameters
-					.getStringArrayOrFail(DIRECTORY_HOSTNAME);
+			String baseDn = configurationParameters.getString(DIRECTORY_BASE_DN);
+			String[] hostNames = configurationParameters.getStringArrayOrFail(DIRECTORY_HOSTNAME);
 			String hostName = getControllerHostWithoutPort(hostNames[0]);
 			if (IpAddressValidator.isHostName(hostName)) {
 				int indexOf = hostName.indexOf('.');
-				return indexOf == -1 ? "" : hostName.substring(indexOf + 1,
-						hostName.length());
+				return indexOf == -1 ? "" : hostName.substring(indexOf + 1, hostName.length());
+			} else if (!StringUtil.isNullOrEmpty(baseDn)) {
+				/* NOTE: This should probably be used in preference to the hostname, but this
+				 * preserves backwards compatibility
+				 */
+				StringBuilder b = new StringBuilder();
+				String[] p = baseDn.split(",");
+				for (String i : p) {
+					i = i.trim();
+					if(i.startsWith("DC=")) {
+						i = i.substring(3);
+						if(b.length() > 0)
+							b.append('.');
+						b.append(i);
+					}
+				}
+				return b.toString();
 			}
 		}
 		return "";
@@ -249,12 +300,12 @@ public class ActiveDirectoryConfiguration extends DirectoryConfiguration {
 				"objectSID objectGUID");
 	}
 
+	public boolean isPasswordRulesEnforced() {
+		return getConfigurationParameters().getBoolean(ACTIVE_DIRECTORy_ENFORCE_PASSWORD_RULES);
+	}
+	
 	public boolean isUsernameSamAccountName() {
 		return configurationParameters.getBooleanOrDefault(
 				ACTIVE_DIRECTORY_USERNAME_IS_SAMACCOUNTNAME, Boolean.FALSE);
-	}
-
-	public String getOU() {
-		return configurationParameters.getString(DIRECTORY_USER_OU);
 	}
 }

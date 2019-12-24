@@ -1,15 +1,36 @@
 package com.identity4j.connector.zendesk.services.token.handler;
 
-import java.io.BufferedReader;
+/*
+ * #%L
+ * Identity4J Zendesk
+ * %%
+ * Copyright (C) 2013 - 2017 LogonBox
+ * %%
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Lesser Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Lesser Public
+ * License along with this program.  If not, see
+ * <http://www.gnu.org/licenses/lgpl-3.0.html>.
+ * #L%
+ */
+
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.Date;
 
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.zendesk.ZendeskConfiguration;
+import com.identity4j.util.http.Http;
+import com.identity4j.util.http.HttpPair;
+import com.identity4j.util.http.HttpProviderClient;
+import com.identity4j.util.http.HttpResponse;
 import com.identity4j.util.json.JsonMapperService;
 
 
@@ -52,46 +73,27 @@ public class ZendeskAuthorizationHelper {
 	 * @throws IOException
 	 */
 	public Token getOAuthAccessToken(String userName,String password) throws IOException  {
-			
-			OutputStreamWriter wr = null;
-			BufferedReader rd = null;
+		
+		try {
+			HttpProviderClient client = Http.getProvider().getClient(String.format(oAuthUrl, subDomain), null, null, null);
+			client.setConnectTimeout(60000);
+			HttpResponse resp = client.post(null,
+					String.format(passwordAccessJSON, clientId,clientSecret,scope,userName,password),
+					new HttpPair(ZendeskConfiguration.CONTENT_TYPE, ZendeskConfiguration.contentTypeJSON));
 			try {
-				URL url = null;
-				
-				String data = String.format(passwordAccessJSON, clientId,clientSecret,scope,userName,password);
-		            
-				url = new URL(String.format(oAuthUrl, subDomain));
-				
-				HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-				conn.setConnectTimeout(60000);
-				conn.setRequestMethod(ZendeskConfiguration.POST);
-				conn.setRequestProperty(ZendeskConfiguration.CONTENT_TYPE,ZendeskConfiguration.contentTypeJSON);
-				
-				conn.setDoOutput(true);
-				
-				wr = new OutputStreamWriter(conn.getOutputStream());
-				wr.write(data);
-				wr.flush();
-				
-				rd = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-				
-				String line, response = "";
-				
-				while((line=rd.readLine()) != null){
-					response += line;
-				}
-				
-				Token token =  JsonMapperService.getInstance().getObject(Token.class, response);
+				Token token =  JsonMapperService.getInstance().getObject(Token.class, resp.contentString());
 				token.setIssuedAt(new Date());
 				return token;
-				
-			} catch (Exception e) {
-				throw new ConnectorException("Error generating token.", e);
-			} finally{
-				if(wr != null) wr.close();
-				if(rd != null) rd.close();
+			} finally {
+				resp.release();
 			}
-		}
+			
+
+		} catch (Exception e) {
+			throw new ConnectorException("Error generating token.", e);
+		} 
+			
+	}
 
 	public String getClientId() {
 		return clientId;

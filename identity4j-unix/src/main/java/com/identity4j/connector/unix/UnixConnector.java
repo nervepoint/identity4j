@@ -1,5 +1,27 @@
 package com.identity4j.connector.unix;
 
+/*
+ * #%L
+ * Identity4J Unix
+ * %%
+ * Copyright (C) 2013 - 2017 LogonBox
+ * %%
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Lesser Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Lesser Public
+ * License along with this program.  If not, see
+ * <http://www.gnu.org/licenses/lgpl-3.0.html>.
+ * #L%
+ */
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -37,7 +59,11 @@ import com.identity4j.util.StringUtil;
 import com.identity4j.util.Util;
 import com.identity4j.util.crypt.Encoder;
 import com.identity4j.util.crypt.EncoderException;
-import com.identity4j.util.crypt.impl.DefaultEncoderManager;
+import com.identity4j.util.crypt.impl.UnixBlowfishEncoder;
+import com.identity4j.util.crypt.impl.UnixDESEncoder;
+import com.identity4j.util.crypt.impl.UnixMD5Encoder;
+import com.identity4j.util.crypt.impl.UnixSHA256Encoder;
+import com.identity4j.util.crypt.impl.UnixSHA512Encoder;
 import com.identity4j.util.passwords.PasswordCharacteristics;
 import com.identity4j.util.passwords.UNIXPasswordCharacteristics;
 import com.identity4j.util.validator.ValidationException;
@@ -66,14 +92,6 @@ public class UnixConnector extends FlatFileConnector {
 	static final String ATTR_DAYS_BEFORE_PASSWORD_IS_TO_EXPIRE_THAT_USER_IS_WARNED = "daysBeforePasswordIsToExpireThatUserIsWarned";
 	static final String ATTR_DAYS_AFTER_PASSWORD_EXPIRES_THAT_ACCOUNT_IS_DISABLED = "daysAfterPasswordExpiresThatAccountIsDisabled";
 	static final String ATTR_DAYS_SINCE_ACCOUNT_WAS_DISABLED = "daysSinceAccountWasDisabled";
-
-	static {
-		DefaultEncoderManager.getInstance().addEncoder(new UnixMD5Encoder());
-		DefaultEncoderManager.getInstance().addEncoder(new UnixDESEncoder());
-		DefaultEncoderManager.getInstance().addEncoder(new UnixBlowfishEncoder());
-		DefaultEncoderManager.getInstance().addEncoder(new UnixSHA256Encoder());
-		DefaultEncoderManager.getInstance().addEncoder(new UnixSHA512Encoder());
-	}
 
 	private final static Log LOG = LogFactory.getLog(UnixConnector.class);
 

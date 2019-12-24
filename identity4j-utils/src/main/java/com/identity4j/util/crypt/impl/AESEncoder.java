@@ -1,5 +1,27 @@
 package com.identity4j.util.crypt.impl;
 
+/*
+ * #%L
+ * Identity4J Utils
+ * %%
+ * Copyright (C) 2013 - 2017 LogonBox
+ * %%
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Lesser Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Lesser Public
+ * License along with this program.  If not, see
+ * <http://www.gnu.org/licenses/lgpl-3.0.html>.
+ * #L%
+ */
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -58,7 +80,8 @@ public class AESEncoder extends RawAESEncoder {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         DataOutputStream dos = new DataOutputStream(baos);
         dos.writeShort(keyLength);
-        dos.writeShort(iterations);
+        dos.writeShort(0); // Old 2 byte iterations count
+        dos.writeInt(iterations);
         dos.writeShort(salt.length);
         dos.write(salt);
         dos.write(data);
@@ -74,11 +97,16 @@ public class AESEncoder extends RawAESEncoder {
             ByteArrayInputStream bain = new ByteArrayInputStream(toDecode);
             DataInputStream din = new DataInputStream(bain);
             int keyLength = din.readShort();
+            int offset = 6;
             int iterations = din.readShort();
+            if(iterations == 0) {
+                iterations = din.readInt();
+                offset += 4;
+            }
             int saltLen = din.readShort();
             salt = new byte[saltLen];
             din.readFully(salt);
-            byte[] data = new byte[toDecode.length - 6 - saltLen];
+            byte[] data = new byte[toDecode.length - offset - saltLen];
             din.readFully(data);
             SecretKey secret = getSecretKey(new String(passphrase, charset).toCharArray(), salt, keyLength, iterations);
             byte[] iv = new byte[cipher.getBlockSize()];
@@ -97,10 +125,15 @@ public class AESEncoder extends RawAESEncoder {
             DataInputStream din = new DataInputStream(bain);
             int keyLength = din.readShort();
             int iterations = din.readShort();
+            int offset = 6;
+            if(iterations == 0) {
+                iterations = din.readInt();
+                offset += 4;
+            }
             int saltLen = din.readShort();
             byte[] salt = new byte[saltLen];
             din.readFully(salt);
-            byte[] data = new byte[encodedData.length - 6 - saltLen];
+            byte[] data = new byte[encodedData.length - offset - saltLen];
             din.readFully(data);
             byte[] newEncoded = super.encode(unencodedData, salt, passphrase, charset, keyLength, iterations);
             return Arrays.equals(data, newEncoded);

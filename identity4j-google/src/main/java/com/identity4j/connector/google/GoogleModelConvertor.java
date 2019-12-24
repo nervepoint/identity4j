@@ -1,5 +1,27 @@
 package com.identity4j.connector.google;
 
+/*
+ * #%L
+ * Identity4J GOOGLE
+ * %%
+ * Copyright (C) 2013 - 2017 LogonBox
+ * %%
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Lesser Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Lesser Public
+ * License along with this program.  If not, see
+ * <http://www.gnu.org/licenses/lgpl-3.0.html>.
+ * #L%
+ */
+
 import java.util.Arrays;
 import java.util.Date;
 
@@ -41,7 +63,7 @@ class GoogleModelConvertor {
 	public static GoogleIdentity googleUserToGoogleIdentity(User user){
 		GoogleIdentity googleIdentity = new GoogleIdentity(user.getId(),user.getPrimaryEmail());
 		
-		googleIdentity.setFullName(user.getName().getFullName());
+		googleIdentity.setFullName(user.getName() == null ? null : user.getName().getFullName());
 		googleIdentity.setAddress(Media.email, user.getPrimaryEmail());
 		
 		// TODO how?
@@ -94,12 +116,24 @@ class GoogleModelConvertor {
 		
 		user.setId(googleIdentity.getGuid());
 		
-		user.setPrimaryEmail(googleIdentity.getPrincipalName()).
+		String givenName = googleIdentity.getAttribute("givenName");
+        String surname = googleIdentity.getAttribute("surname");
+        String fullName = googleIdentity.getFullName();
+        
+        if(StringUtil.isNullOrEmpty(surname) || StringUtil.isNullOrEmpty(givenName)) {
+            givenName = StringUtil.getBefore(fullName, " ");
+            String sn = StringUtil.getAfter(fullName, " ");
+            if(!sn.equals(fullName))
+                surname = sn;
+        }
+        
+        String principalName = googleIdentity.getPrincipalName();
+        user.setPrimaryEmail(principalName).
 					setName(new UserName().
-					setGivenName(googleIdentity.getAttribute("givenName")).
-					setFamilyName(googleIdentity.getAttribute("surname")).
-					setFullName(googleIdentity.getFullName())).
-					setEmails(Arrays.asList(new UserEmail().setAddress(googleIdentity.getPrincipalName()).
+					setGivenName(givenName).
+					setFamilyName(surname).
+					setFullName(fullName)).
+					setEmails(Arrays.asList(new UserEmail().setAddress(principalName).
 					setPrimary(true)));
 		
 		if(googleIdentity.getAddress(Media.mobile) != null)

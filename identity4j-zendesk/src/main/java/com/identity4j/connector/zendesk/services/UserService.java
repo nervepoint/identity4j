@@ -1,5 +1,27 @@
 package com.identity4j.connector.zendesk.services;
 
+/*
+ * #%L
+ * Identity4J Zendesk
+ * %%
+ * Copyright (C) 2013 - 2017 LogonBox
+ * %%
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Lesser Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Lesser Public
+ * License along with this program.  If not, see
+ * <http://www.gnu.org/licenses/lgpl-3.0.html>.
+ * #L%
+ */
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,8 +43,9 @@ import com.identity4j.connector.zendesk.entity.Users;
 import com.identity4j.connector.zendesk.services.token.handler.Token;
 import com.identity4j.connector.zendesk.services.token.handler.ZendeskAuthorizationHelper;
 import com.identity4j.util.StringUtil;
+import com.identity4j.util.http.HttpPair;
+import com.identity4j.util.http.HttpResponse;
 import com.identity4j.util.http.request.HttpRequestHandler;
-import com.identity4j.util.http.response.HttpResponse;
 import com.identity4j.util.json.JsonMapperService;
 
 /**
@@ -52,25 +75,29 @@ public class UserService extends AbstractRestAPIService{
 	 * @return
 	 */
 	public User getByGuid(Integer guid){
-		HttpResponse response = httpRequestHandler.handleRequestGet(constructURI(String.format("users/%s", guid)), HEADER_HTTP_HOOK);
-		
-		if(response.getHttpStatusCodes().getStatusCode().intValue() == 404){
-			throw new PrincipalNotFoundException(guid + " not found.",null,PrincipalType.user);
+		HttpResponse response = httpRequestHandler.handleRequestGet(constructURI(String.format("users/%s", guid)), getHeaders().toArray(new HttpPair[0]));
+		try {
+			if(response.status().getCode() == 404){
+				throw new PrincipalNotFoundException(guid + " not found.",null,PrincipalType.user);
+			}
+			
+			@SuppressWarnings("unchecked")
+			Map<String, Object> records = (Map<String, Object>) JsonMapperService.getInstance().getJsonProperty(response.contentString(), "user");
+			
+			if(records.isEmpty()){
+				throw new PrincipalNotFoundException(guid + " not found.",null,PrincipalType.user);
+			}
+			
+			User user = JsonMapperService.getInstance().convert(records, User.class);
+			
+			GroupMemberships groupMemberships = groupService.getGroupMembershipsForUser(user.getId());
+			user.setGroupMemberships(groupMemberships);
+			return user;
+		}
+		finally {
+			response.release();
 		}
 		
-		@SuppressWarnings("unchecked")
-		Map<String, Object> records = (Map<String, Object>) JsonMapperService.getInstance().getJsonProperty(response.getData().toString(), "user");
-		
-		if(records.isEmpty()){
-			throw new PrincipalNotFoundException(guid + " not found.",null,PrincipalType.user);
-		}
-		
-		User user = JsonMapperService.getInstance().convert(records, User.class);
-		
-		GroupMemberships groupMemberships = groupService.getGroupMembershipsForUser(user.getId());
-		user.setGroupMemberships(groupMemberships);
-		
-		return user;
 	}
 	
 	
@@ -85,25 +112,29 @@ public class UserService extends AbstractRestAPIService{
 	 * @return
 	 */
 	public User getByName(String email){
-		HttpResponse response = httpRequestHandler.handleRequestGet(constructURI("search","query=type:user email:" + email), HEADER_HTTP_HOOK);
-		
-		if(response.getHttpStatusCodes().getStatusCode().intValue() == 404){
-			throw new PrincipalNotFoundException(email + " not found.",null,PrincipalType.user);
+		HttpResponse response = httpRequestHandler.handleRequestGet(constructURI("search","query=type:user email:" + email), getHeaders().toArray(new HttpPair[0]));
+		try {
+			if(response.status().getCode() == 404){
+				throw new PrincipalNotFoundException(email + " not found.",null,PrincipalType.user);
+			}
+			
+			@SuppressWarnings("unchecked")
+			List<String> records = (List<String>) JsonMapperService.getInstance().getJsonProperty(response.contentString(), "results");
+			
+			if(records == null || records.isEmpty()){
+				throw new PrincipalNotFoundException(email + " not found.",null,PrincipalType.user);
+			}
+			
+			User user = JsonMapperService.getInstance().convert(records.get(0), User.class);
+			
+			GroupMemberships groupMemberships = groupService.getGroupMembershipsForUser(user.getId());
+			user.setGroupMemberships(groupMemberships);
+			return user;
+		}
+		finally {
+			response.release();
 		}
 		
-		@SuppressWarnings("unchecked")
-		List<String> records = (List<String>) JsonMapperService.getInstance().getJsonProperty(response.getData().toString(), "results");
-		
-		if(records == null || records.isEmpty()){
-			throw new PrincipalNotFoundException(email + " not found.",null,PrincipalType.user);
-		}
-		
-		User user = JsonMapperService.getInstance().convert(records.get(0), User.class);
-		
-		GroupMemberships groupMemberships = groupService.getGroupMembershipsForUser(user.getId());
-		user.setGroupMemberships(groupMemberships);
-		
-		return user;
 	}
 	
 	
@@ -115,8 +146,13 @@ public class UserService extends AbstractRestAPIService{
 	 * @return users list
 	 */
 	public Users all(){
-		HttpResponse response = httpRequestHandler.handleRequestGet(constructURI("search","query=type:user"), HEADER_HTTP_HOOK);
-		return JsonMapperService.getInstance().getObject(Users.class, response.getData().toString());
+		HttpResponse response = httpRequestHandler.handleRequestGet(constructURI("search","query=type:user"), getHeaders().toArray(new HttpPair[0]));
+		try {
+			return JsonMapperService.getInstance().getObject(Users.class, response.contentString());
+		}
+		finally {
+			response.release();
+		}
 	}
 
 	/**
@@ -136,18 +172,18 @@ public class UserService extends AbstractRestAPIService{
 		user.setPassword(null);
 		try{
 			String json = String.format("{\"user\":  %s}", JsonMapperService.getInstance().getJson(user));
-			HttpResponse response = httpRequestHandler.handleRequestPost(constructURI("users"),json, HEADER_HTTP_HOOK);
+			HttpResponse response = httpRequestHandler.handleRequestPost(constructURI("users"),json, getHeaders().toArray(new HttpPair[0]));
 	
-			if(response.getHttpStatusCodes().getStatusCode().intValue() != 201){
-				if(response.getData().toString().contains(String.format("Email %s is already being used by another user", user.getEmail()))){
+			if(response.status().getCode() != 201){
+				if(response.contentString().contains(String.format("Email %s is already being used by another user", user.getEmail()))){
 					throw new PrincipalAlreadyExistsException("Principal already exists by email " + user.getEmail());
 				}
 				
-				throw new ConnectorException("Problem in creating principal reason : " + response.getData());
+				throw new ConnectorException("Problem in creating principal reason : " + response.contentString());
 			}
 			
 			@SuppressWarnings("unchecked")
-			Map<String, Object> records = (Map<String, Object>) JsonMapperService.getInstance().getJsonProperty(response.getData().toString(), "user");
+			Map<String, Object> records = (Map<String, Object>) JsonMapperService.getInstance().getJsonProperty(response.contentString(), "user");
 			User userPersisted = JsonMapperService.getInstance().convert(records, User.class);
 			
 			setPassword(userPersisted.getId(), password);
@@ -184,19 +220,19 @@ public class UserService extends AbstractRestAPIService{
 		user.setPassword(null);
 		try{
 			String json = String.format("{\"user\":  %s}", JsonMapperService.getInstance().getJson(user));
-			HttpResponse response = httpRequestHandler.handleRequestPut(constructURI(String.format("users/%s",user.getId())),json, HEADER_HTTP_HOOK);
+			HttpResponse response = httpRequestHandler.handleRequestPut(constructURI(String.format("users/%s",user.getId())),json, getHeaders().toArray(new HttpPair[0]));
 			
-			if(response.getHttpStatusCodes().getStatusCode().intValue() == 404){
+			if(response.status().getCode() == 404){
 				throw new PrincipalNotFoundException(user.getId() + " not found.",null,PrincipalType.user);
 			}
 			
-			if(response.getHttpStatusCodes().getStatusCode().intValue() != 200){
+			if(response.status().getCode() != 200){
 				throw new ConnectorException("Problem in updating user as status code is not 200 is " 
-							+ response.getHttpStatusCodes().getStatusCode().intValue() + " " + response.getData());
+							+ response.status().getCode() + " " + response.contentString());
 			}
 			
 			@SuppressWarnings("unchecked")
-			Map<String, Object> records = (Map<String, Object>) JsonMapperService.getInstance().getJsonProperty(response.getData().toString(), "user");
+			Map<String, Object> records = (Map<String, Object>) JsonMapperService.getInstance().getJsonProperty(response.contentString(), "user");
 			User userUpdated = JsonMapperService.getInstance().convert(records, User.class);
 			userUpdated.setPassword(user.getPassword());
 			
@@ -219,19 +255,19 @@ public class UserService extends AbstractRestAPIService{
 	 * @throws ConnectorException for service related exception.
 	 */
 	public User delete(Integer id) {
-		HttpResponse response = httpRequestHandler.handleRequestDelete(constructURI(String.format("users/%d", id)), HEADER_HTTP_HOOK);
+		HttpResponse response = httpRequestHandler.handleRequestDelete(constructURI(String.format("users/%d", id)), getHeaders().toArray(new HttpPair[0]));
 		
-		if(response.getHttpStatusCodes().getStatusCode().intValue() == 404){
+		if(response.status().getCode() == 404){
 			throw new PrincipalNotFoundException(id + " not found.",null,PrincipalType.user);
 		}
 		
-		if(response.getHttpStatusCodes().getStatusCode().intValue() != 200){
+		if(response.status().getCode() != 200){
 			throw new ConnectorException("Problem in deleting user as status code is not 200 is " 
-						+ response.getHttpStatusCodes().getStatusCode().intValue() + " " + response.getData());
+						+ response.status().getCode() + " " + response.contentString());
 		}
 		
 		@SuppressWarnings("unchecked")
-		Map<String, Object> records = (Map<String, Object>) JsonMapperService.getInstance().getJsonProperty(response.getData().toString(), "user");
+		Map<String, Object> records = (Map<String, Object>) JsonMapperService.getInstance().getJsonProperty(response.contentString(), "user");
 		return JsonMapperService.getInstance().convert(records, User.class);
 		
 	}
@@ -247,19 +283,19 @@ public class UserService extends AbstractRestAPIService{
 	 */
 	public User suspend(Integer id,boolean suspend){
 		String json = String.format("{\"user\": {\"suspended\":%s}}", suspend);
-		HttpResponse response = httpRequestHandler.handleRequestPut(constructURI(String.format("users/%d",id)),json, HEADER_HTTP_HOOK);
+		HttpResponse response = httpRequestHandler.handleRequestPut(constructURI(String.format("users/%d",id)),json, getHeaders().toArray(new HttpPair[0]));
 		
-		if(response.getHttpStatusCodes().getStatusCode().intValue() == 404){
+		if(response.status().getCode() == 404){
 			throw new PrincipalNotFoundException(id + " not found.",null,PrincipalType.user);
 		}
 		
-		if(response.getHttpStatusCodes().getStatusCode().intValue() != 200){
+		if(response.status().getCode() != 200){
 			throw new ConnectorException("Problem in updating user as status code is not 200 is " 
-						+ response.getHttpStatusCodes().getStatusCode().intValue() + " " + response.getData());
+						+ response.status().getCode() + " " + response.contentString());
 		}
 		
 		@SuppressWarnings("unchecked")
-		Map<String, Object> records = (Map<String, Object>) JsonMapperService.getInstance().getJsonProperty(response.getData().toString(), "user");
+		Map<String, Object> records = (Map<String, Object>) JsonMapperService.getInstance().getJsonProperty(response.contentString(), "user");
 		return JsonMapperService.getInstance().convert(records, User.class);
 	}
 	
@@ -326,15 +362,15 @@ public class UserService extends AbstractRestAPIService{
 	 * @throws ConnectorException for service related exception.
 	 */
 	private void passwordChangeHelper(Integer id, String json) {
-		HttpResponse response = httpRequestHandler.handleRequestPost(constructURI(String.format("users/%d/password", id)),json,HEADER_HTTP_HOOK);
+		HttpResponse response = httpRequestHandler.handleRequestPost(constructURI(String.format("users/%d/password", id)),json,getHeaders().toArray(new HttpPair[0]));
 		
-		if(response.getHttpStatusCodes().getStatusCode().intValue() == 404){
+		if(response.status().getCode() == 404){
 			throw new PrincipalNotFoundException(id + " not found.",null,PrincipalType.user);
 		}
 		
-		if(response.getHttpStatusCodes().getStatusCode().intValue() != 200){
+		if(response.status().getCode() != 200){
 			throw new ConnectorException("Problem in setting password for user as status code is not 200 is " 
-						+ response.getHttpStatusCodes().getStatusCode().intValue() + " " + response.getData());
+						+ response.status().getCode() + " " + response.contentString());
 		}
 	}
 	

@@ -1,9 +1,32 @@
 package com.identity4j.connector.office365;
 
+/*
+ * #%L
+ * Identity4J OFFICE 365
+ * %%
+ * Copyright (C) 2013 - 2017 LogonBox
+ * %%
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Lesser Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Lesser Public
+ * License along with this program.  If not, see
+ * <http://www.gnu.org/licenses/lgpl-3.0.html>.
+ * #L%
+ */
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -22,12 +45,17 @@ import com.identity4j.connector.exception.PrincipalAlreadyExistsException;
 import com.identity4j.connector.exception.PrincipalNotFoundException;
 import com.identity4j.connector.office365.entity.Group;
 import com.identity4j.connector.office365.entity.Groups;
+import com.identity4j.connector.office365.entity.Principals;
 import com.identity4j.connector.office365.entity.User;
 import com.identity4j.connector.office365.entity.Users;
 import com.identity4j.connector.office365.services.Directory;
+import com.identity4j.connector.office365.services.GroupService.GroupMember;
+import com.identity4j.connector.office365.services.GroupService.GroupMembers;
 import com.identity4j.connector.principal.Identity;
+import com.identity4j.connector.principal.Principal;
 import com.identity4j.connector.principal.Role;
 import com.identity4j.util.CollectionUtil;
+import com.identity4j.util.StringUtil;
 import com.identity4j.util.passwords.PasswordCharacteristics;
 
 /**
@@ -59,22 +87,22 @@ import com.identity4j.util.passwords.PasswordCharacteristics;
  */
 public class Office365Connector extends AbstractConnector {
 
-	private final class FilterIterator implements Iterator<Identity> {
-		private Identity current;
-		private Iterator<Identity> source;
+	private abstract class PrincipalFilterIterator<P extends Principal> implements Iterator<P> {
+		private P current;
+		private Iterator<P> source;
 
-		FilterIterator(Iterator<Identity> source) {
+		PrincipalFilterIterator(Iterator<P> source) {
 			this.source = source;
 		}
 
 		@Override
-		public boolean hasNext() {
+		public final boolean hasNext() {
 			checkNext();
 			return current != null;
 		}
 
 		@Override
-		public Identity next() {
+		public final P next() {
 			checkNext();
 			if (current == null)
 				throw new NoSuchElementException();
@@ -102,11 +130,25 @@ public class Office365Connector extends AbstractConnector {
 			}
 		}
 
-		private boolean matches(Identity identity) {
+		protected abstract boolean matches(P identity);
+
+		@Override
+		public final void remove() {
+			throw new UnsupportedOperationException();
+		}
+	}
+
+	private final class IdentityFilterIterator extends PrincipalFilterIterator<Identity> {
+
+		IdentityFilterIterator(Iterator<Identity> source) {
+			super(source);
+		}
+
+		protected boolean matches(Identity identity) {
 			boolean ok;
 			Set<String> inc = configuration.getIncludedGroups();
 			Set<String> exc = configuration.getExcludedGroups();
-			
+
 			// Are all of the roles the user has included
 			ok = inc.isEmpty();
 			if (!ok) {
@@ -136,46 +178,61 @@ public class Office365Connector extends AbstractConnector {
 						break;
 				}
 			}
-			
+
 			return ok;
 
 		}
+	}
 
-		@Override
-		public void remove() {
-			throw new UnsupportedOperationException();
+	private final class RoleFilterIterator extends PrincipalFilterIterator<Role> {
+
+		Set<String> inc = configuration.getIncludedGroups();
+		Set<String> exc = configuration.getExcludedGroups();
+
+		RoleFilterIterator(Iterator<Role> source) {
+			super(source);
+		}
+
+		protected boolean matches(Role group) {
+			return (inc.isEmpty() || matchesGroups(group, inc)) && (exc.isEmpty() || !(matchesGroups(group, exc)));
+
 		}
 	}
 
-	private final class IdentityIterator implements Iterator<Identity> {
-		private Users users;
+	private abstract class PrincipalIterator<P extends Principal, R extends com.identity4j.connector.office365.entity.Principal, L extends Principals<R>>
+			implements Iterator<P> {
+		private L list;
 		private String nextLink;
-		private Iterator<User> inner;
-		private User current;
+		private Iterator<R> inner;
+		private R current;
 		private boolean eof;
 
 		@Override
-		public boolean hasNext() {
+		public final boolean hasNext() {
 			checkNext();
 			return current != null;
 		}
 
 		@Override
-		public void remove() {
+		public final void remove() {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public Identity next() {
+		public final P next() {
 			checkNext();
 			if (current == null)
 				throw new NoSuchElementException();
 			try {
-				return Office365ModelConvertor.convertOffice365UserToOfficeIdentity(current);
+				return convert(current);
 			} finally {
 				current = null;
 			}
 		}
+
+		protected abstract P convert(R current);
+
+		protected abstract L all(String nextLink);
 
 		private void checkNext() {
 			if (current != null)
@@ -184,11 +241,11 @@ public class Office365Connector extends AbstractConnector {
 
 			while (!eof && current == null) {
 				while (!eof && current == null) {
-					if (users == null) {
+					if (list == null) {
 						// Get the next batch
-						users = directory.users().all(nextLink);
-						nextLink = users.getNextLink();
-						inner = users.getUsers() == null ? null : users.getUsers().iterator();
+						list = all(nextLink);
+						nextLink = list.getNextLink();
+						inner = list.getPrincipals() == null ? null : list.getPrincipals().iterator();
 					}
 
 					if (inner != null && inner.hasNext()) {
@@ -196,7 +253,7 @@ public class Office365Connector extends AbstractConnector {
 					}
 
 					// Finished inner iterator,
-					users = null;
+					list = null;
 					inner = null;
 
 					if (nextLink == null) {
@@ -208,11 +265,80 @@ public class Office365Connector extends AbstractConnector {
 
 				if (inner != null && inner.hasNext()) {
 					current = inner.next();
-					directory.users().probeGroupsAndRoles(current);
+					postIterate(current);
 				}
 
 			}
 
+		}
+
+		protected abstract void postIterate(R current);
+	}
+
+	private final class IdentityIterator extends PrincipalIterator<Identity, User, Users> {
+
+		private HashMap<String, List<Role>> roleMap;
+
+		@Override
+		protected Identity convert(User current) {
+			
+			Office365Identity identity = Office365ModelConvertor.convertOffice365UserToOfficeIdentity(current);
+			
+			if(configuration.isPreloadGroupsUsers()) {
+				if(roleMap == null) {
+					roleMap = new HashMap<String, List<Role>>();
+					log.info("Pre-loading groups users");
+					for(Iterator<Role> roleIt = allRoles(); roleIt.hasNext(); ) {
+						Role role = roleIt.next();
+						log.info(String.format("Pre-loading groups users for %s (%s)", role.getGuid(), role.getPrincipalName()));
+						GroupMembers members = directory.groups().members(role.getGuid());
+						if(members.getValue() != null) {
+							for(GroupMember member : members.getValue()) {
+								List<Role> r = roleMap.get(member.getId());
+								if(r == null) {
+									r = new ArrayList<Role>();
+									roleMap.put(member.getId(), r);
+								}
+								r.add(role);
+							}
+							
+						}
+					}
+				}
+				List<Role> roles = roleMap.get(current.getObjectId());
+				if(roles != null)
+					identity.setRoles(roles);
+			}
+
+			return identity;
+		}
+
+		@Override
+		protected Users all(String nextLink) {
+			return directory.users().all(nextLink);
+		}
+
+		@Override
+		protected void postIterate(User current) {
+			if (!configuration.isPreloadGroupsUsers())
+				directory.users().probeGroupsAndRoles(current);
+		}
+	}
+
+	private final class RoleIterator extends PrincipalIterator<Role, Group, Groups> {
+
+		@Override
+		protected Role convert(Group current) {
+			return Office365ModelConvertor.groupToRole(current);
+		}
+
+		@Override
+		protected Groups all(String nextLink) {
+			return directory.groups().all(nextLink);
+		}
+
+		@Override
+		protected void postIterate(Group current) {
 		}
 	}
 
@@ -221,13 +347,13 @@ public class Office365Connector extends AbstractConnector {
 	private static final Log log = LogFactory.getLog(Office365Connector.class);
 	private boolean isDeletePrivilege;
 
-	static Set<ConnectorCapability> capabilities = new HashSet<ConnectorCapability>(
-			Arrays.asList(new ConnectorCapability[] { ConnectorCapability.passwordChange,
-					ConnectorCapability.passwordSet, ConnectorCapability.createUser, ConnectorCapability.deleteUser,
-					ConnectorCapability.updateUser, ConnectorCapability.hasFullName, ConnectorCapability.hasEmail,
-					ConnectorCapability.roles, ConnectorCapability.createRole, ConnectorCapability.deleteRole,
-					ConnectorCapability.updateRole, ConnectorCapability.webAuthentication,
-					ConnectorCapability.identities, ConnectorCapability.accountDisable }));
+	static Set<ConnectorCapability> capabilities = new HashSet<ConnectorCapability>(Arrays
+			.asList(new ConnectorCapability[] { ConnectorCapability.passwordChange, ConnectorCapability.passwordSet,
+					ConnectorCapability.createUser, ConnectorCapability.deleteUser, ConnectorCapability.updateUser,
+					ConnectorCapability.hasFullName, ConnectorCapability.hasEmail, ConnectorCapability.roles,
+					ConnectorCapability.createRole, ConnectorCapability.deleteRole, ConnectorCapability.updateRole,
+					ConnectorCapability.webAuthentication, ConnectorCapability.identities,
+					ConnectorCapability.accountDisable, ConnectorCapability.identityAttributes }));
 
 	@Override
 	public Set<ConnectorCapability> getCapabilities() {
@@ -235,8 +361,8 @@ public class Office365Connector extends AbstractConnector {
 	}
 
 	@Override
-	public WebAuthenticationAPI<?> startAuthentication() throws ConnectorException {
-		return new Office365OAuth();
+	public WebAuthenticationAPI startAuthentication() throws ConnectorException {
+		return new Office365OAuth(configuration);
 	}
 
 	/**
@@ -263,48 +389,35 @@ public class Office365Connector extends AbstractConnector {
 	/**
 	 * <p>
 	 * Retrieves all the roles (groups) present in the active directory. <br/>
-	 * <b>Note:</b> Role in active directory is referred as Groups and
-	 * identified by only guid, not group name. <br/>
-	 * <b>Refer groups by guid as all operations on groups are performed using
-	 * only guid.</b> <br/>
+	 * <b>Note:</b> Role in active directory is referred as Groups and identified by
+	 * only guid, not group name. <br/>
+	 * <b>Refer groups by guid as all operations on groups are performed using only
+	 * guid.</b> <br/>
 	 * Please refer
-	 * <a href="http://msdn.microsoft.com/en-us/library/dn151610.aspx">Groups
-	 * </a>.
+	 * <a href="http://msdn.microsoft.com/en-us/library/dn151610.aspx">Groups </a>.
 	 * </p>
 	 * 
-	 * @throws ConnectorException
-	 *             for api, connection related errors.
+	 * @throws ConnectorException for api, connection related errors.
 	 */
 	@Override
 	public Iterator<Role> allRoles() throws ConnectorException {
-		Groups groups = directory.groups().all();
-		List<Role> roles = new ArrayList<Role>();
-		Set<String> inc = configuration.getIncludedGroups();
-		Set<String> exc = configuration.getExcludedGroups();
-		for (Group group : groups.getGroups()) {
-			if ((inc.isEmpty() || matchesGroups(group, inc)) && (exc.isEmpty() || !(matchesGroups(group, exc))))
-				roles.add(Office365ModelConvertor.groupToRole(group));
-		}
-		return roles.iterator();
+		return isGroupFilterInUse() ? new RoleFilterIterator(new RoleIterator()) : new RoleIterator();
 	}
 
 	/**
 	 * <p>
 	 * Creates a role in the active directory. <br/>
-	 * <b>Note:</b> Role in active directory is referred as Groups and
-	 * identified by only guid, not group name. <br/>
-	 * <b>Refer groups by guid as all operations on groups are performed using
-	 * only guid.</b> <br/>
+	 * <b>Note:</b> Role in active directory is referred as Groups and identified by
+	 * only guid, not group name. <br/>
+	 * <b>Refer groups by guid as all operations on groups are performed using only
+	 * guid.</b> <br/>
 	 * Please refer
-	 * <a href="http://msdn.microsoft.com/en-us/library/dn151610.aspx">Groups
-	 * </a>.
+	 * <a href="http://msdn.microsoft.com/en-us/library/dn151610.aspx">Groups </a>.
 	 * </p>
 	 * 
-	 * @throws PrincipalAlreadyExistsException
-	 *             if role with same email id/principal already present in
-	 *             active directory.
-	 * @throws ConnectorException
-	 *             for api, connection related errors.
+	 * @throws PrincipalAlreadyExistsException if role with same email id/principal
+	 *                                         already present in active directory.
+	 * @throws ConnectorException              for api, connection related errors.
 	 */
 	@Override
 	public Role createRole(Role role) throws ConnectorException {
@@ -321,21 +434,18 @@ public class Office365Connector extends AbstractConnector {
 	/**
 	 * <p>
 	 * Updates a role in the active directory with specified changes. <br/>
-	 * <b>Note:</b> Role in active directory is referred as Groups and
-	 * identified by only guid, not group name. <br/>
-	 * <b>Refer groups by guid as all operations on groups are performed using
-	 * only guid.</b> <br/>
+	 * <b>Note:</b> Role in active directory is referred as Groups and identified by
+	 * only guid, not group name. <br/>
+	 * <b>Refer groups by guid as all operations on groups are performed using only
+	 * guid.</b> <br/>
 	 * Please refer
-	 * <a href="http://msdn.microsoft.com/en-us/library/dn151610.aspx">Groups
-	 * </a>.
+	 * <a href="http://msdn.microsoft.com/en-us/library/dn151610.aspx">Groups </a>.
 	 * </p>
 	 * 
-	 * @throws PrincipalNotFoundException
-	 *             if role specified by email id/principal name not present in
-	 *             active directory.
-	 * @throws ConnectorException
-	 *             for api, connection related errors or delete privilege not
-	 *             given to service id.
+	 * @throws PrincipalNotFoundException if role specified by email id/principal
+	 *                                    name not present in active directory.
+	 * @throws ConnectorException         for api, connection related errors or
+	 *                                    delete privilege not given to service id.
 	 */
 	@Override
 	public void updateRole(Role role) throws ConnectorException {
@@ -349,54 +459,61 @@ public class Office365Connector extends AbstractConnector {
 
 	/**
 	 * <p>
-	 * Deletes a role in the active directory with specified principal name.
-	 * <br/>
-	 * <b>Note:</b> Role in active directory is referred as Groups and
-	 * identified by only guid, not group name. <br/>
-	 * <b>Refer groups by guid as all operations on groups are performed using
-	 * only guid.</b> <br/>
+	 * Deletes a role in the active directory with specified principal name. <br/>
+	 * 
 	 * Please refer
-	 * <a href="http://msdn.microsoft.com/en-us/library/dn151610.aspx">Groups
-	 * </a>.
+	 * <a href="http://msdn.microsoft.com/en-us/library/dn151610.aspx">Groups </a>.
 	 * </p>
 	 * 
-	 * @throws PrincipalNotFoundException
-	 *             if role specified by email id/principal name not present in
-	 *             active directory.
-	 * @throws ConnectorException
-	 *             for api, connection related errors or delete privilege not
-	 *             given to service id.
+	 * @throws PrincipalNotFoundException if role specified by email id/principal
+	 *                                    name not present in active directory.
+	 * @throws ConnectorException         for api, connection related errors or
+	 *                                    delete privilege not given to service id.
 	 */
 	@Override
-	public void deleteRole(String guid) throws ConnectorException {
+	public void deleteRole(String principalName) throws ConnectorException {
 		if (isReadOnly()) {
 			throw new ConnectorException(
 					"This directory is read only because the service account does not have sufficient privileges to perform all required operations");
 		}
-		Role role = getRoleByName(guid);
+		Role role = getRoleByName(principalName);
 		directory.groups().delete(role.getGuid());
 	}
 
 	/**
 	 * <p>
 	 * Finds a role in the active directory with specified principal name. <br/>
-	 * <b>Note:</b> Role in active directory is referred as Groups and
-	 * identified by only guid, not group name. <br/>
-	 * <b>Refer groups by guid as all operations on groups are performed using
-	 * only guid.</b> <br/>
+	 * <br/>
 	 * Please refer
-	 * <a href="http://msdn.microsoft.com/en-us/library/dn151610.aspx">Groups
-	 * </a>.
+	 * <a href="http://msdn.microsoft.com/en-us/library/dn151610.aspx">Groups </a>.
 	 * </p>
 	 * 
-	 * @throws PrincipalNotFoundException
-	 *             if role specified by email id/principal name not present in
-	 *             active directory.
-	 * @throws ConnectorException
-	 *             for api, connection related errors.
+	 * @throws PrincipalNotFoundException if role specified by email id/principal
+	 *                                    name not present in active directory.
+	 * @throws ConnectorException         for api, connection related errors.
 	 */
 	@Override
-	public Role getRoleByName(String guid) throws PrincipalNotFoundException, ConnectorException {
+	public Role getRoleByName(String principalName) throws PrincipalNotFoundException, ConnectorException {
+		Group group = directory.groups().getByName(principalName);
+		return Office365ModelConvertor.groupToRole(group);
+	}
+
+	/**
+	 * <p>
+	 * Finds a role in the active directory with specified GUID.<br/>
+	 * <b>Note:</b> Role in active directory is referred as Groups and identified by
+	 * only guid, not group name. <br/>
+	 * <b>Refer groups by guid as all operations on groups are performed using only
+	 * guid.</b> <br/>
+	 * Please refer
+	 * <a href="http://msdn.microsoft.com/en-us/library/dn151610.aspx">Groups </a>.
+	 * </p>
+	 * 
+	 * @throws PrincipalNotFoundException if role specified by GUID not present in
+	 *                                    active directory.
+	 * @throws ConnectorException         for api, connection related errors.
+	 */
+	public Role getRoleByGuid(String guid) throws PrincipalNotFoundException, ConnectorException {
 		Group group = directory.groups().get(guid);
 		return Office365ModelConvertor.groupToRole(group);
 	}
@@ -415,20 +532,18 @@ public class Office365Connector extends AbstractConnector {
 	 * 
 	 * <p>
 	 * Please refer
-	 * <a href="http://msdn.microsoft.com/en-us/library/dn151610.aspx">Groups
-	 * </a> and
-	 * <a href="http://msdn.microsoft.com/en-us/library/dn130116.aspx">User</a>
+	 * <a href="http://msdn.microsoft.com/en-us/library/dn151610.aspx">Groups </a>
+	 * and <a href="http://msdn.microsoft.com/en-us/library/dn130116.aspx">User</a>
 	 * </p>
 	 * 
 	 * 
-	 * @throws ConnectorException
-	 *             for api, connection related errors.
+	 * @throws ConnectorException for api, connection related errors.
 	 * 
 	 * @return iterator with all identities.
 	 */
 	@Override
 	public Iterator<Identity> allIdentities() throws ConnectorException {
-		return isGroupFilterInUse() ? new FilterIterator(new IdentityIterator()) : new IdentityIterator();
+		return isGroupFilterInUse() ? new IdentityFilterIterator(new IdentityIterator()) : new IdentityIterator();
 	}
 
 	/**
@@ -445,16 +560,14 @@ public class Office365Connector extends AbstractConnector {
 	 * 
 	 * <p>
 	 * Please refer
-	 * <a href="http://msdn.microsoft.com/en-us/library/dn151610.aspx">Groups
-	 * </a> and
-	 * <a href="http://msdn.microsoft.com/en-us/library/dn130116.aspx">User</a>
+	 * <a href="http://msdn.microsoft.com/en-us/library/dn151610.aspx">Groups </a>
+	 * and <a href="http://msdn.microsoft.com/en-us/library/dn130116.aspx">User</a>
 	 * </p>
 	 * 
-	 * @throws PrincipalNotFoundException
-	 *             if identity specified by email id/principal name not present
-	 *             in active directory.
-	 * @throws ConnectorException
-	 *             for api, connection related errors.
+	 * @throws PrincipalNotFoundException if identity specified by email
+	 *                                    id/principal name not present in active
+	 *                                    directory.
+	 * @throws ConnectorException         for api, connection related errors.
 	 * 
 	 * @return Identity instance found by the specified email id/principal name.
 	 */
@@ -470,17 +583,15 @@ public class Office365Connector extends AbstractConnector {
 	 * 
 	 * <p>
 	 * Please refer
-	 * <a href="http://msdn.microsoft.com/en-us/library/dn151610.aspx">Groups
-	 * </a> and
-	 * <a href="http://msdn.microsoft.com/en-us/library/dn130116.aspx">User</a>
+	 * <a href="http://msdn.microsoft.com/en-us/library/dn151610.aspx">Groups </a>
+	 * and <a href="http://msdn.microsoft.com/en-us/library/dn130116.aspx">User</a>
 	 * </p>
 	 * 
-	 * @throws PrincipalNotFoundException
-	 *             if identity specified by email id/principal name not present
-	 *             in active directory.
-	 * @throws ConnectorException
-	 *             for api, connection related errors or delete privilege not
-	 *             given to service id.
+	 * @throws PrincipalNotFoundException if identity specified by email
+	 *                                    id/principal name not present in active
+	 *                                    directory.
+	 * @throws ConnectorException         for api, connection related errors or
+	 *                                    delete privilege not given to service id.
 	 */
 	@Override
 	public void deleteIdentity(String principalName) throws ConnectorException {
@@ -493,16 +604,15 @@ public class Office365Connector extends AbstractConnector {
 
 	/**
 	 * <p>
-	 * Creates identity with specified roles and password provided. Role in
-	 * Graph api is known as Group and is identified by unique guid. Role guid
-	 * is auto generated number from Graph API.
+	 * Creates identity with specified roles and password provided. Role in Graph
+	 * api is known as Group and is identified by unique guid. Role guid is auto
+	 * generated number from Graph API.
 	 * </p>
 	 * 
 	 * <p>
 	 * Please refer
-	 * <a href="http://msdn.microsoft.com/en-us/library/dn151610.aspx">Groups
-	 * </a> and
-	 * <a href="http://msdn.microsoft.com/en-us/library/dn130116.aspx">User</a>
+	 * <a href="http://msdn.microsoft.com/en-us/library/dn151610.aspx">Groups </a>
+	 * and <a href="http://msdn.microsoft.com/en-us/library/dn130116.aspx">User</a>
 	 * </p>
 	 * 
 	 * <p>
@@ -514,17 +624,18 @@ public class Office365Connector extends AbstractConnector {
 	 * </pre>
 	 * </p>
 	 * 
-	 * @throws PrincipalAlreadyExistsException
-	 *             if identity with same email id/principal already present in
-	 *             active directory.
-	 * @throws ConnectorException
-	 *             for api, connection related errors.
+	 * @throws PrincipalAlreadyExistsException if identity with same email
+	 *                                         id/principal already present in
+	 *                                         active directory.
+	 * @throws ConnectorException              for api, connection related errors.
 	 * 
 	 * @return Identity instance with values specified for creation.
 	 */
 	@Override
 	public Identity createIdentity(Identity identity, char[] password) throws ConnectorException {
 		User user = Office365ModelConvertor.covertOfficeIdentityToOffice365User(identity);
+		if (StringUtil.isNullOrEmpty(user.getDisplayName()))
+			user.setDisplayName(user.getUserPrincipalName());
 		List<Group> groups = user.getMemberOf();
 		user.setMemberOf(null);// as groups will be saved independent from User
 		user.getPasswordProfile().setForceChangePasswordNextLogin(false);
@@ -540,8 +651,8 @@ public class Office365Connector extends AbstractConnector {
 
 	/**
 	 * <p>
-	 * Updates an identity in active directory. To update extra attributes
-	 * supported by active directory, use attributes map.
+	 * Updates an identity in active directory. To update extra attributes supported
+	 * by active directory, use attributes map.
 	 * 
 	 * <pre>
 	 * e.g.identity.setAttribute("department", "engineering")
@@ -550,17 +661,15 @@ public class Office365Connector extends AbstractConnector {
 	 * 
 	 * <p>
 	 * Please refer
-	 * <a href="http://msdn.microsoft.com/en-us/library/dn151610.aspx">Groups
-	 * </a> and
-	 * <a href="http://msdn.microsoft.com/en-us/library/dn130116.aspx">User</a>
+	 * <a href="http://msdn.microsoft.com/en-us/library/dn151610.aspx">Groups </a>
+	 * and <a href="http://msdn.microsoft.com/en-us/library/dn130116.aspx">User</a>
 	 * </p>
 	 * 
-	 * @throws PrincipalNotFoundException
-	 *             if identity specified by email id/principal name not present
-	 *             in active directory.
-	 * @throws ConnectorException
-	 *             for api, connection related errors or delete privilege not
-	 *             given to service id.
+	 * @throws PrincipalNotFoundException if identity specified by email
+	 *                                    id/principal name not present in active
+	 *                                    directory.
+	 * @throws ConnectorException         for api, connection related errors or
+	 *                                    delete privilege not given to service id.
 	 */
 	@Override
 	public void updateIdentity(Identity identity) throws ConnectorException {
@@ -577,11 +686,10 @@ public class Office365Connector extends AbstractConnector {
 	/**
 	 * Disables/Suspends an account in active directory.
 	 * 
-	 * @throws PrincipalNotFoundException
-	 *             if identity specified by email id/principal name not present
-	 *             in active directory.
-	 * @throws ConnectorException
-	 *             for api, connection related errors.
+	 * @throws PrincipalNotFoundException if identity specified by email
+	 *                                    id/principal name not present in active
+	 *                                    directory.
+	 * @throws ConnectorException         for api, connection related errors.
 	 */
 	@Override
 	public void disableIdentity(Identity identity) {
@@ -592,11 +700,10 @@ public class Office365Connector extends AbstractConnector {
 	/**
 	 * Enables an account in active directory.
 	 * 
-	 * @throws PrincipalNotFoundException
-	 *             if identity specified by email id/principal name not present
-	 *             in active directory.
-	 * @throws ConnectorException
-	 *             for api, connection related errors.
+	 * @throws PrincipalNotFoundException if identity specified by email
+	 *                                    id/principal name not present in active
+	 *                                    directory.
+	 * @throws ConnectorException         for api, connection related errors.
 	 */
 	@Override
 	public void enableIdentity(Identity identity) {
@@ -611,12 +718,11 @@ public class Office365Connector extends AbstractConnector {
 	}
 
 	/**
-	 * Changes the password of the identity specified by email id/principal.
-	 * Also provides provision to force change password in next logon attempt.
+	 * Changes the password of the identity specified by email id/principal. Also
+	 * provides provision to force change password in next logon attempt.
 	 * 
 	 * 
-	 * @throws ConnectorException
-	 *             for api, connection related errors.
+	 * @throws ConnectorException for api, connection related errors.
 	 */
 	@Override
 	protected void setPassword(Identity identity, char[] password, boolean forcePasswordChangeAtLogon,
@@ -632,14 +738,12 @@ public class Office365Connector extends AbstractConnector {
 	 * Helper utility method to enable/disable suspension for an identity
 	 * 
 	 * @param identity
-	 * @param suspension
-	 *            true to suspend an account, false to enable it
+	 * @param suspension true to suspend an account, false to enable it
 	 * 
-	 * @throws PrincipalNotFoundException
-	 *             if identity specified by email id/principal name not present
-	 *             in active directory.
-	 * @throws ConnectorException
-	 *             for api, connection related errors.
+	 * @throws PrincipalNotFoundException if identity specified by email
+	 *                                    id/principal name not present in active
+	 *                                    directory.
+	 * @throws ConnectorException         for api, connection related errors.
 	 */
 	private void identitySuspensionHelper(Identity identity, boolean suspension) {
 		User user = new User();
@@ -651,12 +755,11 @@ public class Office365Connector extends AbstractConnector {
 	/**
 	 * <p>
 	 * Creates directory instance for remote method invocations using Active
-	 * Directory Graph REST API. The directory instance is created by providing
-	 * and enabling
+	 * Directory Graph REST API. The directory instance is created by providing and
+	 * enabling
 	 * <ul>
-	 * <li>Giving read,write and delete access to service id, it should have
-	 * role similar to "User Account Administrator" in the active directory.
-	 * </li>
+	 * <li>Giving read,write and delete access to service id, it should have role
+	 * similar to "User Account Administrator" in the active directory.</li>
 	 * <li>Secret key of the service id.</li>
 	 * <li>Enabling API Access</li>
 	 * </ul>
@@ -682,14 +785,13 @@ public class Office365Connector extends AbstractConnector {
 
 	/**
 	 * Helper utility method to adjust addition and removal of roles from an
-	 * identity. It compares the roles currently assigned and new set of roles
-	 * sent and finds which are to be added and which are to be removed and
-	 * accordingly performs removal or addition action.
+	 * identity. It compares the roles currently assigned and new set of roles sent
+	 * and finds which are to be added and which are to be removed and accordingly
+	 * performs removal or addition action.
 	 * 
 	 * @param identity
 	 * 
-	 * @throws ConnectorException
-	 *             for api, connection related errors.
+	 * @throws ConnectorException for api, connection related errors.
 	 */
 	private void adjustAdditionRemovalOfRoleOnIdentityUpdate(Identity identity) {
 		try {
@@ -718,18 +820,16 @@ public class Office365Connector extends AbstractConnector {
 
 	/**
 	 * Removes a Role(Group) from an identity. <br/>
-	 * <b>Refer groups by guid as all operations on groups are performed using
-	 * only guid.</b> <br/>
+	 * <b>Refer groups by guid as all operations on groups are performed using only
+	 * guid.</b> <br/>
 	 * Please refer
-	 * <a href="http://msdn.microsoft.com/en-us/library/dn151610.aspx">Groups
-	 * </a>.
+	 * <a href="http://msdn.microsoft.com/en-us/library/dn151610.aspx">Groups </a>.
 	 * </p>
 	 * 
 	 * @param roleName
 	 * @param principal
 	 * 
-	 * @throws ConnectorException
-	 *             for api, connection related errors.
+	 * @throws ConnectorException for api, connection related errors.
 	 */
 	private void removeRoleFromUser(String guidRole, String guidUser) {
 		directory.groups().removeUserFromGroup(guidUser, guidRole);
@@ -738,26 +838,23 @@ public class Office365Connector extends AbstractConnector {
 
 	/**
 	 * Adds a Role(Group) to an identity. <br/>
-	 * <b>Refer groups by guid as all operations on groups are performed using
-	 * only guid.</b> <br/>
+	 * <b>Refer groups by guid as all operations on groups are performed using only
+	 * guid.</b> <br/>
 	 * Please refer
-	 * <a href="http://msdn.microsoft.com/en-us/library/dn151610.aspx">Groups
-	 * </a>.
+	 * <a href="http://msdn.microsoft.com/en-us/library/dn151610.aspx">Groups </a>.
 	 * </p>
 	 * 
 	 * @param roleName
 	 * @param principal
 	 * 
-	 * @throws ConnectorException
-	 *             for api, connection related errors.
+	 * @throws ConnectorException for api, connection related errors.
 	 */
 	private void addRoleToUser(String guidRole, String guidUser) {
 		directory.groups().addUserToGroup(guidUser, guidRole);
 	}
 
 	/**
-	 * Helper utility method which checks the presence of a Role in list of
-	 * Roles
+	 * Helper utility method which checks the presence of a Role in list of Roles
 	 * 
 	 * @param roleName
 	 * @return true if role is present else false
@@ -778,9 +875,9 @@ public class Office365Connector extends AbstractConnector {
 		return !configuration.getIncludedGroups().isEmpty() || !configuration.getExcludedGroups().isEmpty();
 	}
 
-	private boolean matchesGroups(Group group, Set<String> groups) {
+	private boolean matchesGroups(Role group, Set<String> groups) {
 		for (String g : groups) {
-			if (matchesGroup(group.getObjectId(), g)) {
+			if (matchesGroup(group.getGuid(), g)) {
 				return true;
 			}
 		}

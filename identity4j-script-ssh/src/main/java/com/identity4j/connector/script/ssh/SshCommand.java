@@ -1,12 +1,37 @@
 package com.identity4j.connector.script.ssh;
 
+/*
+ * #%L
+ * Identity4J Scripted SSH Connector
+ * %%
+ * Copyright (C) 2013 - 2017 LogonBox
+ * %%
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Lesser Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Lesser Public
+ * License along with this program.  If not, see
+ * <http://www.gnu.org/licenses/lgpl-3.0.html>.
+ * #L%
+ */
+
 import java.io.IOException;
 
 import com.identity4j.util.expect.ExpectTimeoutException;
 
 public interface SshCommand {
+	boolean expect(String pattern, boolean consumeRemainingLine, long timeout) throws ExpectTimeoutException, IOException;
 
 	int drainAndWaitForExit() throws IOException;
+
+    int closeAndExit() throws IOException;
 
 	void ctrlD() throws IOException;
 
@@ -17,5 +42,7 @@ public interface SshCommand {
 	int read() throws IOException, ExpectTimeoutException;
 	
 	int read(long timeout) throws IOException, ExpectTimeoutException;
+
+	void typeAndReturn(String text) throws IOException;
 
 }
