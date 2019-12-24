@@ -4,3 +4,6 @@
 /identity4j-ldap-directory-spring/
 /.metadata/
 /target/
+**/.settings
+**/.project
+**/.classpath
