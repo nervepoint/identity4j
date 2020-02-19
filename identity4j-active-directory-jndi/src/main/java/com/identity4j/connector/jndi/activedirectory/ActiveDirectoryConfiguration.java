@@ -30,13 +30,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import com.identity4j.connector.jndi.directory.DirectoryConfiguration;
+import com.identity4j.connector.Connector;
+import com.identity4j.connector.jndi.directory.AbstractDirectoryConfiguration;
 import com.identity4j.util.MultiMap;
 import com.identity4j.util.MultiMapException;
 import com.identity4j.util.StringUtil;
 import com.identity4j.util.validator.IpAddressValidator;
 
-public class ActiveDirectoryConfiguration extends DirectoryConfiguration {
+public class ActiveDirectoryConfiguration extends AbstractDirectoryConfiguration {
 
 	private static final String CN_USERS = "CN=Users";
 	private static final String CN_BUILTIN = "CN=Builtin";
@@ -307,5 +308,10 @@ public class ActiveDirectoryConfiguration extends DirectoryConfiguration {
 	public boolean isUsernameSamAccountName() {
 		return configurationParameters.getBooleanOrDefault(
 				ACTIVE_DIRECTORY_USERNAME_IS_SAMACCOUNTNAME, Boolean.FALSE);
+	}
+
+	@Override
+	public Class<? extends Connector<?>> getConnectorClass() {
+		return ActiveDirectoryConnector.class;
 	}
 }

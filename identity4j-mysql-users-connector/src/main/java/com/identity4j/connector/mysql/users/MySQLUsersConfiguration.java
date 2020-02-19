@@ -2,6 +2,8 @@ package com.identity4j.connector.mysql.users;
 
 import java.sql.SQLException;
 
+import com.identity4j.connector.Connector;
+
 /*
  * #%L
  * Identity4J MySQL Users Connector
@@ -226,6 +228,11 @@ public class MySQLUsersConfiguration extends JDBCConfiguration {
 			return user;
 		else
 			return user + AMPERSAND + host;
+	}
+
+	@Override
+	public Class<? extends Connector<?>> getConnectorClass() {
+		return MySQLUsersConnector.class;
 	}
 
 	private String normalizeHost(String host) {

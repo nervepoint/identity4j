@@ -30,7 +30,7 @@ import javax.naming.Name;
 
 import org.junit.Test;
 
-import com.identity4j.connector.jndi.activedirectory.ActiveDirectoryConfiguration;
+import com.identity4j.connector.jndi.directory.AbstractDirectoryConfiguration;
 import com.identity4j.connector.jndi.directory.DirectoryConfiguration;
 import com.identity4j.util.MultiMap;
 
@@ -47,7 +47,7 @@ public class ActiveDirectoryConfigurationTest {
     @Test
     public void emptyBaseDn() {
         configurationParameters.set(DirectoryConfiguration.DIRECTORY_BASE_DN, "");
-        DirectoryConfiguration configuration = new ActiveDirectoryConfiguration(configurationParameters);
+        AbstractDirectoryConfiguration configuration = new ActiveDirectoryConfiguration(configurationParameters);
         Name baseDn = configuration.getBaseDn();
         assertEquals(3, baseDn.size());
         assertEquals("DC=root", baseDn.get(2));
@@ -59,7 +59,7 @@ public class ActiveDirectoryConfigurationTest {
     public void commonNameWithoutBaseDn() {
         final String username = "cn=admin";
         configurationParameters.set(DirectoryConfiguration.DIRECTORY_SERVICE_ACCOUNT_USERNAME, username);
-        DirectoryConfiguration configuration = new ActiveDirectoryConfiguration(configurationParameters);
+        AbstractDirectoryConfiguration configuration = new ActiveDirectoryConfiguration(configurationParameters);
         String baseDn = configurationParameters.getString(DirectoryConfiguration.DIRECTORY_BASE_DN);
         assertEquals(username + "," + baseDn, configuration.getServiceAccountDn());
     }
@@ -68,7 +68,7 @@ public class ActiveDirectoryConfigurationTest {
     public void commonNameWithoutBaseDnButComma() {
         final String username = "cn=admin,";
         configurationParameters.set(DirectoryConfiguration.DIRECTORY_SERVICE_ACCOUNT_USERNAME, username);
-        DirectoryConfiguration configuration = new ActiveDirectoryConfiguration(configurationParameters);
+        AbstractDirectoryConfiguration configuration = new ActiveDirectoryConfiguration(configurationParameters);
         String baseDn = configurationParameters.getString(DirectoryConfiguration.DIRECTORY_BASE_DN);
         assertEquals(username + baseDn, configuration.getServiceAccountDn());
     }
@@ -78,7 +78,7 @@ public class ActiveDirectoryConfigurationTest {
         String baseDn = configurationParameters.getString(DirectoryConfiguration.DIRECTORY_BASE_DN);
         final String username = "cn=admin" + "," + baseDn;
         configurationParameters.set(DirectoryConfiguration.DIRECTORY_SERVICE_ACCOUNT_USERNAME, username);
-        DirectoryConfiguration configuration = new ActiveDirectoryConfiguration(configurationParameters);
+        AbstractDirectoryConfiguration configuration = new ActiveDirectoryConfiguration(configurationParameters);
         assertEquals(username, configuration.getServiceAccountDn());
     }
 
@@ -86,7 +86,7 @@ public class ActiveDirectoryConfigurationTest {
     public void username() {
         final String username = "admin";
         configurationParameters.set(DirectoryConfiguration.DIRECTORY_SERVICE_ACCOUNT_USERNAME, username);
-        DirectoryConfiguration configuration = new ActiveDirectoryConfiguration(configurationParameters);
+        AbstractDirectoryConfiguration configuration = new ActiveDirectoryConfiguration(configurationParameters);
         assertEquals(username + "@root.nervepoint.com", configuration.getServiceAccountDn());
     }
 
@@ -94,7 +94,7 @@ public class ActiveDirectoryConfigurationTest {
     public void qualifiedUserPrincipalName() {
         final String username = "admin@root.nervepoint.com";
         configurationParameters.set(DirectoryConfiguration.DIRECTORY_SERVICE_ACCOUNT_USERNAME, username);
-        DirectoryConfiguration configuration = new ActiveDirectoryConfiguration(configurationParameters);
+        AbstractDirectoryConfiguration configuration = new ActiveDirectoryConfiguration(configurationParameters);
         assertEquals(username, configuration.getServiceAccountDn());
     }
 }

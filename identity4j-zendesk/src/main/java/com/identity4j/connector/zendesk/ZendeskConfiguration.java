@@ -23,6 +23,7 @@ package com.identity4j.connector.zendesk;
  */
 
 import com.identity4j.connector.AbstractConnectorConfiguration;
+import com.identity4j.connector.Connector;
 import com.identity4j.util.MultiMap;
 
 public class ZendeskConfiguration extends AbstractConnectorConfiguration{
@@ -191,5 +192,9 @@ public class ZendeskConfiguration extends AbstractConnectorConfiguration{
 	public String getRestApiVersion(){
 		return configurationParameters.getString(ZENDESK_REST_API_VERSION);
 	}
-	
+
+	@Override
+	public Class<? extends Connector<?>> getConnectorClass() {
+		return ZendeskConnector.class;
+	}
 }

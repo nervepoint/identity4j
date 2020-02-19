@@ -31,7 +31,6 @@ import org.apache.commons.logging.LogFactory;
 
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.office365.Office365Configuration;
-import com.identity4j.connector.office365.services.AbstractRestAPIService;
 import com.identity4j.util.http.Http;
 import com.identity4j.util.http.HttpPair;
 import com.identity4j.util.http.HttpProviderClient;

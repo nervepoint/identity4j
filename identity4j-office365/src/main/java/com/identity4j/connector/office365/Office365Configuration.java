@@ -27,6 +27,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import com.identity4j.connector.AbstractConnectorConfiguration;
+import com.identity4j.connector.Connector;
 import com.identity4j.util.MultiMap;
 
 /**
@@ -255,5 +256,10 @@ public class Office365Configuration extends AbstractConnectorConfiguration{
 	 */
 	public void setExcludedGroups(Set<String> excludes) {
 		configurationParameters.put(OFFICE365_EXCLUDED_GROUPS, excludes.toArray(new String[0]));
+	}
+
+	@Override
+	public Class<? extends Connector<?>> getConnectorClass() {
+		return Office365Connector.class;
 	}
 }

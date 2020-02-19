@@ -30,10 +30,9 @@ import org.apache.commons.vfs2.FileSystemManager;
 import org.apache.commons.vfs2.VFS;
 
 import com.identity4j.connector.AbstractConnector;
-import com.identity4j.connector.ConnectorConfigurationParameters;
 import com.identity4j.connector.exception.ConnectorException;
 
-public abstract class AbstractVFSConnector extends AbstractConnector {
+public abstract class AbstractVFSConnector<P extends AbstractVFSConfiguration> extends AbstractConnector<P> {
     private FileSystemManager fsManager;
     private FileObject file;
 
@@ -52,10 +51,10 @@ public abstract class AbstractVFSConnector extends AbstractConnector {
     }
     
     @Override
-    protected void onOpen(ConnectorConfigurationParameters config) throws ConnectorException {
+    protected void onOpen(P config) throws ConnectorException {
         try {
             fsManager = VFS.getManager();
-            file = fsManager.resolveFile(((AbstractVFSConfiguration)config).getUri());
+            file = fsManager.resolveFile(config.getUri());
         } catch (FileSystemException e) {
             throw new ConnectorException("Failed to get VFS manager.", e);
         }

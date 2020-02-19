@@ -41,7 +41,6 @@ import java.util.UUID;
 
 import javax.naming.InvalidNameException;
 import javax.naming.Name;
-import javax.naming.NameAlreadyBoundException;
 import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
 import javax.naming.directory.Attribute;
@@ -63,16 +62,23 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.identity4j.connector.ConnectorCapability;
-import com.identity4j.connector.ConnectorConfigurationParameters;
 import com.identity4j.connector.Media;
+import com.identity4j.connector.ResultIterator;
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.exception.InvalidLoginCredentialsException;
 import com.identity4j.connector.exception.PasswordChangeRequiredException;
 import com.identity4j.connector.exception.PasswordPolicyViolationException;
-import com.identity4j.connector.jndi.directory.DirectoryConnector;
+import com.identity4j.connector.jndi.directory.AbstractDirectoryConfiguration.RoleMode;
+import com.identity4j.connector.jndi.directory.AbstractDirectoryConnector;
 import com.identity4j.connector.jndi.directory.DirectoryExceptionParser;
 import com.identity4j.connector.jndi.directory.DirectoryIdentity;
 import com.identity4j.connector.jndi.directory.LdapService.ResultMapper;
+import com.identity4j.connector.jndi.directory.filter.And;
+import com.identity4j.connector.jndi.directory.filter.Eq;
+import com.identity4j.connector.jndi.directory.filter.Filter;
+import com.identity4j.connector.jndi.directory.filter.Ge;
+import com.identity4j.connector.jndi.directory.filter.Not;
+import com.identity4j.connector.jndi.directory.filter.Or;
 import com.identity4j.connector.principal.AccountStatus;
 import com.identity4j.connector.principal.AccountStatusType;
 import com.identity4j.connector.principal.Identity;
@@ -90,7 +96,7 @@ import jcifs.smb.NtlmPasswordAuthentication;
 import jcifs.smb.SmbException;
 import jcifs.smb.SmbSession;
 
-public class ActiveDirectoryConnector extends DirectoryConnector {
+public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveDirectoryConfiguration> {
 
 	public static final Iterator<String> STRING_ITERATOR = CollectionUtil.emptyIterator(String.class);
 
@@ -151,8 +157,9 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 	public static final String STREET_ADRESS = "streetAddress";
 	public static final String POST_OFFICE_BOX = "postOfficeBox";
 	public static final String POSTAL_CODE = "postalCode";
-
 	public static final String GROUP_TYPE_ATTRIBUTE = "groupType";
+	public static final String USN_CHANGED = "uSNChanged";
+	public static final String HIGHEST_COMMITTED_USN = "highestCommittedUSN";
 
 	/**
 	 * This is a special attribute we add to mimic the Office365 ImmutableID
@@ -185,7 +192,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 	 * attributes in our local database
 	 */
 	private static Collection<String> DEFAULT_USER_ATTRIBUTES = Arrays.asList(new String[] { MEMBER_ATTRIBUTE,
-			OBJECT_GUID_ATTRIBUTE, OU_ATTRIBUTE, DISTINGUISHED_NAME_ATTRIBUTE, PRIMARY_GROUP_ID_ATTRIBUTE });
+			OBJECT_GUID_ATTRIBUTE, OU_ATTRIBUTE, DISTINGUISHED_NAME_ATTRIBUTE, PRIMARY_GROUP_ID_ATTRIBUTE, USN_CHANGED });
 	/**
 	 * These are attributes we need for operation and want to store as attributes as
 	 * well.
@@ -218,7 +225,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 
 	private static Collection<String> ALL_ROLE_ATTRIBUTES = Arrays
 			.asList(new String[] { OBJECT_SID_ATTRIBUTE, OBJECT_GUID_ATTRIBUTE, GROUP_TYPE_ATTRIBUTE,
-					COMMON_NAME_ATTRIBUTE, DISTINGUISHED_NAME_ATTRIBUTE, PASSWORD_POLICY_APPLIES, MEMBER_ATTRIBUTE });
+					COMMON_NAME_ATTRIBUTE, DISTINGUISHED_NAME_ATTRIBUTE, PASSWORD_POLICY_APPLIES, MEMBER_ATTRIBUTE, USN_CHANGED });
 
 	public static final int CHANGE_PASSWORD_AT_NEXT_LOGON_FLAG = 0;
 	public static final int CHANGE_PASSWORD_AT_NEXT_LOGON_CANCEL_FLAG = -1;
@@ -247,7 +254,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 	}
 
 	@Override
-	protected void onOpen(ConnectorConfigurationParameters parameters) {
+	protected void onOpen(ActiveDirectoryConfiguration parameters) {
 		super.onOpen(parameters);
 		Collection<String> connectorIdentityAttributesToRetrieve = parameters.getIdentityAttributesToRetrieve();
 		if (connectorIdentityAttributesToRetrieve != null) {
@@ -300,6 +307,62 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			doNTLMAuthentication(username, password);
 			return true;
 		}
+	}
+
+	@Override
+	public ResultIterator<Identity> allIdentities(String tag) throws ConnectorException {
+		Filter filter = buildIdentityFilter(WILDCARD_SEARCH);
+		if(!StringUtil.isNullOrEmpty(tag)) {
+			And and = new And();
+			and.add(filter);
+			/* There is no our greater than condition for LDAP, so increase the 
+			 * USN value by 1 
+			 */
+			and.add(new Ge(USN_CHANGED, String.valueOf(Long.parseLong(tag) + 1)));
+			filter = and;
+		}
+		try {
+			return new USNWrapperIterator<Identity>(getIdentities(filter));
+		} catch (NamingException e) {
+			throw new ConnectorException(processNamingException(e), e);
+		} catch (IOException e) {
+			throw new ConnectorException(e);
+		}
+	}
+	
+	class USNWrapperIterator<E> implements ResultIterator<E> {
+		
+		private Iterator<E> delegate;
+		private String tag;
+
+		USNWrapperIterator(Iterator<E> delegate) throws NamingException, IOException {
+			this.delegate = delegate;
+			
+			And filter = new And();
+			filter.add(new Eq("objectClass", "*"));
+			
+			Attributes attr = ldapService.getAttributes(getConfiguration().getBaseDn());
+			Attribute usnAttr = attr.get(HIGHEST_COMMITTED_USN);
+			if(usnAttr != null) {
+				tag = String.valueOf(usnAttr.get());
+			}
+		}
+
+		@Override
+		public boolean hasNext() {
+			return delegate.hasNext();
+		}
+
+		@Override
+		public E next() {
+			return delegate.next();
+		}
+
+		@Override
+		public String tag() {
+			return tag;
+		}
+		
 	}
 
 	@Override
@@ -722,8 +785,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 			ldapService.update(((DirectoryIdentity) identity).getDn(),
 					items.toArray(new ModificationItem[items.size()]));
 		} catch (NamingException e) {
-			processNamingException(e);
-			throw new IllegalStateException("Unreachable code");
+			throw new ConnectorException(processNamingException(e), e);
 		} catch (IOException e) {
 			throw new ConnectorException(e.getMessage(), e);
 		}
@@ -755,7 +817,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 		return ActiveDirectoryDateUtil.adTimeToJavaDays(Long.parseLong(value));
 	}
 
-	protected Iterator<Role> getRoles(String filter) {
+	protected Iterator<Role> getRoles(Filter filter) {
 
 		try {
 			return ldapService.search(filter, new ResultMapper<Role>() {
@@ -778,14 +840,10 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 
 	}
 
-	private String buildPSOFilter() {
-		return ldapService.buildObjectClassFilter("msDS-PasswordSettings", "cn", WILDCARD_SEARCH);
-	}
-
 	public Iterator<ADPasswordCharacteristics> getPasswordPolicies() {
 
 		try {
-			return ldapService.search(buildPSOFilter(), new ResultMapper<ADPasswordCharacteristics>() {
+			return ldapService.search(ldapService.buildObjectClassFilter("msDS-PasswordSettings", "cn", WILDCARD_SEARCH), new ResultMapper<ADPasswordCharacteristics>() {
 
 				@Override
 				public ADPasswordCharacteristics apply(SearchResult result) throws NamingException, IOException {
@@ -1070,7 +1128,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 	}
 
 	@Override
-	protected Iterator<Identity> getIdentities(String filter) {
+	protected Iterator<Identity> getIdentities(Filter filter) {
 
 		final ActiveDirectoryConfiguration config = (ActiveDirectoryConfiguration) getConfiguration();
 		final Map<String, ActiveDirectoryGroup> groups = new HashMap<String, ActiveDirectoryGroup>();
@@ -1098,6 +1156,38 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 		final int minimumPasswordAge = getMinimumPasswordAge();
 		final int maximumPasswordAge = getMaximumPasswordAge();
 		final long lockoutDuration = getBaseLongAttribute(LOCKOUT_DURATION_ATTRIBUTE);
+		
+		// If using server side DN member filter, encode a new filter
+		if (getActiveDirectoryConfiguration().isFilteredByRole() && getActiveDirectoryConfiguration().getRoleMode().equals(RoleMode.serverDistinguishedNames)) {
+
+			Or incFilters = new Or();
+			for (String inc : getActiveDirectoryConfiguration().getIncludedRolesDN()) {
+				incFilters.add(new Eq("memberof", inc));
+			}
+
+			Or excFilters = new Or();
+			for (String exc : getActiveDirectoryConfiguration().getExcludedRolesDN()) {
+				excFilters.add(new Eq("memberof", exc));
+			}
+
+			Filter groupMemberFilter;
+			if (getActiveDirectoryConfiguration().getIncludedRolesDN().isEmpty()) {
+				groupMemberFilter = new Not(excFilters);
+			} else {
+				if (getActiveDirectoryConfiguration().getExcludedRolesDN().isEmpty()) {
+					groupMemberFilter = incFilters;
+				} else {
+					groupMemberFilter = new And().add(incFilters).add(excFilters);
+				}
+			}
+
+			And newFilter = new And();
+			newFilter.add(filter);
+			newFilter.add(groupMemberFilter);
+			filter = newFilter;
+			LOG.info("Final user search filter is '" + filter.encode() + "'");
+		}
+		
 
 		try {
 			return ldapService.search(filter, new ResultMapper<Identity>() {
@@ -1212,6 +1302,9 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 						passwordStatus.calculateType();
 					}
 					String userAccountControl = (String) getAttribute(attributes.get(USER_ACCOUNT_CONTROL_ATTRIBUTE));
+					if(StringUtil.isNullOrEmpty(userAccountControl)) {
+						throw new ConnectorException("Cannot read the required attribute userAccountControl. Please check the permissions of your service account. Read userAccountControl must be enabled.");
+					}
 
 					// Overrides calculated password status, prevent the user
 					// changing the password at all
@@ -1509,25 +1602,28 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 	}
 
 	@Override
-	protected String buildIdentityFilter(String identityName) {
+	protected Filter buildIdentityFilter(String identityName) {
 		ActiveDirectoryConfiguration activeDirectoryConfiguration = getActiveDirectoryConfiguration();
+		
+		Or inner = new Or();
+		inner.add(new Eq(SAM_ACCOUNT_NAME_ATTRIBUTE, identityName));
+		inner.add(new Eq(USER_PRINCIPAL_NAME_ATTRIBUTE, identityName));
 
-		String identityNameWithDomainSearchFilter = "";
 		String userPrincipalName = identityName;
 		if (!activeDirectoryConfiguration.isUsernameSamAccountName() && !userPrincipalName.equals(WILDCARD_SEARCH)) {
 			int idx = userPrincipalName.indexOf('@');
 			if (idx == -1) {
 				userPrincipalName += "@" + activeDirectoryConfiguration.getDomain();
-				identityNameWithDomainSearchFilter = String.format("(%s=%s)", USER_PRINCIPAL_NAME_ATTRIBUTE,
-						userPrincipalName);
+				inner.add(new Eq(USER_PRINCIPAL_NAME_ATTRIBUTE, userPrincipalName));
 			}
 		}
+		
+		And outer = new And();
+		outer.add(new Not(new Eq(OBJECT_CLASS_ATTRIBUTE, "computer")));
+		outer.add(new Eq(OBJECT_CLASS_ATTRIBUTE, "user"));
+		outer.add(inner);
 
-		String filter = String.format("(&(!(%s=computer))(%s=user)(|" + "(%s=%s)" + "(%s=%s)" + "%s))",
-				OBJECT_CLASS_ATTRIBUTE, OBJECT_CLASS_ATTRIBUTE, SAM_ACCOUNT_NAME_ATTRIBUTE, identityName,
-				USER_PRINCIPAL_NAME_ATTRIBUTE, identityName, identityNameWithDomainSearchFilter);
-
-		return filter;
+		return outer;
 	}
 
 	private Iterator<String> getUsersGroups(SearchResult result) throws NamingException {
@@ -1549,7 +1645,7 @@ public class ActiveDirectoryConnector extends DirectoryConnector {
 	}
 
 	private Iterator<String> getGroupsForUser(SearchResult result) throws NamingException, IOException {
-		String filter = ldapService.buildObjectClassFilter("group", "member", result.getNameInNamespace());
+		Filter filter = ldapService.buildObjectClassFilter("group", "member", result.getNameInNamespace());
 
 		return ldapService.search(filter, new ResultMapper<String>() {
 

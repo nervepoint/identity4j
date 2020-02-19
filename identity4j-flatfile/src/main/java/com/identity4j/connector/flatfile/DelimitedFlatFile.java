@@ -55,10 +55,8 @@ public abstract class DelimitedFlatFile extends AbstractFlatFile {
      */
     @Override
     public void onLoad(InputStream inputStream, String charsetName) throws IOException {
-        LineIterator it = IOUtils.lineIterator(inputStream, charsetName);
-
         // take line at a time and parse
-        try {
+        try(LineIterator it = IOUtils.lineIterator(inputStream, charsetName)) {
             while (it.hasNext()) {
                 String line = it.nextLine();
                 LOG.debug("Parsing " + line);
@@ -94,9 +92,7 @@ public abstract class DelimitedFlatFile extends AbstractFlatFile {
                     add(row);
                 }
             }
-        } finally {
-            LineIterator.closeQuietly(it);
-        }
+        } 
     }
 
     /**

@@ -179,5 +179,12 @@ public enum ConnectorCapability {
 	/**
 	 * The connector has allows arbitrary role attributes
 	 */
-	customRoleAttributes
+	customRoleAttributes,
+	/**
+	 * The connector has the concept of a 'tag'. Typically, this may be a timestamp of when
+	 * user or group details last changed. Client code can query the current tag and compare it against
+	 * the last stored tag. If it has change, then the new details can be retrieved, otherwise
+	 * nothing is to be done and the client code can use cached details.
+	 */
+	tag
 }

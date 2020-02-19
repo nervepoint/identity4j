@@ -38,7 +38,6 @@ import org.junit.Test;
 import com.identity4j.connector.AbstractRestWebServiceConnectorTest;
 import com.identity4j.connector.ConnectorBuilder;
 import com.identity4j.connector.ConnectorCapability;
-import com.identity4j.connector.ConnectorConfigurationParameters;
 import com.identity4j.connector.PrincipalType;
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.exception.PrincipalAlreadyExistsException;
@@ -133,7 +132,7 @@ public class Office365ConnectorTest extends AbstractRestWebServiceConnectorTest 
 
 		MultiMap configurationParameters = loadConfigurationParameters("/office365-connector.properties");
 		ConnectorBuilder connectorBuilder = new ConnectorBuilder();
-		ConnectorConfigurationParameters parms = connectorBuilder.buildConfiguration(configurationParameters);
+		Office365Configuration parms = connectorBuilder.buildConfiguration(configurationParameters);
 		// when connector is instantiated
 		connector = (Office365Connector) connectorBuilder.buildConnector(parms);
 
@@ -151,7 +150,7 @@ public class Office365ConnectorTest extends AbstractRestWebServiceConnectorTest 
 		MultiMap configurationParameters = loadConfigurationParameters("/office365-connector.properties");
 		configurationParameters.put("office365AppDeletePrincipalRole", new String[] { "Dummy Delete Role" });
 		ConnectorBuilder connectorBuilder = new ConnectorBuilder();
-		ConnectorConfigurationParameters parms = connectorBuilder.buildConfiguration(configurationParameters);
+		Office365Configuration parms = connectorBuilder.buildConfiguration(configurationParameters);
 		// when connector is instantiated
 		connector = (Office365Connector) connectorBuilder.buildConnector(parms);
 
@@ -170,7 +169,7 @@ public class Office365ConnectorTest extends AbstractRestWebServiceConnectorTest 
 		MultiMap configurationParameters = loadConfigurationParameters("/office365-connector.properties");
 		configurationParameters.put("office365AppDeletePrincipalRole", new String[] { "Dummy Delete Role" });
 		ConnectorBuilder connectorBuilder = new ConnectorBuilder();
-		ConnectorConfigurationParameters parms = connectorBuilder.buildConfiguration(configurationParameters);
+		Office365Configuration parms = connectorBuilder.buildConfiguration(configurationParameters);
 		connector = (Office365Connector) connectorBuilder.buildConnector(parms);
 
 		assertTrue("Coonector is in read only mode", connector.isReadOnly());
@@ -190,7 +189,7 @@ public class Office365ConnectorTest extends AbstractRestWebServiceConnectorTest 
 		MultiMap configurationParameters = loadConfigurationParameters("/office365-connector.properties");
 		configurationParameters.put("office365AppDeletePrincipalRole", new String[] { "Dummy Delete Role" });
 		ConnectorBuilder connectorBuilder = new ConnectorBuilder();
-		ConnectorConfigurationParameters parms = connectorBuilder.buildConfiguration(configurationParameters);
+		Office365Configuration parms = connectorBuilder.buildConfiguration(configurationParameters);
 		connector = (Office365Connector) connectorBuilder.buildConnector(parms);
 
 		assertTrue("Coonector is in read only mode", connector.isReadOnly());
@@ -210,7 +209,7 @@ public class Office365ConnectorTest extends AbstractRestWebServiceConnectorTest 
 		MultiMap configurationParameters = loadConfigurationParameters("/office365-connector.properties");
 		configurationParameters.put("office365AppDeletePrincipalRole", new String[] { "Dummy Delete Role" });
 		ConnectorBuilder connectorBuilder = new ConnectorBuilder();
-		ConnectorConfigurationParameters parms = connectorBuilder.buildConfiguration(configurationParameters);
+		Office365Configuration parms = connectorBuilder.buildConfiguration(configurationParameters);
 		connector = (Office365Connector) connectorBuilder.buildConnector(parms);
 
 		assertTrue("Coonector is in read only mode", connector.isReadOnly());
@@ -230,7 +229,7 @@ public class Office365ConnectorTest extends AbstractRestWebServiceConnectorTest 
 		MultiMap configurationParameters = loadConfigurationParameters("/office365-connector.properties");
 		configurationParameters.put("office365AppDeletePrincipalRole", new String[] { "Dummy Delete Role" });
 		ConnectorBuilder connectorBuilder = new ConnectorBuilder();
-		ConnectorConfigurationParameters parms = connectorBuilder.buildConfiguration(configurationParameters);
+		Office365Configuration parms = connectorBuilder.buildConfiguration(configurationParameters);
 		connector = (Office365Connector) connectorBuilder.buildConnector(parms);
 
 		assertTrue("Coonector is in read only mode", connector.isReadOnly());

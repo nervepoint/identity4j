@@ -25,6 +25,7 @@ package com.identity4j.connector.jndi.activedirectory;
 
 import static org.junit.Assert.assertEquals;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -37,11 +38,14 @@ import org.junit.Test;
 import com.identity4j.connector.AbstractConnectorTest;
 import com.identity4j.connector.Connector;
 import com.identity4j.connector.ConnectorCapability;
+import com.identity4j.connector.ResultIterator;
 import com.identity4j.connector.principal.Identity;
 import com.identity4j.connector.principal.IdentityImpl;
 import com.identity4j.connector.principal.Role;
 import com.identity4j.util.MultiMap;
 import com.identity4j.util.TestUtils;
+
+import junit.framework.Assert;
 
 public class ActiveDirectoryConnectorIntegrationTest extends AbstractConnectorTest<ActiveDirectoryConfiguration> {
 
@@ -67,23 +71,54 @@ public class ActiveDirectoryConnectorIntegrationTest extends AbstractConnectorTe
 	}
 
 	@Test
-	public void testOUFilters() {
+	public void testOUFilters() throws IOException {
 		doTestOUFilters(false);
 	}
 
 	@Test
-	public void testOUFiltersAtNonDomainBaseDN() {
+	public void testOUFiltersAtNonDomainBaseDN() throws IOException {
 		doTestOutFiltersAtNonDomainBaseDN(false);
 	}
 
 	@Test
-	public void testOUFiltersAtNonDomainBaseDNWithDefaults() {
+	public void testOUFiltersAtNonDomainBaseDNWithDefaults() throws IOException {
 		doTestOutFiltersAtNonDomainBaseDN(true);
 	}
 
 	@Test
-	public void testOUFiltersWithDefaults() {
+	public void testOUFiltersWithDefaults() throws IOException {
 		doTestOUFilters(true);
+	}
+	
+	@Test
+	public void testTag() {
+
+		Assume.assumeTrue(connector.getCapabilities().contains(ConnectorCapability.tag));
+		ResultIterator<Identity> ri = connector.allIdentities(null);
+		
+		/* Count first iterate */
+		int i = 0;
+		while(ri.hasNext()) {
+			ri.next();
+			i++;
+		}
+		
+		String tag = ri.tag();
+		
+		ResultIterator<Identity> nri = connector.allIdentities(tag);
+		Assert.assertTrue("Should return no results in iterator", !nri.hasNext());
+		
+		updateIdentity();
+
+		tag = nri.tag();
+		nri = connector.allIdentities(tag);
+		i = 0;
+		while(nri.hasNext()) {
+			nri.next();
+			i++;
+		}
+		Assert.assertEquals("Should return 1 results", 1, i);
+		
 	}
 
 	@Override
@@ -100,7 +135,7 @@ public class ActiveDirectoryConnectorIntegrationTest extends AbstractConnectorTe
 				newIdentity.getAttribute("description"));
 	}
 
-	protected void doTestOUFilters(boolean includeDefaults) {
+	protected void doTestOUFilters(boolean includeDefaults) throws IOException {
 		List<Identity> created = new ArrayList<Identity>();
 		try {
 			String ou = "OU=Filtered," + connectorConfigurationParameters.getBaseDN();
@@ -121,7 +156,7 @@ public class ActiveDirectoryConnectorIntegrationTest extends AbstractConnectorTe
 			prms.remove(ActiveDirectoryConfiguration.DIRECTORY_EXCLUDES);
 			prms.set(ActiveDirectoryConfiguration.ACTIVE_DIRECTORY_INCLUDE_DEFAULT_USERS, String.valueOf(includeDefaults));
 			ActiveDirectoryConfiguration cfg = createConnectorConfigurationParameters(prms);
-			Connector subc = connectorBuilder.buildConnector(cfg);
+			Connector<?> subc = connectorBuilder.buildConnector(cfg);
 			try {
 				List<Identity> ids = new ArrayList<Identity>();
 				for (Iterator<Identity> idIt = subc.allIdentities(); idIt.hasNext();) {
@@ -145,7 +180,7 @@ public class ActiveDirectoryConnectorIntegrationTest extends AbstractConnectorTe
 		}
 	}
 
-	protected void doTestOutFiltersAtNonDomainBaseDN(boolean includeDefaults) {
+	protected void doTestOutFiltersAtNonDomainBaseDN(boolean includeDefaults) throws IOException {
 		List<Identity> created = new ArrayList<Identity>();
 		try {
 			String ou = "OU=Filtered," + connectorConfigurationParameters.getBaseDN();
@@ -172,7 +207,7 @@ public class ActiveDirectoryConnectorIntegrationTest extends AbstractConnectorTe
 			prms.set(ActiveDirectoryConfiguration.ACTIVE_DIRECTORY_INCLUDE_DEFAULT_USERS,
 					String.valueOf(includeDefaults));
 			ActiveDirectoryConfiguration cfg = createConnectorConfigurationParameters(prms);
-			Connector subc = connectorBuilder.buildConnector(cfg);
+			Connector<?> subc = connectorBuilder.buildConnector(cfg);
 			try {
 				List<Identity> ids = new ArrayList<Identity>();
 				for (Iterator<Identity> idIt = subc.allIdentities(); idIt.hasNext();) {

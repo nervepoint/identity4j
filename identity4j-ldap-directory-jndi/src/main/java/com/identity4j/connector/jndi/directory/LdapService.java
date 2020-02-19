@@ -57,6 +57,9 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.identity4j.connector.exception.ConnectorException;
+import com.identity4j.connector.jndi.directory.filter.And;
+import com.identity4j.connector.jndi.directory.filter.Eq;
+import com.identity4j.connector.jndi.directory.filter.Filter;
 import com.identity4j.util.crypt.impl.DefaultEncoderManager;
 
 public class LdapService {
@@ -68,7 +71,7 @@ public class LdapService {
 
 	public static final String OBJECT_CLASS_ATTRIBUTE = "objectClass";
 
-	private DirectoryConfiguration configuration;
+	private AbstractDirectoryConfiguration configuration;
 	private SocketFactory socketFactory;
 	private Hashtable<String, String> env = new Hashtable<String, String>();
 
@@ -195,7 +198,7 @@ public class LdapService {
 	LdapService() {
 	}
 
-	public void init(DirectoryConfiguration configuration) {
+	public void init(AbstractDirectoryConfiguration configuration) {
 		this.configuration = configuration;
 	}
 
@@ -209,13 +212,23 @@ public class LdapService {
 			}
 		});
 	}
+	
+	public Attributes getAttributes(Name dn) throws NamingException, IOException {
+		return processBlock(new Block<Attributes>() {
 
-	public <T> Iterator<T> search(String filter, ResultMapper<T> resultMapper, SearchControls searchControls)
+			@Override
+			public Attributes apply(LdapContext context) throws NamingException, IOException {
+				return context.getAttributes(dn);
+			}
+		});
+	}
+
+	public <T> Iterator<T> search(Filter filter, ResultMapper<T> resultMapper, SearchControls searchControls)
 			throws NamingException, IOException {
 		return search(configuration.getBaseDn(), filter, resultMapper, searchControls);
 	}
 
-	public <T> Iterator<T> search(final Name baseDN, final String filter, final ResultMapper<T> resultMapper,
+	public <T> Iterator<T> search(final Name baseDN, final Filter filter, final ResultMapper<T> resultMapper,
 			final SearchControls searchControls) throws NamingException, IOException {
 		return processBlockNoClose(new Block<Iterator<T>>() {
 
@@ -274,9 +287,12 @@ public class LdapService {
 		});
 	}
 
-	public final String buildObjectClassFilter(String objectClass, String principalNameFilterAttribute,
+	public final Filter buildObjectClassFilter(String objectClass, String principalNameFilterAttribute,
 			String principalName) {
-		return String.format("(&(objectClass=%s)(%s=%s))", objectClass, principalNameFilterAttribute, principalName);
+		And filter = new And();
+		filter.add(new Eq("objectClass", objectClass));
+		filter.add(new Eq(principalNameFilterAttribute, principalName));
+		return filter;
 	}
 
 	private <T> T processBlock(Block<T> block, Control... controls) throws NamingException, IOException {
@@ -336,10 +352,10 @@ public class LdapService {
 		LdapContext context;
 		SearchControls searchControls;
 		Name baseDN;
-		String filter;
+		Filter filter;
 		LinkedList<T> cached = new LinkedList<T>();
 		
-		OldSearchResultIterator(Name baseDN, LdapContext context, String filter, ResultMapper<T> resultMapper,
+		OldSearchResultIterator(Name baseDN, LdapContext context, Filter filter, ResultMapper<T> resultMapper,
 				SearchControls searchControls) throws NamingException, IOException {
 			this.resultMapper = resultMapper;
 			this.baseDN = baseDN;
@@ -360,7 +376,7 @@ public class LdapService {
 							new Control[] { new PagedResultsControl(configuration.getMaxPageSize(), Control.CRITICAL) });
 				}
 				
-				results = context.search(baseDN, filter, searchControls);
+				results = context.search(baseDN, filter.encode(), searchControls);
 				
 				while(results.hasMore()) {
 					

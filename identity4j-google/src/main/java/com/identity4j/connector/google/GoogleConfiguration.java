@@ -26,6 +26,7 @@ import java.util.Arrays;
 import java.util.Collection;
 
 import com.identity4j.connector.AbstractConnectorConfiguration;
+import com.identity4j.connector.Connector;
 import com.identity4j.util.MultiMap;
 
 /**
@@ -181,5 +182,10 @@ public class GoogleConfiguration extends AbstractConnectorConfiguration{
 	 */
 	public void setExcludes(Collection<String> excludes) {
 		configurationParameters.put(GOOGLE_INCLUDE_ORGUNITS, excludes.toArray(new String[0]));
+	}
+
+	@Override
+	public Class<? extends Connector<?>> getConnectorClass() {
+		return GoogleConnector.class;
 	}
 }

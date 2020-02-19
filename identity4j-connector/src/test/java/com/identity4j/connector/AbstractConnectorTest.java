@@ -104,7 +104,7 @@ public abstract class AbstractConnectorTest<C extends ConnectorConfigurationPara
 	protected String identityGuid;
 	protected Identity identity;
 	protected Role role;
-	protected Connector connector;
+	protected Connector<?> connector;
 	protected Boolean checkOldCredentials;
 	protected boolean recreateTestUserOnSelectedTests;
 
@@ -184,7 +184,7 @@ public abstract class AbstractConnectorTest<C extends ConnectorConfigurationPara
 		//
 	}
 
-	protected final Connector getConnector() {
+	protected final Connector<?> getConnector() {
 		return connector;
 	}
 
@@ -273,9 +273,10 @@ public abstract class AbstractConnectorTest<C extends ConnectorConfigurationPara
 
 	/**
 	 * Tear down
+	 * @throws IOException 
 	 */
 	@After
-	public final void tearDown() {
+	public final void tearDown() throws IOException {
 		if (createdIdentityAtStartup && connector != null
 				&& connector.getCapabilities().contains(ConnectorCapability.deleteUser)) {
 			try {
@@ -364,7 +365,7 @@ public abstract class AbstractConnectorTest<C extends ConnectorConfigurationPara
 		return actualNewPassword;
 	}
 
-	protected String generateRandomPassword(Connector connector, String username) {
+	protected String generateRandomPassword(Connector<?> connector, String username) {
 		PasswordCharacteristics pc = connector.getPasswordCharacteristics();
 		if (pc == null) {
 			pc = new DefaultPasswordCharacteristics();

@@ -204,7 +204,7 @@ public abstract class AbstractFlatFile {
      */
     protected void write(OutputStream out, List<String> row, String encoding) throws IOException {
         synchronized (out) {
-            IOUtils.writeLines(Collections.singletonList(rowToString(row)), null, out);
+            IOUtils.writeLines(Collections.singletonList(rowToString(row)), null, out, encoding);
         }
     }
 

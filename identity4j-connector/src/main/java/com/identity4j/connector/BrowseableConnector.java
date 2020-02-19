@@ -24,7 +24,7 @@ package com.identity4j.connector;
 
 import java.util.Iterator;
 
-public interface BrowseableConnector extends Connector {
+public interface BrowseableConnector<P extends ConnectorConfigurationParameters> extends Connector<P> {
 
 	/**
 	 * Get all browseable nodes under the supplied parent node. If the parent is

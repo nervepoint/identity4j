@@ -45,7 +45,6 @@ import com.ibm.as400.access.UserGroup;
 import com.ibm.as400.access.UserList;
 import com.identity4j.connector.AbstractConnector;
 import com.identity4j.connector.ConnectorCapability;
-import com.identity4j.connector.ConnectorConfigurationParameters;
 import com.identity4j.connector.as400.callback.As400Callback;
 import com.identity4j.connector.as400.callback.As400CallbackWithoutResult;
 import com.identity4j.connector.exception.ConnectorException;
@@ -59,7 +58,7 @@ import com.identity4j.util.StringUtil;
 import com.identity4j.util.passwords.DefaultPasswordCharacteristics;
 import com.identity4j.util.passwords.PasswordCharacteristics;
 
-public class As400Connector extends AbstractConnector {
+public class As400Connector extends AbstractConnector<As400Configuration> {
 	private static final String CREATE_PROFILE_SUCCESS = "CPI2221";
 	private static final String DELETE_PROFILE_SUCCESS = "CPC2191";
 	private static final String CHANGE_PROFILE_SUCCESS = "CPC2205";
@@ -76,13 +75,12 @@ public class As400Connector extends AbstractConnector {
 					ConnectorCapability.identityAttributes, 
 					ConnectorCapability.caseInsensitivePrincipalNames }));
 
-	private As400Configuration as400Configuration;
 	private AS400 as400;
 	private PasswordCharacteristics policy;
 
 	@Override
 	public boolean isOpen() {
-		getIdentityByName(as400Configuration.getServiceAccountUsername());
+		getIdentityByName(getConfiguration().getServiceAccountUsername());
 		return as400 != null && as400.isConnected();
 	}
 
@@ -140,7 +138,7 @@ public class As400Connector extends AbstractConnector {
 			@Override
 			protected void executeInCallbackWithoutResult() throws Exception {
 				// create new as400 connection with the given identity
-				AS400 as400 = as400Configuration.buildConnection(identity.getPrincipalName(), String.valueOf(password));
+				AS400 as400 = getConfiguration().buildConnection(identity.getPrincipalName(), String.valueOf(password));
 				// change password and disconnect connection
 				as400.changePassword(String.valueOf(oldPassword), String.valueOf(password));
 				as400.disconnectAllServices();
@@ -539,13 +537,12 @@ public class As400Connector extends AbstractConnector {
 	}
 
 	@Override
-	protected void onOpen(ConnectorConfigurationParameters parameters) throws ConnectorException {
-		as400Configuration = (As400Configuration) parameters;
+	protected void onOpen(As400Configuration parameters) throws ConnectorException {
 		try {
-			this.as400 = as400Configuration.buildConnection();
+			this.as400 = getConfiguration().buildConnection();
 			this.policy = getPasswordCharacteristics();
-			if (!as400.authenticate(as400Configuration.getServiceAccountUsername(),
-					as400Configuration.getServiceAccountPassword())) {
+			if (!as400.authenticate(getConfiguration().getServiceAccountUsername(),
+					getConfiguration().getServiceAccountPassword())) {
 				throw new IOException("Invalid credentials");
 			}
 		} catch (IOException e) {

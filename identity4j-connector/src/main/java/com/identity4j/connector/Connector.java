@@ -1,6 +1,8 @@
 /* HEADER */
 package com.identity4j.connector;
 
+import java.io.Closeable;
+
 /*
  * #%L
  * Identity4J Connector
@@ -49,7 +51,7 @@ import com.identity4j.util.passwords.PasswordCharacteristics;
  * and as such should return appropriate values for
  * {@link #supportsAccountCreation()} and {@link #supportsPasswordChange()}.
  */
-public interface Connector {
+public interface Connector<P extends ConnectorConfigurationParameters> extends Closeable {
     
     /**
      * Used as a hint to {@link Connector#setPassword(Principal, char[], boolean, PasswordResetType)} and
@@ -175,6 +177,15 @@ public interface Connector {
 	 * @throws ConnectorException
 	 */
 	Iterator<Identity> allIdentities() throws ConnectorException;
+	
+	/**
+	 * @param tag tag, used to retrieve results changed since last known tag. The
+	 * returned specialisation of {@link Iterator} will supply the new tag.
+	 * 
+	 * @return {@link Identity}s
+	 * @throws ConnectorException
+	 */
+	ResultIterator<Identity> allIdentities(String tag) throws ConnectorException;
 
 	/**
 	 * Count identities.
@@ -183,6 +194,16 @@ public interface Connector {
 	 * @throws ConnectorException
 	 */
 	long countIdentities() throws ConnectorException;
+
+	/**
+	 * Count identities.
+	 * 
+	 * @param tag tag, used to retrieve results changed since last known tag. The
+	 * returned {@link Count} will supply the new tag.
+	 * @return
+	 * @throws ConnectorException
+	 */
+	Count<Long> countIdentities(String tag) throws ConnectorException;
 
 	/**
 	 * Does the {@link Identity} name already belong to another {@link Identity}
@@ -213,13 +234,31 @@ public interface Connector {
 	Iterator<Role> allRoles() throws ConnectorException;
 
 	/**
+	 * @param tag tag, used to retrieve results changed since last known tag. The
+	 * returned specialisation of {@link Iterator} will supply the new tag.
+	 * @return Roles
+	 * @throws ConnectorException
+	 */
+	ResultIterator<Role> allRoles(String tag) throws ConnectorException;
+
+	/**
 	 * Count identities.
 	 * 
 	 * @return
 	 * @throws ConnectorException
 	 */
 	long countRoles() throws ConnectorException;
-
+	
+	/**
+	 * Count identities.
+	 * 
+	 * @param tag tag, used to retrieve results changed since last known tag. The
+	 * returned {@link Count} will supply the new tag.
+	 * @return
+	 * @throws ConnectorException
+	 */
+	Count<Long> countRoles(String tag) throws ConnectorException;
+	
 	/**
 	 * Does the role name already belong to another role?
 	 * 
@@ -242,12 +281,13 @@ public interface Connector {
 	/**
 	 * @param parameters
 	 */
-	void open(ConnectorConfigurationParameters parameters);
+	void open(P parameters);
 
 	/**
-	 * Close the connector, releasing any resources currently in use.
+	 * Get the configuration used for this connector, as provided in {@link #open(ConnectorConfigurationParameters)}.
+	 * @param parameters
 	 */
-	void close();
+	P getConfiguration();
 
 	/**
 	 * Close and re-open the connector, using the same configuration as was used
