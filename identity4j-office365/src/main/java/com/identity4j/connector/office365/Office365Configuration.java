@@ -78,6 +78,22 @@ public class Office365Configuration extends AbstractConnectorConfiguration{
 	 */
 	public static final String OFFICE365_INCLUDED_GROUPS = "office365IncludedGroups";
 	/**
+	 * Configuration property key for excludes
+	 */
+	public static final String OFFICE365_EXCLUDED_USERS = "office365ExcludedUsers";
+	/**
+	 * Configuration property key for excludes
+	 */
+	public static final String OFFICE365_INCLUDED_USERS= "office365IncludedUsers";
+	/**
+	 * Configuration property key for excludes
+	 */
+	public static final String OFFICE365_USER_FILTER_EXPRESSION = "office365UserFilterExpression";
+	/**
+	 * Configuration property key for excludes
+	 */
+	public static final String OFFICE365_GROUP_FILTER_EXPRESSION = "office365GroupFilterExpression";
+	/**
 	 * Configuration property key for preload groups users
 	 */
 	public static final String OFFICE365_PRELOAD_GROUPS_USERS = "office365PreloadGroupsUser";
@@ -162,6 +178,19 @@ public class Office365Configuration extends AbstractConnectorConfiguration{
 		return configurationParameters.getStringOrDefault(OFFICE365_REST_SERVICE_HOST, "graph.windows.net");
 	}
 	
+	/**
+	 * @return the userFilterExpression
+	 */
+	public  String getUserFilterExpression() {
+		return configurationParameters.getStringOrDefault(OFFICE365_USER_FILTER_EXPRESSION, "");
+	}
+	
+	/**
+	 * @return the userFilterExpression
+	 */
+	public  String getGroupFilterExpression() {
+		return configurationParameters.getStringOrDefault(OFFICE365_GROUP_FILTER_EXPRESSION, "");
+	}
 	
 	/**
 	 * @return the stsUrl
@@ -227,6 +256,16 @@ public class Office365Configuration extends AbstractConnectorConfiguration{
 	
 	public Set<String> getExcludedGroups() {
 		String[] vals = configurationParameters.getStringArrayOrDefault(OFFICE365_EXCLUDED_GROUPS);
+		return vals.length == 1 && vals[0].equals("") ? new HashSet<String>() : new HashSet<String>(Arrays.asList(vals));
+	}
+	
+	public Set<String> getIncludedUsers() {
+		String[] vals = configurationParameters.getStringArrayOrDefault(OFFICE365_INCLUDED_USERS);
+		return vals.length == 1 && vals[0].equals("") ? new HashSet<String>() : new HashSet<String>(Arrays.asList(vals));
+	}
+	
+	public Set<String> getExcludedUsers() {
+		String[] vals = configurationParameters.getStringArrayOrDefault(OFFICE365_EXCLUDED_USERS);
 		return vals.length == 1 && vals[0].equals("") ? new HashSet<String>() : new HashSet<String>(Arrays.asList(vals));
 	}
 
