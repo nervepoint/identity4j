@@ -298,10 +298,10 @@ public class Office365Connector extends AbstractConnector {
 						GroupMembers members = directory.groups().members(role.getGuid());
 						if(members.getValue() != null) {
 							for(GroupMember member : members.getValue()) {
-								List<Role> r = roleMap.get(member.getId());
+								List<Role> r = roleMap.get(member.getObjectId());
 								if(r == null) {
 									r = new ArrayList<Role>();
-									roleMap.put(member.getId(), r);
+									roleMap.put(member.getObjectId(), r);
 								}
 								r.add(role);
 							}

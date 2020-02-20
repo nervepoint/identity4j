@@ -203,11 +203,11 @@ public class GroupService extends AbstractRestAPIService {
 	public static class GroupMember {
 		private String id;
 
-		public String getId() {
+		public String getObjectId() {
 			return id;
 		}
 
-		public void setId(String id) {
+		public void setObjectId(String id) {
 			this.id = id;
 		}
 	}
