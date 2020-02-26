@@ -70,7 +70,7 @@ public class Office365PasswordCharacteristics implements PasswordCharacteristics
 
 	@Override
 	public int getMaximumSize() {
-		return 16;
+		return 256;
 	}
 
 	@Override
@@ -105,7 +105,7 @@ public class Office365PasswordCharacteristics implements PasswordCharacteristics
 
 	@Override
 	public boolean isDictionaryWordsAllowed() {
-		return false;
+		return true;
 	}
 
 	@Override
