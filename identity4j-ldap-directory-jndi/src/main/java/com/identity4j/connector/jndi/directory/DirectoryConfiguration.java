@@ -438,8 +438,8 @@ public class DirectoryConfiguration extends AbstractConnectorConfiguration {
 	 * @return identity object class
 	 */
 	public final List<String> getIdentityCreationObjectClasses() {
-		if (configurationParameters.containsKey("direcctory.identityCreationObjectClasses"))
-			return Arrays.asList(configurationParameters.getStringOrFail("directory.identityObjectClass").split(","));
+		if (configurationParameters.containsKey("directory.identityCreationObjectClasses"))
+			return Arrays.asList(configurationParameters.getStringOrFail("directory.identityCreationObjectClasses").split(","));
 		else {
 			Set<String> n = new LinkedHashSet<String>();
 			n.add("inetOrgPerson");
