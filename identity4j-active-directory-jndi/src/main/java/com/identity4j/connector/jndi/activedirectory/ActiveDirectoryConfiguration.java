@@ -48,7 +48,10 @@ public class ActiveDirectoryConfiguration extends DirectoryConfiguration {
 	public static final String ACTIVE_DIRECTORY_INCLUDE_BUILTN_GROUPS = "activeDirectory.includeBuiltInGroups";
 	public static final String ACTIVE_DIRECTORY_USERNAME_IS_SAMACCOUNTNAME = "activeDirectory.usernameSamAccountName";
 	
+	@Deprecated
 	public static final String ACTIVE_DIRECTORy_ENFORCE_PASSWORD_RULES = "activeDirectory.enforcePasswordRules";
+	
+	public static final String ACTIVE_DIRECTORY_ENFORCE_PASSWORD_RULES = "activeDirectory.enforcePasswordRules";
 	
 	public ActiveDirectoryConfiguration(MultiMap configurationParameters) {
 		super(addConfigurationParameters(configurationParameters));
@@ -69,11 +72,7 @@ public class ActiveDirectoryConfiguration extends DirectoryConfiguration {
 		setIncludeBuiltInGroups(configurationParameters);
 		setIncludeDefaultUsers(configurationParameters);
 
-		/**
-		 * LDP - I believe the  attribute directory.identityObjectClass is now obsolete?
-		 */
 		configurationParameters.set("directory.identityObjectClass", "user");
-		
 		configurationParameters.set("directory.identityNameAttribute",
 				"samAccountName");
 		configurationParameters.set("directory.identityGuidAttribute",
@@ -87,11 +86,6 @@ public class ActiveDirectoryConfiguration extends DirectoryConfiguration {
 				"samAccountName");
 		configurationParameters
 				.set("directory.roleGuidAttribute", "objectGUID");
-		
-		
-		/**
-		 * LDP - Missing attribute....
-		 */
 		configurationParameters.set("direcctory.identityCreationObjectClasses", "user");
 		configurationParameters.set("directory.distinguishedNameAttribute", "distinguishedName");
 		return configurationParameters;
