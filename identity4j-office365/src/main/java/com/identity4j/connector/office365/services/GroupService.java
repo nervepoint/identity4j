@@ -10,6 +10,7 @@ import com.identity4j.connector.exception.PrincipalNotFoundException;
 import com.identity4j.connector.office365.Office365Configuration;
 import com.identity4j.connector.office365.entity.Group;
 import com.identity4j.connector.office365.entity.Groups;
+import com.identity4j.connector.office365.filter.Filter;
 import com.identity4j.connector.office365.services.token.handler.ADToken;
 import com.identity4j.util.http.HttpPair;
 import com.identity4j.util.http.HttpResponse;
@@ -114,9 +115,27 @@ public class GroupService extends AbstractRestAPIService {
 	 * @return users list
 	 */
 	public Groups all(String nextLink) {
+		return all(nextLink, null);
+	}
+
+	/**
+	 * This method retrieves all groups present in the data store, continuing a
+	 * previous pages request. <code>null</code> may be used, in which case this
+	 * query is started afresh (functionally the same as {@link #all()}. If there is
+	 * more data to return, {@link Groups#getNextLink()} will be non-null. A filter
+	 * may also be supplied. This will be encoded as the OData 'filter' expression.
+	 * If this is null, it will be ommitted
+	 * 
+	 * @return users list
+	 */
+	public Groups all(String nextLink, Filter filter) {
 		final StringBuilder q = new StringBuilder();
 		q.append("$top=");
 		q.append(office365Configuration.getRequestSizeLimit());
+		if(filter != null) {
+			q.append("&$filter=");
+			q.append(filter.encode());
+		}
 		if (nextLink != null) {
 			q.append("&$skiptoken=");
 			q.append(nextLink.substring(nextLink.indexOf("$skiptoken=") + 11));
@@ -184,11 +203,11 @@ public class GroupService extends AbstractRestAPIService {
 	public static class GroupMember {
 		private String id;
 
-		public String getId() {
+		public String getObjectId() {
 			return id;
 		}
 
-		public void setId(String id) {
+		public void setObjectId(String id) {
 			this.id = id;
 		}
 	}

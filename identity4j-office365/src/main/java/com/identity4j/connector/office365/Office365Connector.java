@@ -47,6 +47,11 @@ import com.identity4j.connector.office365.entity.Groups;
 import com.identity4j.connector.office365.entity.Principals;
 import com.identity4j.connector.office365.entity.User;
 import com.identity4j.connector.office365.entity.Users;
+import com.identity4j.connector.office365.filter.And;
+import com.identity4j.connector.office365.filter.Eq;
+import com.identity4j.connector.office365.filter.Filter;
+import com.identity4j.connector.office365.filter.Or;
+import com.identity4j.connector.office365.filter.Value;
 import com.identity4j.connector.office365.services.Directory;
 import com.identity4j.connector.office365.services.GroupService.GroupMember;
 import com.identity4j.connector.office365.services.GroupService.GroupMembers;
@@ -193,7 +198,7 @@ public class Office365Connector extends AbstractConnector<Office365Configuration
 		}
 
 		protected boolean matches(Role group) {
-			return (inc.isEmpty() || matchesGroups(group, inc)) && (exc.isEmpty() || !(matchesGroups(group, exc)));
+			return exc.isEmpty() || !matchesGroups(group, exc);
 
 		}
 	}
@@ -293,10 +298,10 @@ public class Office365Connector extends AbstractConnector<Office365Configuration
 						GroupMembers members = directory.groups().members(role.getGuid());
 						if(members.getValue() != null) {
 							for(GroupMember member : members.getValue()) {
-								List<Role> r = roleMap.get(member.getId());
+								List<Role> r = roleMap.get(member.getObjectId());
 								if(r == null) {
 									r = new ArrayList<Role>();
-									roleMap.put(member.getId(), r);
+									roleMap.put(member.getObjectId(), r);
 								}
 								r.add(role);
 							}
@@ -314,7 +319,35 @@ public class Office365Connector extends AbstractConnector<Office365Configuration
 
 		@Override
 		protected Users all(String nextLink) {
-			return directory.users().all(nextLink);
+			Filter f = null;
+			if(!configuration.getIncludedUsers().isEmpty()) {
+				Or or = new Or();
+				for(String g : configuration.getIncludedUsers()) {
+					or.add(new Eq("displayName", g));
+				}
+				f = or;
+			}
+
+			if(!configuration.getExcludedUsers().isEmpty()) {
+				Or or = new Or();
+				for(String g : configuration.getExcludedUsers()) {
+					or.add(new Eq("displayName", g));
+				}
+				if(f == null)
+					f = or;
+				else
+					f = new And(f, or);
+			}
+			
+			if(!StringUtil.isNullOrEmpty(configuration.getUserFilterExpression())) {
+				if(f == null)
+					f = new Value(configuration.getUserFilterExpression());
+				else
+					f = new And(f, new Value(configuration.getUserFilterExpression()));
+			}
+			
+			
+			return directory.users().all(nextLink, f);
 		}
 
 		@Override
@@ -333,7 +366,30 @@ public class Office365Connector extends AbstractConnector<Office365Configuration
 
 		@Override
 		protected Groups all(String nextLink) {
-			return directory.groups().all(nextLink);
+			Filter f = null;
+			
+			/** We can only do Include filtering server side, as the 
+			 * graph API does not support 'ne' (not equal) for Azure
+			 * object filter queries.
+			 * 
+			 * These will be filtered client side using {@link RoleFilteringIterator}.
+			 */
+			if(!configuration.getIncludedGroups().isEmpty()) {
+				Or or = new Or();
+				for(String g : configuration.getIncludedGroups()) {
+					or.add(new Eq("displayName", g));
+				}
+				f = or;
+			}
+			
+			if(!StringUtil.isNullOrEmpty(configuration.getGroupFilterExpression())) {
+				if(f == null)
+					f = new Value(configuration.getGroupFilterExpression());
+				else
+					f = new And(f, new Value(configuration.getGroupFilterExpression()));
+			}
+			
+			return directory.groups().all(nextLink, f);
 		}
 
 		@Override
@@ -874,7 +930,7 @@ public class Office365Connector extends AbstractConnector<Office365Configuration
 
 	private boolean matchesGroups(Role group, Set<String> groups) {
 		for (String g : groups) {
-			if (matchesGroup(group.getGuid(), g)) {
+			if (matchesGroup(group.getPrincipalName(), g)) {
 				return true;
 			}
 		}

@@ -72,7 +72,7 @@ public class UnixDESEncoder extends AbstractEncoder {
 				}
 			}
 			String saltString = new String(salt, charset);
-			return (saltString + DESCrypt.crypt(saltString, new String(toEncode, charset))).getBytes(charset);
+			return DESCrypt.crypt(saltString, new String(toEncode, charset)).getBytes(charset);
 		} catch (Exception e) {
 			throw new EncoderException(e);
 		}

@@ -1,5 +1,7 @@
 package com.identity4j.connector.office365;
 
+import static org.junit.Assert.assertEquals;
+
 /*
  * #%L
  * Identity4J OFFICE 365
@@ -26,7 +28,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Arrays;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.NoSuchElementException;
 
 import org.apache.log4j.PropertyConfigurator;
@@ -305,6 +309,198 @@ public class Office365ConnectorTest extends AbstractRestWebServiceConnectorTest 
 					officeIdentity.getRoles()[0].getPrincipalName());
 		} finally {
 			connector.deleteIdentity(officeIdentity.getPrincipalName());
+		}
+	}
+
+	@Test
+	public void itShouldFilterIncludedRoles() {
+		Assume.assumeTrue(connector.getCapabilities().contains(ConnectorCapability.roles));
+
+		// given a valid role not present in data store
+		Role role1 = buildRole(testRoleName, testRoleEmail, testRoleDescription);
+		Role role2 = buildRole(testRoleName + "2", testRoleEmail + "2", testRoleDescription + "2");
+		Role role3 = buildRole(testRoleName + "3", testRoleEmail + "3", testRoleDescription + "3");
+		Role fromDataSource1 = null;
+		Role fromDataSource2 = null;
+		Role fromDataSource3 = null;
+		try {
+			fromDataSource1 = connector.createRole(role1);
+			fromDataSource2 = connector.createRole(role2);
+			fromDataSource3 = connector.createRole(role3);
+
+			// TODO sort this out in 1.1. We have to build a new connector to try different
+			// configuration
+			// 1.1 should accept filters to all() methods and this testing should be
+			// abstracted
+			MultiMap configurationParameters = loadConfigurationParameters("/office365-connector.properties");
+			ConnectorBuilder connectorBuilder = new ConnectorBuilder();
+			Office365Configuration cfg = (Office365Configuration) connectorBuilder
+					.buildConfiguration(configurationParameters);
+			cfg.setIncludedGroups(new LinkedHashSet<String>(Arrays.asList(testRoleName, testRoleName + "2")));
+			Office365Connector nconnector = (Office365Connector) connectorBuilder.buildConnector(cfg);
+			try {
+				Iterator<Role> idIt = nconnector.allRoles();
+				assertTrue("Connector must return at least one role", idIt.hasNext());
+				Role r = idIt.next();
+				assertEquals("The correct role must have been returned", testRoleName, r.getPrincipalName());
+				assertTrue("Connector must return a second role", idIt.hasNext());
+				Role r2 = idIt.next();
+				assertEquals("The correct role must have been returned", testRoleName + "2", r2.getPrincipalName());
+				assertFalse("Connector must return just two roles", idIt.hasNext());
+			} finally {
+				nconnector.close();
+			}
+
+		} catch (PrincipalAlreadyExistsException paee) {
+			/* This may be caused by an interrupted test, so cleanup this time */
+			try {
+				connector.deleteRole(testRoleName);
+			} catch (Exception e) {
+			}
+			try {
+				connector.deleteRole(testRoleName + "2");
+			} catch (Exception e) {
+			}
+			try {
+				connector.deleteRole(testRoleName + "3");
+			} catch (Exception e) {
+			}
+			throw paee;
+		} finally {
+			if (fromDataSource1 != null)
+				connector.deleteRole(testRoleName);
+			if (fromDataSource2 != null)
+				connector.deleteRole(testRoleName + "2");
+			if (fromDataSource3 != null)
+				connector.deleteRole(testRoleName + "3");
+		}
+	}
+
+	@Test
+	public void itShouldFilterExcludedRoles() {
+		Assume.assumeTrue(connector.getCapabilities().contains(ConnectorCapability.roles));
+
+		// given a valid role not present in data store
+		Role role1 = buildRole(testRoleName, testRoleEmail, testRoleDescription);
+		Role role2 = buildRole(testRoleName + "2", testRoleEmail + "2", testRoleDescription + "2");
+		Role role3 = buildRole(testRoleName + "3", testRoleEmail + "3", testRoleDescription + "3");
+		Role fromDataSource1 = null;
+		Role fromDataSource2 = null;
+		Role fromDataSource3 = null;
+		try {
+			fromDataSource1 = connector.createRole(role1);
+			fromDataSource2 = connector.createRole(role2);
+			fromDataSource3 = connector.createRole(role3);
+
+			// TODO sort this out in 1.1. We have to build a new connector to try different
+			// configuration
+			// 1.1 should accept filters to all() methods and this testing should be
+			// abstracted
+			MultiMap configurationParameters = loadConfigurationParameters("/office365-connector.properties");
+			ConnectorBuilder connectorBuilder = new ConnectorBuilder();
+			Office365Configuration cfg = (Office365Configuration) connectorBuilder
+					.buildConfiguration(configurationParameters);
+			cfg.setExcludedGroups(new LinkedHashSet<String>(Arrays.asList(testRoleName, testRoleName + "2")));
+			Office365Connector nconnector = (Office365Connector) connectorBuilder.buildConnector(cfg);
+			try {
+				Iterator<Role> idIt = nconnector.allRoles();
+				assertTrue("Connector must return at least one role", idIt.hasNext());
+				Role found = null;
+				while (idIt.hasNext()) {
+					Role id = idIt.next();
+					if (id.getPrincipalName().equals(testRoleName + "3"))
+						found = id;
+				}
+				assertTrue("A role must have been returned", found != null);
+				assertEquals("The correct role must have been returned", testRoleName + "3", found.getPrincipalName());
+			} finally {
+				nconnector.close();
+			}
+
+		} catch (PrincipalAlreadyExistsException paee) {
+			/* This may be caused by an interrupted test, so cleanup this time */
+			try {
+				connector.deleteRole(testRoleName);
+			} catch (Exception e) {
+			}
+			try {
+				connector.deleteRole(testRoleName + "2");
+			} catch (Exception e) {
+			}
+			try {
+				connector.deleteRole(testRoleName + "3");
+			} catch (Exception e) {
+			}
+			throw paee;
+		} finally {
+			if (fromDataSource1 != null)
+				connector.deleteRole(testRoleName);
+			if (fromDataSource2 != null)
+				connector.deleteRole(testRoleName + "2");
+			if (fromDataSource3 != null)
+				connector.deleteRole(testRoleName + "3");
+		}
+	}
+
+	@Test
+	public void itShouldFilterIncludedExcludedRoles() {
+		Assume.assumeTrue(connector.getCapabilities().contains(ConnectorCapability.roles));
+
+		// given a valid role not present in data store
+		Role role1 = buildRole(testRoleName, testRoleEmail, testRoleDescription);
+		Role role2 = buildRole(testRoleName + "2", testRoleEmail + "2", testRoleDescription + "2");
+		Role role3 = buildRole(testRoleName + "3", testRoleEmail + "3", testRoleDescription + "3");
+		Role fromDataSource1 = null;
+		Role fromDataSource2 = null;
+		Role fromDataSource3 = null;
+		try {
+			fromDataSource1 = connector.createRole(role1);
+			fromDataSource2 = connector.createRole(role2);
+			fromDataSource3 = connector.createRole(role3);
+
+			// TODO sort this out in 1.1. We have to build a new connector to try different
+			// configuration
+			// 1.1 should accept filters to all() methods and this testing should be
+			// abstracted
+			MultiMap configurationParameters = loadConfigurationParameters("/office365-connector.properties");
+			ConnectorBuilder connectorBuilder = new ConnectorBuilder();
+			Office365Configuration cfg = (Office365Configuration) connectorBuilder
+					.buildConfiguration(configurationParameters);
+			cfg.setIncludedGroups(new LinkedHashSet<String>(Arrays.asList(testRoleName, testRoleName + "2")));
+			cfg.setExcludedGroups(new LinkedHashSet<String>(Arrays.asList(testRoleName)));
+			Office365Connector nconnector = (Office365Connector) connectorBuilder.buildConnector(cfg);
+			try {
+				Iterator<Role> idIt = nconnector.allRoles();
+				assertTrue("Connector must return at least one role", idIt.hasNext());
+				Role r = idIt.next();
+				assertEquals("The correct role must have been returned", testRoleName + "2", r.getPrincipalName());
+				assertFalse("Connector must return just one roles", idIt.hasNext());
+			} finally {
+				nconnector.close();
+			}
+
+		} catch (PrincipalAlreadyExistsException paee) {
+			/* This may be caused by an interrupted test, so cleanup this time */
+			try {
+				connector.deleteRole(testRoleName);
+			} catch (Exception e) {
+			}
+			try {
+				connector.deleteRole(testRoleName + "2");
+			} catch (Exception e) {
+			}
+			try {
+				connector.deleteRole(testRoleName + "3");
+			} catch (Exception e) {
+			}
+			throw paee;
+		} finally {
+			if (fromDataSource1 != null)
+				connector.deleteRole(testRoleName);
+			if (fromDataSource2 != null)
+				connector.deleteRole(testRoleName + "2");
+			if (fromDataSource3 != null)
+				connector.deleteRole(testRoleName + "3");
 		}
 	}
 
