@@ -320,17 +320,17 @@ public class Office365Connector extends AbstractConnector<Office365Configuration
 		@Override
 		protected Users all(String nextLink) {
 			Filter f = null;
-			if(!configuration.getIncludedUsers().isEmpty()) {
+			if(!getConfiguration().getIncludedUsers().isEmpty()) {
 				Or or = new Or();
-				for(String g : configuration.getIncludedUsers()) {
+				for(String g : getConfiguration().getIncludedUsers()) {
 					or.add(new Eq("displayName", g));
 				}
 				f = or;
 			}
 
-			if(!configuration.getExcludedUsers().isEmpty()) {
+			if(!getConfiguration().getExcludedUsers().isEmpty()) {
 				Or or = new Or();
-				for(String g : configuration.getExcludedUsers()) {
+				for(String g : getConfiguration().getExcludedUsers()) {
 					or.add(new Eq("displayName", g));
 				}
 				if(f == null)
@@ -339,11 +339,11 @@ public class Office365Connector extends AbstractConnector<Office365Configuration
 					f = new And(f, or);
 			}
 			
-			if(!StringUtil.isNullOrEmpty(configuration.getUserFilterExpression())) {
+			if(!StringUtil.isNullOrEmpty(getConfiguration().getUserFilterExpression())) {
 				if(f == null)
-					f = new Value(configuration.getUserFilterExpression());
+					f = new Value(getConfiguration().getUserFilterExpression());
 				else
-					f = new And(f, new Value(configuration.getUserFilterExpression()));
+					f = new And(f, new Value(getConfiguration().getUserFilterExpression()));
 			}
 			
 			
@@ -374,19 +374,19 @@ public class Office365Connector extends AbstractConnector<Office365Configuration
 			 * 
 			 * These will be filtered client side using {@link RoleFilteringIterator}.
 			 */
-			if(!configuration.getIncludedGroups().isEmpty()) {
+			if(!getConfiguration().getIncludedGroups().isEmpty()) {
 				Or or = new Or();
-				for(String g : configuration.getIncludedGroups()) {
+				for(String g : getConfiguration().getIncludedGroups()) {
 					or.add(new Eq("displayName", g));
 				}
 				f = or;
 			}
 			
-			if(!StringUtil.isNullOrEmpty(configuration.getGroupFilterExpression())) {
+			if(!StringUtil.isNullOrEmpty(getConfiguration().getGroupFilterExpression())) {
 				if(f == null)
-					f = new Value(configuration.getGroupFilterExpression());
+					f = new Value(getConfiguration().getGroupFilterExpression());
 				else
-					f = new And(f, new Value(configuration.getGroupFilterExpression()));
+					f = new And(f, new Value(getConfiguration().getGroupFilterExpression()));
 			}
 			
 			return directory.groups().all(nextLink, f);
