@@ -33,6 +33,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -62,6 +63,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.identity4j.connector.ConnectorCapability;
+import com.identity4j.connector.Count;
 import com.identity4j.connector.Media;
 import com.identity4j.connector.ResultIterator;
 import com.identity4j.connector.exception.ConnectorException;
@@ -174,25 +176,26 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 
 	@Override
 	public Set<ConnectorCapability> getCapabilities() {
-		if (!capabilities.contains(ConnectorCapability.hasPasswordPolicy)) {
-			capabilities.add(ConnectorCapability.hasPasswordPolicy);
-			capabilities.add(ConnectorCapability.caseInsensitivePrincipalNames);
-			capabilities.add(ConnectorCapability.accountLocking);
-			capabilities.add(ConnectorCapability.accountDisable);
-			capabilities.add(ConnectorCapability.createRole);
-			capabilities.add(ConnectorCapability.updateRole);
-			capabilities.add(ConnectorCapability.deleteRole);
-			capabilities.add(ConnectorCapability.forcePasswordChange);
-		}
-		return capabilities;
+		Set<ConnectorCapability> thisCaps = new HashSet<>(capabilities);
+		thisCaps.add(ConnectorCapability.hasPasswordPolicy);
+		thisCaps.add(ConnectorCapability.caseInsensitivePrincipalNames);
+		thisCaps.add(ConnectorCapability.accountLocking);
+		thisCaps.add(ConnectorCapability.accountDisable);
+		thisCaps.add(ConnectorCapability.createRole);
+		thisCaps.add(ConnectorCapability.updateRole);
+		thisCaps.add(ConnectorCapability.deleteRole);
+		thisCaps.add(ConnectorCapability.forcePasswordChange);
+		thisCaps.add(ConnectorCapability.tag);
+		return thisCaps;
 	}
 
 	/**
 	 * These are the attributes we need for operation, but are not stored as actual
 	 * attributes in our local database
 	 */
-	private static Collection<String> DEFAULT_USER_ATTRIBUTES = Arrays.asList(new String[] { MEMBER_ATTRIBUTE,
-			OBJECT_GUID_ATTRIBUTE, OU_ATTRIBUTE, DISTINGUISHED_NAME_ATTRIBUTE, PRIMARY_GROUP_ID_ATTRIBUTE, USN_CHANGED });
+	private static Collection<String> DEFAULT_USER_ATTRIBUTES = Arrays
+			.asList(new String[] { MEMBER_ATTRIBUTE, OBJECT_GUID_ATTRIBUTE, OU_ATTRIBUTE, DISTINGUISHED_NAME_ATTRIBUTE,
+					PRIMARY_GROUP_ID_ATTRIBUTE, USN_CHANGED, HIGHEST_COMMITTED_USN });
 	/**
 	 * These are attributes we need for operation and want to store as attributes as
 	 * well.
@@ -221,11 +224,11 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 	});
 
 	private static Collection<String> CORE_IDENTITY_ATTRIBUTES = Arrays.asList(new String[] { COMMON_NAME_ATTRIBUTE,
-			SAM_ACCOUNT_NAME_ATTRIBUTE, USER_PRINCIPAL_NAME_ATTRIBUTE, OBJECT_CLASS_ATTRIBUTE });
+			SAM_ACCOUNT_NAME_ATTRIBUTE, USER_PRINCIPAL_NAME_ATTRIBUTE, OBJECT_CLASS_ATTRIBUTE, HIGHEST_COMMITTED_USN });
 
-	private static Collection<String> ALL_ROLE_ATTRIBUTES = Arrays
-			.asList(new String[] { OBJECT_SID_ATTRIBUTE, OBJECT_GUID_ATTRIBUTE, GROUP_TYPE_ATTRIBUTE,
-					COMMON_NAME_ATTRIBUTE, DISTINGUISHED_NAME_ATTRIBUTE, PASSWORD_POLICY_APPLIES, MEMBER_ATTRIBUTE, USN_CHANGED });
+	private static Collection<String> ALL_ROLE_ATTRIBUTES = Arrays.asList(
+			new String[] { OBJECT_SID_ATTRIBUTE, OBJECT_GUID_ATTRIBUTE, GROUP_TYPE_ATTRIBUTE, COMMON_NAME_ATTRIBUTE,
+					DISTINGUISHED_NAME_ATTRIBUTE, SAM_ACCOUNT_NAME_ATTRIBUTE, PASSWORD_POLICY_APPLIES, MEMBER_ATTRIBUTE, USN_CHANGED, HIGHEST_COMMITTED_USN });
 
 	public static final int CHANGE_PASSWORD_AT_NEXT_LOGON_FLAG = 0;
 	public static final int CHANGE_PASSWORD_AT_NEXT_LOGON_CANCEL_FLAG = -1;
@@ -310,41 +313,78 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 	}
 
 	@Override
-	public ResultIterator<Identity> allIdentities(String tag) throws ConnectorException {
-		Filter filter = buildIdentityFilter(WILDCARD_SEARCH);
-		if(!StringUtil.isNullOrEmpty(tag)) {
+	public Count<Long> countIdentities(String tag) throws ConnectorException {
+		try {
+			USNWrapperIterator<Identity> it = new USNWrapperIterator<Identity>(getIdentities(createTagFilter(buildIdentityFilter(WILDCARD_SEARCH), tag)));
+			return new Count<Long>(count(it), it.tag());
+		} catch (NamingException e) {
+			throw new ConnectorException(processNamingException(e), e);
+		} catch (IOException e) {
+			throw new ConnectorException(e);
+		}
+		
+	}
+
+	@Override
+	public Count<Long> countRoles(String tag) throws ConnectorException {
+		try {
+			USNWrapperIterator<Role> it = new USNWrapperIterator<Role>(getRoles(createTagFilter(buildRoleFilter(WILDCARD_SEARCH, true), tag)));
+			return new Count<Long>(count(it), it.tag());
+		} catch (NamingException e) {
+			throw new ConnectorException(processNamingException(e), e);
+		} catch (IOException e) {
+			throw new ConnectorException(e);
+		}
+		
+	}
+
+	protected Filter createTagFilter(Filter filter, String tag) {
+		if (!StringUtil.isNullOrEmpty(tag)) {
 			And and = new And();
 			and.add(filter);
-			/* There is no our greater than condition for LDAP, so increase the 
-			 * USN value by 1 
+			/*
+			 * There is no our greater than condition for LDAP, so increase the USN value by
+			 * 1
 			 */
 			and.add(new Ge(USN_CHANGED, String.valueOf(Long.parseLong(tag) + 1)));
 			filter = and;
 		}
+		return filter;
+	}
+
+	@Override
+	public ResultIterator<Identity> allIdentities(String tag) throws ConnectorException {
 		try {
-			return new USNWrapperIterator<Identity>(getIdentities(filter));
+			return new USNWrapperIterator<Identity>(getIdentities(createTagFilter(buildIdentityFilter(WILDCARD_SEARCH), tag)));
 		} catch (NamingException e) {
 			throw new ConnectorException(processNamingException(e), e);
 		} catch (IOException e) {
 			throw new ConnectorException(e);
 		}
 	}
-	
-	class USNWrapperIterator<E> implements ResultIterator<E> {
-		
+
+	@Override
+	public final ResultIterator<Role> allRoles(String tag) throws ConnectorException {
+		try {
+			return new USNWrapperIterator<Role>(getRoles(createTagFilter(buildRoleFilter(WILDCARD_SEARCH, true), tag)));
+		} catch (NamingException e) {
+			throw new ConnectorException(processNamingException(e), e);
+		} catch (IOException e) {
+			throw new ConnectorException(e);
+		}
+	}
+
+	class USNWrapperIterator<E extends Principal> implements ResultIterator<E> {
+
 		private Iterator<E> delegate;
-		private String tag;
+		private long usn;
 
 		USNWrapperIterator(Iterator<E> delegate) throws NamingException, IOException {
 			this.delegate = delegate;
-			
-			And filter = new And();
-			filter.add(new Eq("objectClass", "*"));
-			
-			Attributes attr = ldapService.getAttributes(getConfiguration().getBaseDn());
-			Attribute usnAttr = attr.get(HIGHEST_COMMITTED_USN);
-			if(usnAttr != null) {
-				tag = String.valueOf(usnAttr.get());
+			// https://docs.microsoft.com/en-us/windows/win32/ad/polling-for-changes-using-usnchanged
+			Attribute usnAttr = ldapService.getRootDSEAttribute(HIGHEST_COMMITTED_USN);
+			if (usnAttr != null) {
+				usn = Long.valueOf(String.valueOf(usnAttr.get()));
 			}
 		}
 
@@ -360,14 +400,14 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 
 		@Override
 		public String tag() {
-			return tag;
+			return String.valueOf(usn);
 		}
-		
+
 	}
 
 	@Override
 	protected void assignRole(LdapName userDn, Role role) throws NamingException, IOException {
-		if(role.getPrincipalName().equals("Domain Users")) {
+		if (role.getPrincipalName().equals("Domain Users")) {
 			LOG.warn(String.format("%s is automatically assigned to Domain Users", userDn));
 			return;
 		}
@@ -843,17 +883,20 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 	public Iterator<ADPasswordCharacteristics> getPasswordPolicies() {
 
 		try {
-			return ldapService.search(ldapService.buildObjectClassFilter("msDS-PasswordSettings", "cn", WILDCARD_SEARCH), new ResultMapper<ADPasswordCharacteristics>() {
+			return ldapService.search(
+					ldapService.buildObjectClassFilter("msDS-PasswordSettings", "cn", WILDCARD_SEARCH),
+					new ResultMapper<ADPasswordCharacteristics>() {
 
-				@Override
-				public ADPasswordCharacteristics apply(SearchResult result) throws NamingException, IOException {
-					return loadCharacteristics(result);
-				}
+						@Override
+						public ADPasswordCharacteristics apply(SearchResult result)
+								throws NamingException, IOException {
+							return loadCharacteristics(result);
+						}
 
-				public boolean isApplyFilters() {
-					return false;
-				}
-			}, ldapService.getSearchControls());
+						public boolean isApplyFilters() {
+							return false;
+						}
+					}, ldapService.getSearchControls());
 		} catch (NamingException e) {
 			processNamingException(e);
 			throw new IllegalStateException("Unreachable code");
@@ -1156,9 +1199,10 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 		final int minimumPasswordAge = getMinimumPasswordAge();
 		final int maximumPasswordAge = getMaximumPasswordAge();
 		final long lockoutDuration = getBaseLongAttribute(LOCKOUT_DURATION_ATTRIBUTE);
-		
+
 		// If using server side DN member filter, encode a new filter
-		if (getActiveDirectoryConfiguration().isFilteredByRole() && getActiveDirectoryConfiguration().getRoleMode().equals(RoleMode.serverDistinguishedNames)) {
+		if (getActiveDirectoryConfiguration().isFilteredByRole()
+				&& getActiveDirectoryConfiguration().getRoleMode().equals(RoleMode.serverDistinguishedNames)) {
 
 			Or incFilters = new Or();
 			for (String inc : getActiveDirectoryConfiguration().getIncludedRolesDN()) {
@@ -1187,7 +1231,6 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 			filter = newFilter;
 			LOG.info("Final user search filter is '" + filter.encode() + "'");
 		}
-		
 
 		try {
 			return ldapService.search(filter, new ResultMapper<Identity>() {
@@ -1302,8 +1345,9 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 						passwordStatus.calculateType();
 					}
 					String userAccountControl = (String) getAttribute(attributes.get(USER_ACCOUNT_CONTROL_ATTRIBUTE));
-					if(StringUtil.isNullOrEmpty(userAccountControl)) {
-						throw new ConnectorException("Cannot read the required attribute userAccountControl. Please check the permissions of your service account. Read userAccountControl must be enabled.");
+					if (StringUtil.isNullOrEmpty(userAccountControl)) {
+						throw new ConnectorException(
+								"Cannot read the required attribute userAccountControl. Please check the permissions of your service account. Read userAccountControl must be enabled.");
 					}
 
 					// Overrides calculated password status, prevent the user
@@ -1373,7 +1417,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 									LdapContext ctx = ldapService.lookupContext(new LdapName(dn));
 									try {
 
-										ActiveDirectoryGroup activeDirectoryGroup = mapRole(dn, ctx.getAttributes(""));
+										ActiveDirectoryGroup activeDirectoryGroup = mapRole(dn, ctx.getAttributes(""), new LdapName(result.getNameInNamespace()));
 										if (activeDirectoryGroup != null) {
 											groups.put(dn.toLowerCase(), activeDirectoryGroup);
 											groupsByRID.put(activeDirectoryGroup.getRid(), activeDirectoryGroup);
@@ -1487,6 +1531,28 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 
 		return config.isUsernameSamAccountName() && isPrimaryDomain ? samAccountName
 				: fixUserPrincipalName(userPrincipalName, domain);
+	}
+	
+	private String selectGroupName(Attributes attributes, LdapName nameInNamespace) throws NamingException {
+		ActiveDirectoryConfiguration config = getActiveDirectoryConfiguration();
+		String domain = getDomain(nameInNamespace);
+		boolean isPrimaryDomain = domain.equalsIgnoreCase(config.getDomain());
+		String samAccountName = StringUtil.nonNull((String) getAttribute(attributes.get(SAM_ACCOUNT_NAME_ATTRIBUTE)));
+		String groupPrincipalName = StringUtil
+				.nonNull((String) getAttribute(attributes.get(getConfiguration().getRoleNameAttribute())));
+		String group = StringUtil.getBeforeLast(groupPrincipalName, "@");
+
+		if (group.equals(groupPrincipalName)) {
+			/** there is no group in UPN, WE HAVE to use the samAccountName **/
+			if (isPrimaryDomain) {
+				return samAccountName;
+			} else {
+				return samAccountName + "@" + domain;
+			}
+		}
+
+		return config.isGroupSamAccountName() && isPrimaryDomain ? samAccountName
+				: fixUserPrincipalName(groupPrincipalName, domain);
 	}
 
 	/**
@@ -1602,9 +1668,36 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 	}
 
 	@Override
+	protected Filter buildRoleFilter(String roleName, boolean isWildcard) {
+
+		ActiveDirectoryConfiguration activeDirectoryConfiguration = getActiveDirectoryConfiguration();
+
+		Or inner = new Or();
+		if(!getConfiguration().getRoleNameAttribute().equals(SAM_ACCOUNT_NAME_ATTRIBUTE))
+			inner.add(new Eq(SAM_ACCOUNT_NAME_ATTRIBUTE, roleName));
+		inner.add(new Eq(getConfiguration().getRoleNameAttribute(), roleName));
+
+		String groupPrincipalName = roleName;
+		if (!activeDirectoryConfiguration.isGroupSamAccountName() && !roleName.equals(WILDCARD_SEARCH) && !isWildcard) {
+			int idx = groupPrincipalName.indexOf('@');
+			if (idx == -1) {
+				groupPrincipalName += "@" + activeDirectoryConfiguration.getDomain();
+				inner.add(new Eq(getConfiguration().getRoleNameAttribute(), groupPrincipalName));
+			}
+		}
+
+		And outer = new And();
+		outer.add(new Not(new Eq(OBJECT_CLASS_ATTRIBUTE, "computer")));
+		outer.add(new Eq(OBJECT_CLASS_ATTRIBUTE, getConfiguration().getRoleObjectClass()));
+		outer.add(inner);
+
+		return outer;
+	}
+
+	@Override
 	protected Filter buildIdentityFilter(String identityName) {
 		ActiveDirectoryConfiguration activeDirectoryConfiguration = getActiveDirectoryConfiguration();
-		
+
 		Or inner = new Or();
 		inner.add(new Eq(SAM_ACCOUNT_NAME_ATTRIBUTE, identityName));
 		inner.add(new Eq(USER_PRINCIPAL_NAME_ATTRIBUTE, identityName));
@@ -1617,7 +1710,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 				inner.add(new Eq(USER_PRINCIPAL_NAME_ATTRIBUTE, userPrincipalName));
 			}
 		}
-		
+
 		And outer = new And();
 		outer.add(new Not(new Eq(OBJECT_CLASS_ATTRIBUTE, "computer")));
 		outer.add(new Eq(OBJECT_CLASS_ATTRIBUTE, "user"));
@@ -1678,14 +1771,13 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 
 	@Override
 	protected ActiveDirectoryGroup mapRole(SearchResult result) throws NamingException {
-
 		Attributes attributes = result.getAttributes();
-		return mapRole(result.getNameInNamespace(), attributes);
+		return mapRole(result.getNameInNamespace(), attributes, new LdapName(result.getNameInNamespace()));
 	}
 
-	protected ActiveDirectoryGroup mapRole(String dn, Attributes attributes)
+	protected ActiveDirectoryGroup mapRole(String dn, Attributes attributes, LdapName nameInNamespace)
 			throws NamingException, InvalidNameException {
-		String commonName = StringUtil.nonNull((String) getAttribute(attributes.get(COMMON_NAME_ATTRIBUTE)));
+		String commonName = selectGroupName(attributes, nameInNamespace);
 		if (commonName.length() != 0) {
 			Util.memDbg(String.format("Group %s ", dn));
 			String guid = UUID.nameUUIDFromBytes((byte[]) getAttribute(attributes.get(OBJECT_GUID_ATTRIBUTE)))

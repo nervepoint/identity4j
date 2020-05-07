@@ -63,7 +63,7 @@ public abstract class CriteriaFilter implements Filter {
 
 	@Override
 	public String toString() {
-		return getClass().getName() + " [name=" + name + ", value=" + value + ", op=" + op + "]";
+		return getClass().getName() + " [name=" + name + ", value=" + value + ", op=" + op + ", encoded=" + encode() + "]";
 	}
 
 }

@@ -53,9 +53,9 @@ import com.identity4j.util.MultiMap;
  */
 public abstract class AbstractDirectoryConfiguration extends AbstractConnectorConfiguration {
 
-    public enum RoleMode {
-        disabled, principalNames, distinguishedNames, serverDistinguishedNames
-    }
+	public enum RoleMode {
+		disabled, principalNames, distinguishedNames, serverDistinguishedNames
+	}
 
 	static Log LOG = LogFactory.getLog(AbstractDirectoryConfiguration.class);
 
@@ -95,16 +95,16 @@ public abstract class AbstractDirectoryConfiguration extends AbstractConnectorCo
 	public static final String DIRECTORY_EXCLUDES = "directory.excludes";
 
 	public static final String DIRECTORY_INCLUDES = "directory.includes";
-	
-    public static final String DIRECTORY_ROLE_MODE = "directory.roleMode";
 
-    public static final String DIRECTORY_INCLUDE_ROLES = "directory.includeRoles";
+	public static final String DIRECTORY_ROLE_MODE = "directory.roleMode";
 
-    public static final String DIRECTORY_EXCLUDE_ROLES = "directory.excludeRoles";
+	public static final String DIRECTORY_INCLUDE_ROLES = "directory.includeRoles";
 
-    public static final String DIRECTORY_INCLUDE_ROLES_DN = "directory.includeRolesDN";
+	public static final String DIRECTORY_EXCLUDE_ROLES = "directory.excludeRoles";
 
-    public static final String DIRECTORY_EXCLUDE_ROLES_DN = "directory.excludeRolesDN";
+	public static final String DIRECTORY_INCLUDE_ROLES_DN = "directory.includeRolesDN";
+
+	public static final String DIRECTORY_EXCLUDE_ROLES_DN = "directory.excludeRolesDN";
 
 	/**
 	 * Follow referrals?
@@ -125,13 +125,6 @@ public abstract class AbstractDirectoryConfiguration extends AbstractConnectorCo
 	 * Max page size
 	 */
 	public static final String DIRECTORY_MAX_PAGE_SIZE = "directory.maxPageSize";
-
-	/**
-	 * Use the new search results iterator. This option is temporary and will be 
-	 * removed when the new iterator is proved.
-	 */
-	@Deprecated
-	public static final String DIRECTORY_NEW_ITERATOR = "directory.newIterator";
 
 	/**
 	 */
@@ -158,11 +151,11 @@ public abstract class AbstractDirectoryConfiguration extends AbstractConnectorCo
 	private final Name baseDn;
 	private final Collection<Name> includes;
 	private final Collection<Name> excludes;
-    private final Set<String> includeRoles;
-    private final Set<String> excludeRoles;
-    private final Set<String> includeRolesDN;
-    private final Set<String> excludeRolesDN;
-    private final RoleMode roleMode;
+	private final Set<String> includeRoles;
+	private final Set<String> excludeRoles;
+	private final Set<String> includeRolesDN;
+	private final Set<String> excludeRolesDN;
+	private RoleMode roleMode;
 
 	String securityProtocol = SSL;
 
@@ -178,16 +171,21 @@ public abstract class AbstractDirectoryConfiguration extends AbstractConnectorCo
 			excludes = getNames(configurationParameters.getStringArrayOrDefault(DIRECTORY_EXCLUDES));
 			includes.removeAll(excludes);
 			securityProtocol = configurationParameters.getStringOrDefault(DIRECTORY_SECURITY_PROTOCOL, SSL);
-			 roleMode = RoleMode.valueOf(configurationParameters.getStringOrDefault(DIRECTORY_ROLE_MODE, RoleMode.principalNames
-                     .name()));
-		     includeRoles = new HashSet<String>(Arrays.asList(configurationParameters.getStringArrayOrDefault(
-		         DIRECTORY_INCLUDE_ROLES)));
-		     excludeRoles = new HashSet<String>(Arrays.asList(configurationParameters.getStringArrayOrDefault(
-		         DIRECTORY_EXCLUDE_ROLES)));
-		     includeRolesDN = new HashSet<String>(Arrays.asList(configurationParameters.getStringArrayOrDefault(
-		         DIRECTORY_INCLUDE_ROLES_DN)));
-		     excludeRolesDN = new HashSet<String>(Arrays.asList(configurationParameters.getStringArrayOrDefault(
-		         DIRECTORY_EXCLUDE_ROLES_DN)));
+			try {
+				roleMode = RoleMode.valueOf(configurationParameters.getStringOrDefault(DIRECTORY_ROLE_MODE,
+						RoleMode.principalNames.name()));
+			} catch (IllegalStateException ise) {
+				LOG.warn(String.format("Invalid role mode, reverting to %s", RoleMode.principalNames));
+				roleMode = RoleMode.principalNames;
+			}
+			includeRoles = new HashSet<String>(
+					Arrays.asList(configurationParameters.getStringArrayOrDefault(DIRECTORY_INCLUDE_ROLES)));
+			excludeRoles = new HashSet<String>(
+					Arrays.asList(configurationParameters.getStringArrayOrDefault(DIRECTORY_EXCLUDE_ROLES)));
+			includeRolesDN = new HashSet<String>(
+					Arrays.asList(configurationParameters.getStringArrayOrDefault(DIRECTORY_INCLUDE_ROLES_DN)));
+			excludeRolesDN = new HashSet<String>(
+					Arrays.asList(configurationParameters.getStringArrayOrDefault(DIRECTORY_EXCLUDE_ROLES_DN)));
 			if (includes.isEmpty()) {
 				includes.add(baseDn);
 			}
@@ -266,21 +264,21 @@ public abstract class AbstractDirectoryConfiguration extends AbstractConnectorCo
 		return excludes;
 	}
 
-    public Set<String> getIncludedRolesDN() {
-        return includeRolesDN;
-    }
+	public Set<String> getIncludedRolesDN() {
+		return includeRolesDN;
+	}
 
-    public Set<String> getExcludedRolesDN() {
-        return excludeRolesDN;
-    }
+	public Set<String> getExcludedRolesDN() {
+		return excludeRolesDN;
+	}
 
-    public Set<String> getIncludedRoles() {
-        return includeRoles;
-    }
+	public Set<String> getIncludedRoles() {
+		return includeRoles;
+	}
 
-    public Set<String> getExcludedRoles() {
-        return excludeRoles;
-    }
+	public Set<String> getExcludedRoles() {
+		return excludeRoles;
+	}
 
 	/**
 	 * Get if roles should be enabled at all.
@@ -288,12 +286,12 @@ public abstract class AbstractDirectoryConfiguration extends AbstractConnectorCo
 	 * @return reconcile roles
 	 */
 	public boolean isEnableRoles() {
-        return !roleMode.equals(RoleMode.disabled);
+		return !roleMode.equals(RoleMode.disabled);
 	}
 
-    public RoleMode getRoleMode() {
-        return roleMode;
-    }
+	public RoleMode getRoleMode() {
+		return roleMode;
+	}
 
 	protected String[] buildProviderUrls(String... controllerHosts) {
 		Collection<String> hosts = new ArrayList<String>();
@@ -389,16 +387,6 @@ public abstract class AbstractDirectoryConfiguration extends AbstractConnectorCo
 	 */
 	public final String getVersion() {
 		return configurationParameters.getStringOrDefault("directory.version", "3");
-	}
-
-	/**
-	 * Get if the new iterator should be used for this connection. This is temporary and
-	 * will be removed when the new iterator is proved.
-	 * 
-	 * @return use new iterator
-	 */
-	public final boolean isNewIterator() {
-		return configurationParameters.getBooleanOrDefault(DIRECTORY_NEW_ITERATOR, true);
 	}
 
 	/**
@@ -732,18 +720,20 @@ public abstract class AbstractDirectoryConfiguration extends AbstractConnectorCo
 
 	public String getOU() {
 		return configurationParameters.getString(DIRECTORY_USER_OU);
-	} 
-	
+	}
+
 	public boolean isFilteredByRolePrincipalName() {
-        return getRoleMode().equals(RoleMode.principalNames) && (!getIncludedRoles().isEmpty() || !getExcludedRoles().isEmpty());
-    }
+		return getRoleMode().equals(RoleMode.principalNames)
+				&& (!getIncludedRoles().isEmpty() || !getExcludedRoles().isEmpty());
+	}
 
-    public boolean isFilteredByRoleDistinguishedName() {
-        return (getRoleMode().equals(RoleMode.distinguishedNames) || getRoleMode().equals(RoleMode.serverDistinguishedNames))
-                        && (!getIncludedRolesDN().isEmpty() || !getExcludedRolesDN().isEmpty());
-    }
+	public boolean isFilteredByRoleDistinguishedName() {
+		return (getRoleMode().equals(RoleMode.distinguishedNames)
+				|| getRoleMode().equals(RoleMode.serverDistinguishedNames))
+				&& (!getIncludedRolesDN().isEmpty() || !getExcludedRolesDN().isEmpty());
+	}
 
-    public boolean isFilteredByRole() {
-        return isEnableRoles() && (isFilteredByRoleDistinguishedName() || isFilteredByRolePrincipalName());
-    }
+	public boolean isFilteredByRole() {
+		return isEnableRoles() && (isFilteredByRoleDistinguishedName() || isFilteredByRolePrincipalName());
+	}
 }

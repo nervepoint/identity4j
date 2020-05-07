@@ -25,7 +25,7 @@ package com.identity4j.connector.jndi.directory.filter;
 public class Ge extends CriteriaFilter {
 
 	public Ge(String name, String value) {
-		super(name, ">=", escape(value));
+		super(">=", name, escape(value));
 	}
 
 }

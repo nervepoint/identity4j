@@ -25,7 +25,7 @@ package com.identity4j.connector.jndi.directory.filter;
 public class Proximity extends CriteriaFilter {
 
 	public Proximity(String name, String value) {
-		super(name, "~=", escape(value));
+		super("~=", name, escape(value));
 	}
 
 }

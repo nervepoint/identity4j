@@ -1,6 +1,7 @@
 package com.identity4j.connector.jndi.directory;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 /*
  * #%L
@@ -62,6 +63,7 @@ public class SearchResultsIterator<T extends Object> implements Iterator<T> {
 		this.filteredMapper = filteredMapper;
 		this.dns = dns == null ? null : dns.toArray(new Name[0]);
 		this.filter = filter;
+		LOG.info(String.format("New search iterator using filter: %s for DNs: %s", filter == null ? "<none>" : filter.encode(), dns == null ? null : Arrays.asList(dns)));
 	}
 
 	@Override
@@ -150,6 +152,7 @@ public class SearchResultsIterator<T extends Object> implements Iterator<T> {
 							context.setRequestControls(new Control[] {
 									new PagedResultsControl(configuration.getMaxPageSize(), Control.CRITICAL) });
 						}
+						LOG.info(String.format("Filter : %s", filter.encode()));
 						listIterator = context.search(dn, filter.encode(), searchControls);
 
 					} catch (PartialResultException e) {

@@ -25,7 +25,7 @@ package com.identity4j.connector.jndi.directory.filter;
 public class Le extends CriteriaFilter {
 
 	public Le(String name, String value) {
-		super(name, "<=", escape(value));
+		super("<=", name, escape(value));
 	}
 
 }

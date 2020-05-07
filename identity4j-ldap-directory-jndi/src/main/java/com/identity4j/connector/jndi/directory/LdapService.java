@@ -28,14 +28,10 @@ import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.NoSuchElementException;
 
 import javax.naming.Context;
 import javax.naming.Name;
-import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
-import javax.naming.PartialResultException;
 import javax.naming.directory.Attribute;
 import javax.naming.directory.Attributes;
 import javax.naming.directory.BasicAttribute;
@@ -49,8 +45,6 @@ import javax.naming.ldap.Control;
 import javax.naming.ldap.InitialLdapContext;
 import javax.naming.ldap.LdapContext;
 import javax.naming.ldap.LdapName;
-import javax.naming.ldap.PagedResultsControl;
-import javax.naming.ldap.PagedResultsResponseControl;
 import javax.net.SocketFactory;
 
 import org.apache.commons.logging.Log;
@@ -233,11 +227,7 @@ public class LdapService {
 		return processBlockNoClose(new Block<Iterator<T>>() {
 
 			public Iterator<T> apply(LdapContext context) throws IOException, NamingException {
-				if(configuration.isNewIterator() || "true".equals(System.getProperty("identity4j.useNewIterator", "false")))  {
-					return new SearchResultsIterator<T>(Arrays.asList(baseDN), filter, searchControls, configuration, resultMapper, context);
-				} else {
-					return new OldSearchResultIterator<T>(baseDN, context, filter, resultMapper, searchControls);
-				}
+				return new SearchResultsIterator<T>(Arrays.asList(baseDN), filter, searchControls, configuration, resultMapper, context);
 			}
 		});
 	}
@@ -275,6 +265,15 @@ public class LdapService {
 				}
 				context.bind(name, null, attributes);
 				return null;
+			}
+		});
+	}
+	
+	public Attribute getRootDSEAttribute(String name) throws NamingException, IOException {
+		return processBlock(new Block<Attribute>() {
+			public Attribute apply(LdapContext context) throws NamingException {
+				Attributes attributes = context.getAttributes("", new String[] {name});
+				return attributes.get(name) != null ? attributes.get(name) : null;
 			}
 		});
 	}
@@ -344,167 +343,4 @@ public class LdapService {
 		}
 	}
 	
-	class OldSearchResultIterator<T> implements Iterator<T> {
-
-		NamingEnumeration<SearchResult> results = null;
-		ResultMapper<T> resultMapper;
-		byte[] cookie = null;
-		LdapContext context;
-		SearchControls searchControls;
-		Name baseDN;
-		Filter filter;
-		LinkedList<T> cached = new LinkedList<T>();
-		
-		OldSearchResultIterator(Name baseDN, LdapContext context, Filter filter, ResultMapper<T> resultMapper,
-				SearchControls searchControls) throws NamingException, IOException {
-			this.resultMapper = resultMapper;
-			this.baseDN = baseDN;
-			this.searchControls = searchControls;
-			this.context = context;
-			this.filter = filter;
-			buildResults();
-		}
-
-		private void buildResults() {
-			
-			try {
-				if (cookie != null) {
-					context.setRequestControls(new Control[] {
-							new PagedResultsControl(configuration.getMaxPageSize(), cookie, Control.CRITICAL) });
-				} else {
-					context.setRequestControls(
-							new Control[] { new PagedResultsControl(configuration.getMaxPageSize(), Control.CRITICAL) });
-				}
-				
-				results = context.search(baseDN, filter.encode(), searchControls);
-				
-				while(results.hasMore()) {
-					
-					SearchResult result = null;
-					try {
-						
-						result = results.next();
-	
-						if (resultMapper.isApplyFilters()) {
-
-							Name resultName = new LdapName(result.getNameInNamespace());
-							boolean include = configuration.getIncludes().isEmpty();
-							if (!include) {
-								for (Name name : configuration.getIncludes()) {
-									if (resultName.startsWith(name)) {
-										include = true;
-										break;
-									}
-								}
-							}
-		
-							for (Name name : configuration.getExcludes()) {
-								if (resultName.startsWith(name)) {
-									include = false;
-									break;
-								}
-							}
-		
-							if (!include) {
-								continue;
-							}
-						}
-	
-						cached.addLast(resultMapper.apply(result));
-	
-					} catch (PartialResultException e) {
-						if (configuration.isFollowReferrals()) {
-							LOG.error("Following referrals is on but partial result was received", e);
-						} else {
-							if (LOG.isDebugEnabled()) {
-								LOG.debug("Partial resluts ignored: " + e.getExplanation());
-							}
-						}
-					} catch (NamingException e) {
-						LOG.error("Failed to get results", e);
-						throw new IllegalStateException(e.getMessage(), e);
-					} catch (IOException e) {
-						LOG.error("Failed to get results", e);
-						throw new IllegalStateException(e.getMessage(), e);
-					} finally {
-						if(result!=null && result.getObject()!=null) {
-							((Context)result.getObject()).close();
-						}
-					}
-				}
-			} catch (PartialResultException e) {
-				if (configuration.isFollowReferrals()) {
-					LOG.error("Following referrals is on but partial result was received", e);
-				} else {
-					if (LOG.isDebugEnabled()) {
-						LOG.debug("Partial resluts ignored: " + e.getExplanation());
-					}
-				}
-			} catch (NamingException e) {
-				LOG.error("Failed to get results", e);
-				throw new IllegalStateException(e.getMessage(), e);
-			} catch (IOException e) {
-				LOG.error("Failed to get results", e);
-				throw new IllegalStateException(e.getMessage(), e);
-			} finally {
-				if(results!=null) {
-					try {
-						results.close();
-					} catch (NamingException e) {
-					}
-				}
-			}
-			
-			try {
-
-				// Record page cookie for next set of results
-				Control[] controls = context.getResponseControls();
-				if (controls != null) {
-					for (int i = 0; i < controls.length; i++) {
-						if (controls[i] instanceof PagedResultsResponseControl) {
-							PagedResultsResponseControl pagedResultsResponseControl = (PagedResultsResponseControl) controls[i];
-							cookie = pagedResultsResponseControl.getCookie();
-						}
-					}
-				}
-
-				if (cookie == null) {
-					close(context);
-					return;
-				}
-
-			} catch (NamingException e) {
-				LOG.error("Failed to get results", e);
-				throw new IllegalStateException(e.getMessage(), e);
-			}
-		}
-
-		@Override
-		public boolean hasNext() {
-			return !cached.isEmpty();
-		}
-
-		@Override
-		public T next() {
-
-			if(cached.isEmpty()) {
-				throw new NoSuchElementException();
-			}
-			
-			T next = cached.removeFirst();
-
-			if(cached.isEmpty()) {
-				if(cookie!=null) {
-					buildResults();
-				}
-			}
-
-			return next;
-		}
-
-		@Override
-		public void remove() {
-		}
-
-	}
 }

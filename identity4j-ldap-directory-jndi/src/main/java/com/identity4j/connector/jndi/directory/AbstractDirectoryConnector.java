@@ -105,7 +105,7 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 			.asList(new ConnectorCapability[] { ConnectorCapability.passwordChange, ConnectorCapability.passwordSet,
 					ConnectorCapability.createUser, ConnectorCapability.deleteUser, ConnectorCapability.updateUser,
 					ConnectorCapability.roles, ConnectorCapability.authentication, ConnectorCapability.identities,
-					ConnectorCapability.roleAttributes, ConnectorCapability.identityAttributes, ConnectorCapability.tag }));
+					ConnectorCapability.roleAttributes, ConnectorCapability.identityAttributes }));
 
 	public SocketFactory getSocketFactory() {
 		return socketFactory;
@@ -612,16 +612,10 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 		return getIdentities(buildIdentityFilter(WILDCARD_SEARCH));
 	}
 
-	@Override
-	public long countIdentities() throws ConnectorException {
-		// There is no method for generic LDAP so it's better to return nothing
-		return -1;
-	}
-
-	@Override
-	public long countRoles() throws ConnectorException {
-		// There is no method for generic LDAP so it's better to return nothing
-		return -1;
+	protected Filter buildRoleFilter(String roleName, boolean isWildcard) {
+		String roleObjectClass = getConfiguration().getRoleObjectClass();
+		String roleNameAttribute = getConfiguration().getRoleNameAttribute();
+		return ldapService.buildObjectClassFilter(roleObjectClass, roleNameAttribute, roleName);
 	}
 
 	protected Filter buildIdentityFilter(String identityName) {
@@ -712,12 +706,6 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 		return getRoles(buildRoleFilter(WILDCARD_SEARCH, true));
 	}
 
-	private Filter buildRoleFilter(String roleName, boolean isWildcard) {
-		String roleObjectClass = getConfiguration().getRoleObjectClass();
-		String roleNameAttribute = getConfiguration().getRoleNameAttribute();
-		return ldapService.buildObjectClassFilter(roleObjectClass, roleNameAttribute, roleName);
-	}
-
 	protected Iterator<Role> getRoles() {
 		return getRoles(buildRoleFilter(WILDCARD_SEARCH, true));
 	}
@@ -788,7 +776,7 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 		try {
 			LdapContext ctx = ldapService.lookupContext(dn);
 			try {
-				Attributes attributes = ctx.getAttributes("");
+				Attributes attributes = ctx.getAttributes("", new String[] {attributeName,"rootDomainNamingContext"});
 				return attributes.get(attributeName) != null ? attributes.get(attributeName).get().toString() : null;
 			} catch (NamingException e) {
 				processNamingException(e);

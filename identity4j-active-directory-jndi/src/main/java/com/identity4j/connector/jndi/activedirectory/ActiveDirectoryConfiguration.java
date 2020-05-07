@@ -48,6 +48,7 @@ public class ActiveDirectoryConfiguration extends AbstractDirectoryConfiguration
 	public static final String ACTIVE_DIRECTORY_INCLUDE_DEFAULT_USERS = "activeDirectory.includeDefaultUsers";
 	public static final String ACTIVE_DIRECTORY_INCLUDE_BUILTN_GROUPS = "activeDirectory.includeBuiltInGroups";
 	public static final String ACTIVE_DIRECTORY_USERNAME_IS_SAMACCOUNTNAME = "activeDirectory.usernameSamAccountName";
+	public static final String ACTIVE_DIRECTORY_GROUP_IS_SAMACCOUNTNAME = "activeDirectory.groupSamAccountName";
 	
 	public static final String ACTIVE_DIRECTORy_ENFORCE_PASSWORD_RULES = "activeDirectory.enforcePasswordRules";
 	
@@ -85,7 +86,7 @@ public class ActiveDirectoryConfiguration extends AbstractDirectoryConfiguration
 				"unicode");
 		configurationParameters.set("directory.roleObjectClass", "group");
 		configurationParameters.set("directory.roleNameAttribute",
-				"samAccountName");
+				"cn");
 		configurationParameters
 				.set("directory.roleGuidAttribute", "objectGUID");
 		
@@ -308,6 +309,11 @@ public class ActiveDirectoryConfiguration extends AbstractDirectoryConfiguration
 	public boolean isUsernameSamAccountName() {
 		return configurationParameters.getBooleanOrDefault(
 				ACTIVE_DIRECTORY_USERNAME_IS_SAMACCOUNTNAME, Boolean.FALSE);
+	}
+	
+	public boolean isGroupSamAccountName() {
+		return configurationParameters.getBooleanOrDefault(
+				ACTIVE_DIRECTORY_GROUP_IS_SAMACCOUNTNAME, Boolean.FALSE);
 	}
 
 	@Override
