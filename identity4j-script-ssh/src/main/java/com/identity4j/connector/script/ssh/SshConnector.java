@@ -39,18 +39,17 @@ import com.identity4j.connector.ConnectorConfigurationParameters;
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.exception.PasswordChangeRequiredException;
 import com.identity4j.connector.principal.Identity;
-import com.identity4j.connector.script.ScriptConnector;
+import com.identity4j.connector.script.AbstractScriptConnector;
 import com.identity4j.util.MultiMap;
 import com.identity4j.util.crypt.Encoder;
 import com.identity4j.util.crypt.impl.DefaultEncoderManager;
 import com.identity4j.util.expect.ExpectTimeoutException;
 import com.identity4j.util.unix.UnixUtils;
 
-public class SshConnector extends ScriptConnector {
+public class SshConnector extends AbstractScriptConnector<SshConfiguration> {
 
 	private final static Log LOG = LogFactory.getLog(SshConnector.class);
 
-	private SshConfiguration sshConfiguration;
 	private SshClientWrapper client;
 
 	public static final String FULL_NAME = "fullName";
@@ -71,26 +70,20 @@ public class SshConnector extends ScriptConnector {
 
 	@Override
 	protected String getScriptContent() throws IOException {
-		return sshConfiguration.getScriptContent();
-	}
-
-	@Override
-	protected void onOpen(ConnectorConfigurationParameters parameters) {
-		sshConfiguration = (SshConfiguration) parameters;
-		super.onOpen(parameters);
+		return getConfiguration().getScriptContent();
 	}
 
 	@Override
 	protected void onOpened(ConnectorConfigurationParameters parameters) {
-		client = sshConfiguration.getClientFactory().createInstance(sshConfiguration);
-		getEngine().put("sshFactory", sshConfiguration.getClientFactory());
+		client = getConfiguration().getClientFactory().createInstance(getConfiguration());
+		getEngine().put("sshFactory", getConfiguration().getClientFactory());
 		getEngine().put("sshClient", client);
 		super.onOpened(parameters);
 	}
 
 	@Override
 	protected boolean defaultAreCredentialsValid(Identity identity, char[] password) throws IOException {
-		switch (sshConfiguration.getUserAuthenticationMethod()) {
+		switch (getConfiguration().getUserAuthenticationMethod()) {
 		case ssh:
 			return checkCredentialsUsingSSH(identity, password);
 		case su:
@@ -221,8 +214,8 @@ public class SshConnector extends ScriptConnector {
 
 	protected boolean checkCredentialsUsingSSH(Identity identity, char[] password) {
 
-		SshConfiguration config = new SshConfiguration(new MultiMap(sshConfiguration.getConfigurationParameters()));
-		config.setVerifier(sshConfiguration.getVerifier());
+		SshConfiguration config = new SshConfiguration(new MultiMap(getConfiguration().getConfigurationParameters()));
+		config.setVerifier(getConfiguration().getVerifier());
 		config.setUseKBIForSSHAuthentication(true);
 		config.setServiceAccountUsername(identity.getPrincipalName());
 		config.setServiceAccountPassword(new String(password));

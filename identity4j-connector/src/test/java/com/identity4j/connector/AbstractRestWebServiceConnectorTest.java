@@ -60,7 +60,7 @@ import com.identity4j.util.TestUtils;
 public abstract class AbstractRestWebServiceConnectorTest {
 
     protected static MultiMap configurationParameters;
-    protected static Connector connector;
+    protected static Connector<?> connector;
 
     protected static void init(String configFile) {
         PropertyConfigurator.configure(AbstractRestWebServiceConnectorTest.class.getResource("/test-log4j.properties"));

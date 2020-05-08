@@ -1,6 +1,7 @@
 package com.identity4j.connector.jndi.directory;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 /*
  * #%L
@@ -36,6 +37,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.identity4j.connector.jndi.directory.LdapService.ResultMapper;
+import com.identity4j.connector.jndi.directory.filter.Filter;
 
 public class SearchResultsIterator<T extends Object> implements Iterator<T> {
 
@@ -46,21 +48,22 @@ public class SearchResultsIterator<T extends Object> implements Iterator<T> {
 	private int dnIdx = 0;
 	private T next;
 	private Name dn;
-	private String filter;
+	private Filter filter;
 	private NamingEnumeration<SearchResult> listIterator;
 	private LdapContext context;
 	private SearchControls searchControls;
-	private DirectoryConfiguration configuration;
+	private AbstractDirectoryConfiguration configuration;
 	private byte[] cookie = null;
 
-	public SearchResultsIterator(Collection<? extends Name> dns, String filter, SearchControls searchControls,
-			DirectoryConfiguration configuration, ResultMapper<T> filteredMapper, LdapContext context) {
+	public SearchResultsIterator(Collection<? extends Name> dns, Filter filter, SearchControls searchControls,
+			AbstractDirectoryConfiguration configuration, ResultMapper<T> filteredMapper, LdapContext context) {
 		this.context = context;
 		this.configuration = configuration;
 		this.searchControls = searchControls;
 		this.filteredMapper = filteredMapper;
 		this.dns = dns == null ? null : dns.toArray(new Name[0]);
 		this.filter = filter;
+		LOG.info(String.format("New search iterator using filter: %s for DNs: %s", filter == null ? "<none>" : filter.encode(), dns == null ? null : Arrays.asList(dns)));
 	}
 
 	@Override
@@ -149,7 +152,8 @@ public class SearchResultsIterator<T extends Object> implements Iterator<T> {
 							context.setRequestControls(new Control[] {
 									new PagedResultsControl(configuration.getMaxPageSize(), Control.CRITICAL) });
 						}
-						listIterator = context.search(dn, filter, searchControls);
+						LOG.info(String.format("Filter : %s", filter.encode()));
+						listIterator = context.search(dn, filter.encode(), searchControls);
 
 					} catch (PartialResultException e) {
 						if (configuration.isFollowReferrals()) {

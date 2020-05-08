@@ -28,7 +28,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.nervepoint</groupId>
 	<artifactId>identity4j</artifactId>
-	<version>1.0.5-SNAPSHOT</version>
+	<version>1.1.0-SNAPSHOT</version>
 	<name>Identity4J</name>
 	<description>A suite of Java Identity and Authentication Connectors.</description>
 	<url>http://www.nervepoint.com</url>
@@ -55,7 +55,7 @@
 
 	<distributionManagement>
 		<snapshotRepository>
-			<id>ossrh</id>
+			<id>ossrh-snapshots</id>
 			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
 		</snapshotRepository>
 	</distributionManagement>
@@ -87,6 +87,7 @@
 		<module>identity4j-jdbc</module>
 		<module>identity4j-mysql</module>
 		<module>identity4j-as400</module>
+		<module>identity4j-remote</module>
 		<module>identity4j-google</module>
 		<module>identity4j-office365</module>
 		<module>identity4j-salesforce</module>
@@ -213,7 +214,7 @@
 						<version>1.6.7</version>
 						<extensions>true</extensions>
 						<configuration>
-							<serverId>ossrh-sshtools</serverId>
+							<serverId>ossrh</serverId>
 							<nexusUrl>https://oss.sonatype.org/</nexusUrl>
 							<autoReleaseAfterClose>true</autoReleaseAfterClose>
 						</configuration>

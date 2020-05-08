@@ -35,7 +35,7 @@ import com.identity4j.util.MultiMap;
 /**
  */
 public interface ConnectorConfigurationParameters {
-	
+
 	InputStream getAdditionalIdentityAttributes() throws IOException;
 
 	ResourceBundle getAdditionalResources(Locale locale) throws IOException;
@@ -51,5 +51,7 @@ public interface ConnectorConfigurationParameters {
 	void setIdentityAttributesToRetrieve(Collection<String> identityAttributesToRetrieve);
 
     String getProvisionAttributeForPrincipalName();
+    
+    Class<? extends Connector<?>> getConnectorClass();
 
 }

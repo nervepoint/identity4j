@@ -40,4 +40,8 @@ public class DefaultConnectorConfiguration extends AbstractConnectorConfiguratio
 		return null;
 	}
 
+	@Override
+	public Class<? extends Connector<?>> getConnectorClass() {
+		return null;
+	}
 }

@@ -29,10 +29,11 @@ import java.io.InputStream;
 
 import org.apache.commons.lang3.StringUtils;
 
-import com.identity4j.connector.script.ScriptConfiguration;
+import com.identity4j.connector.Connector;
+import com.identity4j.connector.script.AbstractScriptConfiguration;
 import com.identity4j.util.MultiMap;
 
-public class SshConfiguration extends ScriptConfiguration {
+public class SshConfiguration extends AbstractScriptConfiguration {
 	
 	public enum AuthenticationMethod {
 		passwd,ssh,su
@@ -234,5 +235,10 @@ public class SshConfiguration extends ScriptConfiguration {
 
 	public int getConnectTimeout() {
 		return getConfigurationParameters().getIntegerOrDefault(SSH_CONNECT_TIMEOUT, 5000);
+	}
+
+	@Override
+	public Class<? extends Connector<?>> getConnectorClass() {
+		return SshConnector.class;
 	}
 }

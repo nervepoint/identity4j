@@ -64,7 +64,7 @@ import com.identity4j.util.StringUtil;
 import com.identity4j.util.crypt.EncoderManager;
 import com.identity4j.util.crypt.impl.DefaultEncoderManager;
 
-public abstract class JDBCConnector extends AbstractConnector {
+public abstract class JDBCConnector<P extends ConnectorConfigurationParameters> extends AbstractConnector<P> {
 
 	protected final static EncoderManager encoderManager = DefaultEncoderManager.getInstance();
 

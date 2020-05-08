@@ -75,7 +75,6 @@ import com.google.api.services.admin.directory.model.User;
 import com.google.api.services.admin.directory.model.Users;
 import com.identity4j.connector.AbstractConnector;
 import com.identity4j.connector.ConnectorCapability;
-import com.identity4j.connector.ConnectorConfigurationParameters;
 import com.identity4j.connector.PrincipalType;
 import com.identity4j.connector.WebAuthenticationAPI;
 import com.identity4j.connector.exception.ConnectorException;
@@ -114,13 +113,12 @@ import com.identity4j.util.passwords.PasswordCharacteristics;
  * @author gaurav
  *
  */
-public class GoogleConnector extends AbstractConnector {
+public class GoogleConnector extends AbstractConnector<GoogleConfiguration> {
 
 	private static final int RESOURCE_CONFLICT = 409;
 	private static final int RESOURCE_NOT_FOUND = 404;
 
 	private Directory directory = null;
-	private GoogleConfiguration configuration = null;
 
 	private static final JsonFactory JSON_FACTORY = JacksonFactory.getDefaultInstance();
 
@@ -150,9 +148,9 @@ public class GoogleConnector extends AbstractConnector {
 	protected void checkRequestInterval() {
 		if (lastRequestTime > 0) {
 			long sinceLastRequest = System.currentTimeMillis() - lastRequestTime;
-			if (sinceLastRequest > 0 && sinceLastRequest < configuration.getRequestInterval()) {
+			if (sinceLastRequest > 0 && sinceLastRequest < getConfiguration().getRequestInterval()) {
 				try {
-					Thread.sleep(configuration.getRequestInterval() - sinceLastRequest);
+					Thread.sleep(getConfiguration().getRequestInterval() - sinceLastRequest);
 				} catch (InterruptedException e) {
 				}
 			}
@@ -301,7 +299,7 @@ public class GoogleConnector extends AbstractConnector {
             } catch (InterruptedException e) {
             }
 			
-			if (configuration.getFetchRoles()) {
+			if (getConfiguration().getFetchRoles()) {
 				adjustAdditionRemovalOfRoleOnIdentityUpdate(identity);
 			}
 		} catch (GoogleJsonResponseException e) {
@@ -352,7 +350,7 @@ public class GoogleConnector extends AbstractConnector {
 			checkRequestInterval();
 			User user = directory.users().get(name).execute();
 			GoogleIdentity identity = GoogleModelConvertor.googleUserToGoogleIdentity(user);
-			if (configuration.getFetchRoles()) {
+			if (getConfiguration().getFetchRoles()) {
 				List<Role> roles = findAllRolesForAUser(user.getPrimaryEmail());
 				identity.setRoles(roles);
 			}
@@ -412,13 +410,13 @@ public class GoogleConnector extends AbstractConnector {
 
 			private void getMoreResults() {
 				try {
-					if (isNullOrEmpty(configuration.getGoogleCustomerDomain())
-							&& isNullOrEmpty(configuration.getGoogleCustomerId())) {
+					if (isNullOrEmpty(getConfiguration().getGoogleCustomerDomain())
+							&& isNullOrEmpty(getConfiguration().getGoogleCustomerId())) {
 						throw new IllegalStateException("Customer Domain or Customer Id not set.");
 					}
 
-					Collection<String> includes = configuration.getIncludes();
-					Collection<String> excludes = configuration.getExcludes();
+					Collection<String> includes = getConfiguration().getIncludes();
+					Collection<String> excludes = getConfiguration().getExcludes();
 
 					com.google.api.services.admin.directory.Directory.Users.List list = directory.users().list();
 
@@ -428,10 +426,10 @@ public class GoogleConnector extends AbstractConnector {
 						list.setPageToken(pageToken);
 					}
 
-					if (configuration.getGoogleCustomerDomain() != null) {
-						list.setDomain(configuration.getGoogleCustomerDomain());
+					if (getConfiguration().getGoogleCustomerDomain() != null) {
+						list.setDomain(getConfiguration().getGoogleCustomerDomain());
 					} else {
-						list.setCustomer(configuration.getGoogleCustomerId());
+						list.setCustomer(getConfiguration().getGoogleCustomerId());
 					}
 
 					checkRequestInterval();
@@ -449,7 +447,7 @@ public class GoogleConnector extends AbstractConnector {
 								&& (excludes.isEmpty() || !excludes.contains(orgUnit))) {
 
 							GoogleIdentity identity = GoogleModelConvertor.googleUserToGoogleIdentity(user);
-							if (configuration.getFetchRoles()) {
+							if (getConfiguration().getFetchRoles()) {
 								List<Role> roles = findAllRolesForAUser(user.getPrimaryEmail());
 								identity.setRoles(roles);
 							}
@@ -512,7 +510,7 @@ public class GoogleConnector extends AbstractConnector {
 
 	@Override
 	public WebAuthenticationAPI startAuthentication() throws ConnectorException {
-		return new GoogleOAuth(configuration);
+		return new GoogleOAuth(getConfiguration());
 	}
 
 	@Override
@@ -614,8 +612,8 @@ public class GoogleConnector extends AbstractConnector {
 
 			private void getMoreResults() {
 				try {
-					if (isNullOrEmpty(configuration.getGoogleCustomerDomain())
-							&& isNullOrEmpty(configuration.getGoogleCustomerId())) {
+					if (isNullOrEmpty(getConfiguration().getGoogleCustomerDomain())
+							&& isNullOrEmpty(getConfiguration().getGoogleCustomerId())) {
 						throw new IllegalStateException("Customer Domain or Customer Id not set.");
 					}
 
@@ -627,10 +625,10 @@ public class GoogleConnector extends AbstractConnector {
 						list.setPageToken(pageToken);
 					}
 
-					if (configuration.getGoogleCustomerDomain() != null) {
-						list.setDomain(configuration.getGoogleCustomerDomain());
+					if (getConfiguration().getGoogleCustomerDomain() != null) {
+						list.setDomain(getConfiguration().getGoogleCustomerDomain());
 					} else {
-						list.setCustomer(configuration.getGoogleCustomerId());
+						list.setCustomer(getConfiguration().getGoogleCustomerId());
 					}
 
 					checkRequestInterval();
@@ -1014,12 +1012,11 @@ public class GoogleConnector extends AbstractConnector {
 	 * 
 	 */
 	@Override
-	protected void onOpen(ConnectorConfigurationParameters parameters) throws ConnectorException {
+	protected void onOpen(GoogleConfiguration parameters) throws ConnectorException {
 
 		if (log.isWarnEnabled()) {
 			log.warn("Opening google directory");
 		}
-		configuration = (GoogleConfiguration) parameters;
 
 		try {
 			// consents given to service account id
@@ -1032,7 +1029,7 @@ public class GoogleConnector extends AbstractConnector {
 
 			// credential credential store
 			GoogleCredential credential = null;
-			String json = configuration.getGoogleServiceAccountJson();
+			String json = getConfiguration().getGoogleServiceAccountJson();
 			if (json != null && json.length() > 0) {
 				// http://stackoverflow.com/questions/32019322/howto-create-googlecredential-by-using-service-account-json
 				// credential = GoogleCredential.fromStream(new
@@ -1078,7 +1075,7 @@ public class GoogleConnector extends AbstractConnector {
 						.setJsonFactory(JSON_FACTORY).setServiceAccountId(clientEmail)
 						.setServiceAccountScopes(emptyScopes).setServiceAccountPrivateKey(privateKey)
 						.setServiceAccountPrivateKeyId(privateKeyId)
-						.setServiceAccountUser(configuration.getGoogleUsername());
+						.setServiceAccountUser(getConfiguration().getGoogleUsername());
 				String tokenUri = (String) fileContents.get("token_uri");
 				if (tokenUri != null) {
 					credentialBuilder.setTokenServerEncodedUrl(tokenUri);
@@ -1091,13 +1088,13 @@ public class GoogleConnector extends AbstractConnector {
 				// loading the private key encoded as base 64
 				PrivateKey privateKey = SecurityUtils.loadPrivateKeyFromKeyStore(SecurityUtils.getPkcs12KeyStore(),
 						new Base64InputStream(
-								new ByteArrayInputStream(configuration.getGooglePrivateKeyEncoded().getBytes())),
-						configuration.getGooglePrivatePassphrase(), "privatekey",
-						configuration.getGooglePrivatePassphrase());
+								new ByteArrayInputStream(getConfiguration().getGooglePrivateKeyEncoded().getBytes())),
+						getConfiguration().getGooglePrivatePassphrase(), "privatekey",
+						getConfiguration().getGooglePrivatePassphrase());
 				credential = new GoogleCredential.Builder().setTransport(createTransport()).setJsonFactory(JSON_FACTORY)
-						.setServiceAccountId(configuration.getGoogleServiceAccountId()).setServiceAccountScopes(scopes)
+						.setServiceAccountId(getConfiguration().getGoogleServiceAccountId()).setServiceAccountScopes(scopes)
 						.setServiceAccountPrivateKey(privateKey)
-						.setServiceAccountUser(configuration.getGoogleUsername()).build();
+						.setServiceAccountUser(getConfiguration().getGoogleUsername()).build();
 			}
 
 			// Adding gzip support for all requests
@@ -1109,7 +1106,7 @@ public class GoogleConnector extends AbstractConnector {
 					HttpHeaders httpHeaders = new HttpHeaders();
 					httpHeaders.setAcceptEncoding("gzip");
 					httpHeaders.setUserAgent(
-							"Nervepoint Access Manager v1.2 (gzip) " + configuration.getGoogleCustomerDomain());
+							"Nervepoint Access Manager v1.2 (gzip) " + getConfiguration().getGoogleCustomerDomain());
 					httpRequest.setHeaders(httpHeaders);
 				}
 			});

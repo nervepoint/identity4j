@@ -1,5 +1,7 @@
 package com.identity4j.connector.sap.users;
 
+import com.identity4j.connector.Connector;
+
 /*
  * #%L
  * Identity4J SAP Users
@@ -226,6 +228,11 @@ public class SAPUsersConfiguration extends JDBCConfiguration {
 		return replaceToken(replaceTokens(
 				configurationParameters.getStringOrDefault(SQL_IDENTITY_TABLE_DELETE, "DROP ROLE ${principalName}")),
 				"${principalName}", principalName);
+	}
+
+	@Override
+	public Class<? extends Connector<?>> getConnectorClass() {
+		return SAPUsersConnector.class;
 	}
 
     protected String getProcessedPrincipalName(Principal identity) {

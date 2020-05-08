@@ -40,15 +40,15 @@ public class SshConnectorBuilder extends ConnectorBuilder {
 		return this;
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
-	public ConnectorConfigurationParameters buildConfiguration(
-			MultiMap configurationParameters) throws ConnectorException {
-			
+	public <P extends ConnectorConfigurationParameters> P buildConfiguration(MultiMap configurationParameters)
+			throws ConnectorException {
 		configurationParameters.set(CONFIGURATION_CLASS, SshConfiguration.class.getCanonicalName());
 		configurationParameters.set(CONNECTOR_CLASS, SshConnector.class.getCanonicalName());
 		SshConfiguration cfg = (SshConfiguration)super.buildConfiguration(configurationParameters);
 		if(verifier != null)
 			cfg.setVerifier(verifier);
-		return cfg;
+		return (P) cfg;
 	}
 }

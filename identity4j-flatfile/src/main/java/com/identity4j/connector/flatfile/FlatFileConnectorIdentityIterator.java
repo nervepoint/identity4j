@@ -29,16 +29,15 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 
-import com.identity4j.connector.Connector;
 import com.identity4j.connector.principal.Identity;
 
 public class FlatFileConnectorIdentityIterator implements Iterator<Identity> {
 
     private DelimitedFlatFile flatFile;
     private int keyFieldIndex;
-    private Connector connector;
+    private AbstractFlatFileConnector<?> connector;
 
-    FlatFileConnectorIdentityIterator(DelimitedFlatFile flatFile, int keyFieldIndex, Connector connector) {
+    FlatFileConnectorIdentityIterator(DelimitedFlatFile flatFile, int keyFieldIndex, AbstractFlatFileConnector<?> connector) {
         this.flatFile = flatFile;
         this.keyFieldIndex = keyFieldIndex;
         this.connector = connector;

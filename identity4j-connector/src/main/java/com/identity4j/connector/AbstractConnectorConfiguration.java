@@ -71,5 +71,4 @@ public abstract class AbstractConnectorConfiguration implements ConnectorConfigu
     public String getProvisionAttributeForPrincipalName() {
         return null;
     }
-
 }

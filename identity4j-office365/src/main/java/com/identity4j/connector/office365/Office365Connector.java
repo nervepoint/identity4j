@@ -38,7 +38,6 @@ import org.apache.commons.logging.LogFactory;
 
 import com.identity4j.connector.AbstractConnector;
 import com.identity4j.connector.ConnectorCapability;
-import com.identity4j.connector.ConnectorConfigurationParameters;
 import com.identity4j.connector.WebAuthenticationAPI;
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.exception.PrincipalAlreadyExistsException;
@@ -90,7 +89,7 @@ import com.identity4j.util.passwords.PasswordCharacteristics;
  * @author gaurav
  *
  */
-public class Office365Connector extends AbstractConnector {
+public class Office365Connector extends AbstractConnector<Office365Configuration> {
 
 	private abstract class PrincipalFilterIterator<P extends Principal> implements Iterator<P> {
 		private P current;
@@ -151,8 +150,8 @@ public class Office365Connector extends AbstractConnector {
 
 		protected boolean matches(Identity identity) {
 			boolean ok;
-			Set<String> inc = configuration.getIncludedGroups();
-			Set<String> exc = configuration.getExcludedGroups();
+			Set<String> inc = getConfiguration().getIncludedGroups();
+			Set<String> exc = getConfiguration().getExcludedGroups();
 
 			// Are all of the roles the user has included
 			ok = inc.isEmpty();
@@ -191,7 +190,8 @@ public class Office365Connector extends AbstractConnector {
 
 	private final class RoleFilterIterator extends PrincipalFilterIterator<Role> {
 
-		Set<String> exc = configuration.getExcludedGroups();
+		Set<String> inc = getConfiguration().getIncludedGroups();
+		Set<String> exc = getConfiguration().getExcludedGroups();
 
 		RoleFilterIterator(Iterator<Role> source) {
 			super(source);
@@ -288,7 +288,7 @@ public class Office365Connector extends AbstractConnector {
 			
 			Office365Identity identity = Office365ModelConvertor.convertOffice365UserToOfficeIdentity(current);
 			
-			if(configuration.isPreloadGroupsUsers()) {
+			if(getConfiguration().isPreloadGroupsUsers()) {
 				if(roleMap == null) {
 					roleMap = new HashMap<String, List<Role>>();
 					log.info("Pre-loading groups users");
@@ -320,17 +320,17 @@ public class Office365Connector extends AbstractConnector {
 		@Override
 		protected Users all(String nextLink) {
 			Filter f = null;
-			if(!configuration.getIncludedUsers().isEmpty()) {
+			if(!getConfiguration().getIncludedUsers().isEmpty()) {
 				Or or = new Or();
-				for(String g : configuration.getIncludedUsers()) {
+				for(String g : getConfiguration().getIncludedUsers()) {
 					or.add(new Eq("displayName", g));
 				}
 				f = or;
 			}
 
-			if(!configuration.getExcludedUsers().isEmpty()) {
+			if(!getConfiguration().getExcludedUsers().isEmpty()) {
 				Or or = new Or();
-				for(String g : configuration.getExcludedUsers()) {
+				for(String g : getConfiguration().getExcludedUsers()) {
 					or.add(new Eq("displayName", g));
 				}
 				if(f == null)
@@ -339,11 +339,11 @@ public class Office365Connector extends AbstractConnector {
 					f = new And(f, or);
 			}
 			
-			if(!StringUtil.isNullOrEmpty(configuration.getUserFilterExpression())) {
+			if(!StringUtil.isNullOrEmpty(getConfiguration().getUserFilterExpression())) {
 				if(f == null)
-					f = new Value(configuration.getUserFilterExpression());
+					f = new Value(getConfiguration().getUserFilterExpression());
 				else
-					f = new And(f, new Value(configuration.getUserFilterExpression()));
+					f = new And(f, new Value(getConfiguration().getUserFilterExpression()));
 			}
 			
 			
@@ -352,7 +352,7 @@ public class Office365Connector extends AbstractConnector {
 
 		@Override
 		protected void postIterate(User current) {
-			if (!configuration.isPreloadGroupsUsers())
+			if (!getConfiguration().isPreloadGroupsUsers())
 				directory.users().probeGroupsAndRoles(current);
 		}
 	}
@@ -374,19 +374,19 @@ public class Office365Connector extends AbstractConnector {
 			 * 
 			 * These will be filtered client side using {@link RoleFilteringIterator}.
 			 */
-			if(!configuration.getIncludedGroups().isEmpty()) {
+			if(!getConfiguration().getIncludedGroups().isEmpty()) {
 				Or or = new Or();
-				for(String g : configuration.getIncludedGroups()) {
+				for(String g : getConfiguration().getIncludedGroups()) {
 					or.add(new Eq("displayName", g));
 				}
 				f = or;
 			}
 			
-			if(!StringUtil.isNullOrEmpty(configuration.getGroupFilterExpression())) {
+			if(!StringUtil.isNullOrEmpty(getConfiguration().getGroupFilterExpression())) {
 				if(f == null)
-					f = new Value(configuration.getGroupFilterExpression());
+					f = new Value(getConfiguration().getGroupFilterExpression());
 				else
-					f = new And(f, new Value(configuration.getGroupFilterExpression()));
+					f = new And(f, new Value(getConfiguration().getGroupFilterExpression()));
 			}
 			
 			return directory.groups().all(nextLink, f);
@@ -397,7 +397,6 @@ public class Office365Connector extends AbstractConnector {
 		}
 	}
 
-	private Office365Configuration configuration;
 	private Directory directory;
 	private static final Log log = LogFactory.getLog(Office365Connector.class);
 	private boolean isDeletePrivilege;
@@ -417,7 +416,7 @@ public class Office365Connector extends AbstractConnector {
 
 	@Override
 	public WebAuthenticationAPI startAuthentication() throws ConnectorException {
-		return new Office365OAuth(configuration);
+		return new Office365OAuth(getConfiguration());
 	}
 
 	/**
@@ -821,16 +820,15 @@ public class Office365Connector extends AbstractConnector {
 	 * </p>
 	 */
 	@Override
-	protected void onOpen(ConnectorConfigurationParameters parameters) throws ConnectorException {
-		configuration = (Office365Configuration) parameters;
+	protected void onOpen(Office365Configuration parameters) throws ConnectorException {
 
 		directory = new Directory();
 
 		log.info("Directory instance created.");
 		try {
-			directory.init(configuration);
-			isDeletePrivilege = directory.users().isDeletePrivilege(configuration.getAppPrincipalObjectId(),
-					configuration.getAppDeletePrincipalRole());
+			directory.init(parameters);
+			isDeletePrivilege = directory.users().isDeletePrivilege(parameters.getAppPrincipalObjectId(),
+					parameters.getAppDeletePrincipalRole());
 			log.info("Delete privilege found as " + isDeletePrivilege);
 		} catch (IOException e) {
 			throw new ConnectorException(e.getMessage(), e);
@@ -927,7 +925,7 @@ public class Office365Connector extends AbstractConnector {
 	}
 
 	private boolean isGroupFilterInUse() {
-		return !configuration.getIncludedGroups().isEmpty() || !configuration.getExcludedGroups().isEmpty();
+		return !getConfiguration().getIncludedGroups().isEmpty() || !getConfiguration().getExcludedGroups().isEmpty();
 	}
 
 	private boolean matchesGroups(Role group, Set<String> groups) {
