@@ -615,12 +615,16 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 	protected Filter buildRoleFilter(String roleName, boolean isWildcard) {
 		String roleObjectClass = getConfiguration().getRoleObjectClass();
 		String roleNameAttribute = getConfiguration().getRoleNameAttribute();
+		if(getConfiguration().isServerSideFilter() && isWildcard)
+			throw new UnsupportedOperationException("Server side filtering is not yet supported for generic LDAP.");
 		return ldapService.buildObjectClassFilter(roleObjectClass, roleNameAttribute, roleName);
 	}
 
 	protected Filter buildIdentityFilter(String identityName) {
 		String identityObjectClass = getConfiguration().getIdentityObjectClass();
 		String identityNameAttribute = getConfiguration().getIdentityNameAttribute();
+		if(getConfiguration().isServerSideFilter() && WILDCARD_SEARCH.equals(identityName))
+			throw new UnsupportedOperationException("Server side filtering is not yet supported for generic LDAP.");
 		return ldapService.buildObjectClassFilter(identityObjectClass, identityNameAttribute, identityName);
 	}
 

@@ -152,7 +152,7 @@ public class SearchResultsIterator<T extends Object> implements Iterator<T> {
 							context.setRequestControls(new Control[] {
 									new PagedResultsControl(configuration.getMaxPageSize(), Control.CRITICAL) });
 						}
-						LOG.info(String.format("Filter : %s", filter.encode()));
+						LOG.debug(String.format("Filter : %s", filter.encode()));
 						listIterator = context.search(dn, filter.encode(), searchControls);
 
 					} catch (PartialResultException e) {

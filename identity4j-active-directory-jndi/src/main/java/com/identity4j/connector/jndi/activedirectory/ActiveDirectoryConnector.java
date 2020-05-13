@@ -77,6 +77,7 @@ import com.identity4j.connector.jndi.directory.DirectoryIdentity;
 import com.identity4j.connector.jndi.directory.LdapService.ResultMapper;
 import com.identity4j.connector.jndi.directory.filter.And;
 import com.identity4j.connector.jndi.directory.filter.Eq;
+import com.identity4j.connector.jndi.directory.filter.Extension;
 import com.identity4j.connector.jndi.directory.filter.Filter;
 import com.identity4j.connector.jndi.directory.filter.Ge;
 import com.identity4j.connector.jndi.directory.filter.Not;
@@ -1691,6 +1692,23 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 		outer.add(new Eq(OBJECT_CLASS_ATTRIBUTE, getConfiguration().getRoleObjectClass()));
 		outer.add(inner);
 
+		if (isWildcard && getConfiguration().isServerSideFilter()) {
+			Collection<Name> incs = getConfiguration().getIncludes();
+			if(!incs.isEmpty()) {
+				Or or = new Or();
+				for(Name filter : incs) {
+					or.add(new Eq("distinguishedName", filter.toString()));
+				}
+				outer.add(or);
+			}
+			Collection<Name> excs = getConfiguration().getExcludes();
+			if(!excs.isEmpty()) {
+				for(Name filter : excs) {
+					outer.add(new Not(new Eq("distinguishedName", filter.toString())));
+				}
+			}
+		}
+
 		return outer;
 	}
 
@@ -1715,6 +1733,23 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 		outer.add(new Not(new Eq(OBJECT_CLASS_ATTRIBUTE, "computer")));
 		outer.add(new Eq(OBJECT_CLASS_ATTRIBUTE, "user"));
 		outer.add(inner);
+
+		if (identityName.equals(WILDCARD_SEARCH) && getConfiguration().isServerSideFilter()) {
+			Collection<Name> incs = getConfiguration().getIncludes();
+			if(!incs.isEmpty()) {
+				Or or = new Or();
+				for(Name filter : incs) {
+					or.add(new Eq("distinguishedName", filter.toString()));
+				}
+				outer.add(or);
+			}
+			Collection<Name> excs = getConfiguration().getExcludes();
+			if(!excs.isEmpty()) {
+				for(Name filter : excs) {
+					outer.add(new Not(new Eq("distinguishedName", filter.toString())));
+				}
+			}
+		}
 
 		return outer;
 	}

@@ -96,6 +96,8 @@ public abstract class AbstractDirectoryConfiguration extends AbstractConnectorCo
 
 	public static final String DIRECTORY_INCLUDES = "directory.includes";
 
+	public static final String DIRECTORY_SERVER_SIDE_FILTER = "directory.serverSideFilter";
+
 	public static final String DIRECTORY_ROLE_MODE = "directory.roleMode";
 
 	public static final String DIRECTORY_INCLUDE_ROLES = "directory.includeRoles";
@@ -362,10 +364,21 @@ public abstract class AbstractDirectoryConfiguration extends AbstractConnectorCo
 	}
 
 	/**
+	 * Whether include / exclude filters should use a server side filter (more
+	 * load on AD server, likely faster), or if they should be filtered client side 
+	 * (more load on client computer, likely slower). 
+	 * 
+	 * @return server side filter
+	 */
+	public final boolean isServerSideFilter() {
+		return configurationParameters.getBooleanOrDefault(DIRECTORY_SERVER_SIDE_FILTER, true);
+	}
+
+	/**
 	 * The value to use for <code>com.sun.jndi.ldap.connect.timeout</code>, the
 	 * default is 30.
 	 * 
-	 * @return initial context factory
+	 * @return timeout
 	 */
 	public final int getTimeout() {
 		return configurationParameters.getIntegerOrDefault(DIRECTORY_CONNECT_TIMEOUT, Integer.valueOf(30)) * 1000;
