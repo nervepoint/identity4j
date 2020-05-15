@@ -39,8 +39,8 @@ import com.identity4j.util.validator.IpAddressValidator;
 
 public class ActiveDirectoryConfiguration extends AbstractDirectoryConfiguration {
 
-	private static final String CN_USERS = "CN=Users";
-	private static final String CN_BUILTIN = "CN=Builtin";
+	public static final String CN_USERS = "CN=Users";
+	public static final String CN_BUILTIN = "CN=Builtin";
 	private static final String USE_GLOBAL_CATALOG = "directory.isGlobalCatalog";
 	private static final String CHILD_DOMAIN_CONTROLLERS = "directory.childDomainControllers";
 
@@ -91,6 +91,22 @@ public class ActiveDirectoryConfiguration extends AbstractDirectoryConfiguration
 		configurationParameters.set("direcctory.identityCreationObjectClasses", "user");
 		configurationParameters.set("directory.distinguishedNameAttribute", "distinguishedName");
 		return configurationParameters;
+	}
+	
+	public boolean isIncludeBuiltInGroups() {
+		final List<String> includes = Arrays.asList(configurationParameters
+				.getStringArray(DIRECTORY_INCLUDES));
+		final List<String> excludes = Arrays.asList(configurationParameters
+				.getStringArray(DIRECTORY_EXCLUDES));
+		return ( includes.contains(CN_BUILTIN) || configurationParameters.getBoolean(ACTIVE_DIRECTORY_INCLUDE_BUILTN_GROUPS) ) && !excludes.contains(CN_BUILTIN);
+	}
+	
+	public boolean isIncludeDefaultUsers() {
+		final List<String> includes = Arrays.asList(configurationParameters
+				.getStringArray(DIRECTORY_INCLUDES));
+		final List<String> excludes = Arrays.asList(configurationParameters
+				.getStringArray(DIRECTORY_EXCLUDES));
+		return ( configurationParameters.getBoolean(ACTIVE_DIRECTORY_INCLUDE_DEFAULT_USERS) || includes.contains(CN_USERS) ) && !excludes.contains(CN_USERS);
 	}
 
 	private static void setIncludeBuiltInGroups(MultiMap configurationParameters) {
@@ -314,4 +330,5 @@ public class ActiveDirectoryConfiguration extends AbstractDirectoryConfiguration
 	public Class<? extends Connector<?>> getConnectorClass() {
 		return ActiveDirectoryConnector.class;
 	}
+
 }
