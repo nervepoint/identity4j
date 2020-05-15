@@ -32,12 +32,24 @@ public class ActiveDirectoryGroup extends RoleImpl {
 	private static final long serialVersionUID = -7675417973639150879L;
 	private final Name dn;
 	private final Long rid;
+    private final String[] memberOf;
+    private final String[] member;
 	
-	public ActiveDirectoryGroup(String guid, String samAccountName, Name dn, byte[] sid) {
+	public ActiveDirectoryGroup(String guid, String samAccountName, Name dn, byte[] sid,  String[] memberOf, String[] member) {
 		super(guid, samAccountName);
 		this.dn = dn;
+        this.member = member;
+        this.memberOf = memberOf;
 		rid = ActiveDirectoryUtils.getRIDFromSID(sid);
 	}
+
+    public final String[] getMember() {
+        return member;
+    }
+
+    public final String[] getMemberOf() {
+    	return memberOf;
+    }
 
 	/**
 	 * Get the dn

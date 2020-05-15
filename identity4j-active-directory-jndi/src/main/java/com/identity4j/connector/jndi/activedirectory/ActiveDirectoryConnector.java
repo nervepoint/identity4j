@@ -37,6 +37,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -52,12 +53,10 @@ import javax.naming.directory.ModificationItem;
 import javax.naming.directory.SearchControls;
 import javax.naming.directory.SearchResult;
 import javax.naming.ldap.BasicControl;
-import javax.naming.ldap.LdapContext;
 import javax.naming.ldap.LdapName;
 import javax.naming.ldap.Rdn;
 
 import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -455,7 +454,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 				} else {
 					String[] oldValue = previousState.getAttributes().get(entry.getKey());
 					String[] newValue = newState.getAttributes().get(entry.getKey());
-					if (!ArrayUtils.isEquals(oldValue, newValue)) {
+					if (!Objects.deepEquals(oldValue, newValue)) {
 
 						String[] value = entry.getValue();
 						if (value.length > 0 && !StringUtils.isEmpty(value[0])) {
@@ -1124,7 +1123,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 			String newQuotedPassword = "\"" + new String(password) + "\"";
 			byte[] newUnicodePassword = newQuotedPassword.getBytes("UTF-16LE");
 			boolean enforce = getConfiguration().getConfigurationParameters()
-					.getBoolean(ActiveDirectoryConfiguration.ACTIVE_DIRECTORy_ENFORCE_PASSWORD_RULES);
+					.getBoolean(ActiveDirectoryConfiguration.ACTIVE_DIRECTORY_ENFORCE_PASSWORD_RULES);
 
 			if (type == PasswordResetType.USER) {
 				if (!enforce) {
@@ -1170,29 +1169,33 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 		return values.toArray(new String[values.size()]);
 	}
 
+	protected boolean isChildDomain() {
+		return getRootDomainDN() != null;
+	}
+
+	protected String getRootDomainDN() {
+		String objectCategory = getAttributeValue(getRootDn(), "objectCategory");
+		if (!objectCategory.toLowerCase().endsWith(getRootDn().toString().toLowerCase())) {
+			return objectCategory.substring("CN=Domain-DNS,CN=Schema,CN=Configuration,".length());
+		}
+		return null;
+	}
+
 	@Override
 	protected Iterator<Identity> getIdentities(Filter filter) {
 
 		final ActiveDirectoryConfiguration config = (ActiveDirectoryConfiguration) getConfiguration();
+		
+		// 3 maps used for fast group lookup
 		final Map<String, ActiveDirectoryGroup> groups = new HashMap<String, ActiveDirectoryGroup>();
 		final Map<Long, ActiveDirectoryGroup> groupsByRID = new HashMap<Long, ActiveDirectoryGroup>();
+		final Map<String, List<String>> userGroups = new HashMap<String, List<String>>();
 
 		if (config.isEnableRoles()) {
 			Iterator<Role> it = getRoles();
 			while (it.hasNext()) {
 				ActiveDirectoryGroup group = (ActiveDirectoryGroup) it.next();
-				String dn = group.getDn().toString();
-
-				/**
-				 * LDP: Removed as part of Invalid name fix
-				 */
-				// https://jira.springsource.org/browse/LDAP-109
-//				dn = dn.replace("\\\\", "\\\\\\");
-//				dn = dn.replace("/", "\\/");
-
-				groups.put(dn.toLowerCase(), group);
-				groupsByRID.put(group.getRid(), group);
-				Util.memDbg(String.format("Group cache size %6d  Group: %s ", groups.size(), dn));
+				mapGroup(groups, groupsByRID, userGroups, group, group.getDn().toString());
 			}
 		}
 
@@ -1384,55 +1387,128 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 					}
 
 					if (config.isEnableRoles()) {
-						boolean memberOfSupported = true;
-
+						ActiveDirectoryGroup primaryGroup = null;
 						try {
 							Long rid = Long
 									.parseLong((String) getAttribute(attributes.get(PRIMARY_GROUP_ID_ATTRIBUTE)));
-							ActiveDirectoryGroup primaryGroup = groupsByRID.get(rid);
+							primaryGroup = groupsByRID.get(rid);
 							if (primaryGroup != null) {
 								directoryIdentity.addRole(primaryGroup);
 							}
 						} catch (NumberFormatException e) {
 						}
+						// Should we include - is the user in any role in the
+						// included list (or is this include filter empty, thus
+						// all)
+						boolean foundRole = false;
 
-						Iterator<String> groupDnsItr;
-						try {
-							groupDnsItr = memberOfSupported ? getUsersGroups(result) : getGroupsForUser(result);
+						Iterator<String> groupDnsItr= getUsersGroups(result);
+						List<String> groupDns = new ArrayList<String>();
+						List<String> nonPrimaryGroupDns = new ArrayList<String>();
+						if (primaryGroup != null) {
+							groupDns.add(primaryGroup.getDn().toString());
+						}
+						while (groupDnsItr.hasNext()) {
+							String n = groupDnsItr.next();
+							groupDns.add(n);
+							nonPrimaryGroupDns.add(n);
+						}
 
-							while (groupDnsItr.hasNext()) {
-								String dn = groupDnsItr.next();
+						// TODO nested groups
 
-								/**
-								 * LDP - This is causing Invalid name exception when group is retrieved via
-								 * lookupContext
-								 */
-								// https://jira.springsource.org/browse/LDAP-109
-//								dn = dn.replace("\\\\", "\\\\\\");
-//								dn = dn.replace("/", "\\/");
+						/*
+						 * If we are using a "server side" role filter, then we already know the user is
+						 * part of the role
+						 */
+						if (getActiveDirectoryConfiguration().getRoleMode().equals(RoleMode.serverDistinguishedNames)) {
+							foundRole = true;
+						} else {
+							// All the following is for filtering users based on
+							// their group membership
+							// 'NAM' side, rather than on the server.
 
-								if (groups.containsKey(dn.toLowerCase())) {
-									directoryIdentity.addRole(groups.get(dn.toLowerCase()));
-								} else {
-									LdapContext ctx = ldapService.lookupContext(new LdapName(dn));
-									try {
+							// https://social.technet.microsoft.com/Forums/windowsserver/en-US/f5ec5ed6-a909-46df-a52d-97aeb2b5c29e/active-directory-memberof-attribute
 
-										ActiveDirectoryGroup activeDirectoryGroup = mapRole(dn, ctx.getAttributes(""), new LdapName(result.getNameInNamespace()));
-										if (activeDirectoryGroup != null) {
-											groups.put(dn.toLowerCase(), activeDirectoryGroup);
-											groupsByRID.put(activeDirectoryGroup.getRid(), activeDirectoryGroup);
-											directoryIdentity.addRole(activeDirectoryGroup);
+							// At a DC for the domain that contains the user,
+							// memberOf for the user is complete with respect to
+							// membership for groups in that domain; however,
+							// memberOf does not contain the user's membership
+							// in domain local and global groups in other
+							// domains.
+							//
+							// At a GC server, memberOf for the user is complete
+							// with respect to all universal group
+							// memberships.
+							//
+							//
+							// To combat this we pre-load the groups and lookup
+							// by
+							// name in memory
+
+							if (getActiveDirectoryConfiguration().isFilteredByRoleDistinguishedName()) {
+
+								if (getConfiguration().getIncludedRolesDN().size() > 0) {
+									for (String r : groupDns) {
+										if (containsGroupName(r, getConfiguration().getIncludedRolesDN())) {
+											foundRole = true;
+											break;
 										}
-									} finally {
-										try {
-											ctx.close();
-										} catch (Exception e) {
+									}
+								} else {
+									foundRole = true;
+								}
+
+								if (foundRole && !getConfiguration().getExcludedRolesDN().isEmpty()) {
+									for (String r : groupDns) {
+										if (containsGroupName(r, getConfiguration().getExcludedRolesDN())) {
+											foundRole = false;
+											break;
 										}
 									}
 								}
+							} else {
+								groupDnsItr = groupDns.iterator();
+								while (groupDnsItr.hasNext()) {
+									String dn = groupDnsItr.next();
+									String dnKey = makeDnKey(dn);
+									addRoles(groups, groupsByRID, userGroups, config, directoryIdentity, dn, dnKey);
+								}
+
+								if (getConfiguration().getIncludedRoles().size() > 0) {
+									for (Role r : directoryIdentity.getRoles()) {
+										if (containsGroupName(r.getPrincipalName(), getConfiguration().getIncludedRoles())) {
+											foundRole = true;
+											break;
+										}
+									}
+								} else {
+									foundRole = true;
+								}
+
+								// If we are including, making sure we don't
+								// need to
+								// exlucde
+								if (foundRole && !getConfiguration().getExcludedRoles().isEmpty()) {
+									for (Role r : directoryIdentity.getRoles()) {
+										if (containsGroupName(r.getPrincipalName(), getConfiguration().getExcludedRoles())) {
+											foundRole = false;
+											break;
+										}
+									}
+								}
+
 							}
-						} catch (IOException e) {
-							LOG.error("Problem in getting roles", e);
+						}
+
+						if (!foundRole) {
+							// No role matches filter
+							return null;
+						}
+
+						// All except the first group which is already
+						// added
+						for (String dn : nonPrimaryGroupDns) {
+							addRoles(groups, groupsByRID, userGroups, config, directoryIdentity, dn, makeDnKey(dn));
 						}
 
 					} else {
@@ -1452,6 +1528,50 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 			throw new ConnectorException(e.getMessage(), e);
 		}
 	}
+	
+	private void addRoles(final Map<String, ActiveDirectoryGroup> groups, final Map<Long, ActiveDirectoryGroup> groupsByRID, final Map<String, List<String>> userGroups,
+			ActiveDirectoryConfiguration config, DirectoryIdentity directoryIdentity, String dn, String dnKey) {
+		if (groups.containsKey(dnKey)) {
+			directoryIdentity.addRole(groups.get(dnKey));
+		} else {
+			//
+			// NOTE: For now, only load these groups
+			// dynamically if there are any role filters. When roles are
+			// actually used, this may have to be removed
+			// (and another solution to the horrible performance found
+			// maybe).
+			//
+			if ((config.isFilteredByRolePrincipalName() || isUsePSO())) {
+				LOG.info("Loading role " + dnKey.toLowerCase() + " because we have role filter or using PSOs");
+				try {
+					ActiveDirectoryGroup activeDirectoryGroup = (ActiveDirectoryGroup)getRoleByName(dnKey);
+					if (activeDirectoryGroup != null) {
+						mapGroup(groups, groupsByRID, userGroups, activeDirectoryGroup, dn);
+						directoryIdentity.addRole(activeDirectoryGroup);
+					}
+				} catch (Exception ex) {
+					LOG.info("Ignoring " + dnKey + " because of " + ex.getMessage());
+				}
+			}
+		}
+	}
+
+	protected void mapGroup(final Map<String, ActiveDirectoryGroup> groups, final Map<Long, ActiveDirectoryGroup> groupsByRID, final Map<String, List<String>> userGroups,
+			ActiveDirectoryGroup group, String dn) {
+		groups.put(makeDnKey(dn), group);
+		groupsByRID.put(group.getRid(), group);
+
+		for (String s : group.getMember()) {
+			String dnKey = makeDnKey(s);
+			List<String> l = userGroups.get(dnKey);
+			if (l == null) {
+				l = new ArrayList<String>();
+				userGroups.put(dnKey, l);
+			}
+			l.add(dn);
+		}
+		Util.memDbg(String.format("Group cache size %6d  Group: %s ", groups.size(), dn));
+	}
 
 	private boolean isPasswordChangeRequired(SearchResult result) throws NamingException {
 		try {
@@ -1462,6 +1582,26 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 				return true;
 			}
 		} catch (NumberFormatException nfe) {
+		}
+		return false;
+	}
+
+	private static String makeDnKey(String dn) {
+		/**
+		 * LDP: Removed as part of Invalid name fix
+		 */
+		// https://jira.springsource.org/browse/LDAP-109
+		// https://jira.springsource.org/browse/LDAP-109
+//		dn = dn.replace("\\\\", "\\\\\\");
+//		dn = dn.replace("/", "\\/");
+		return dn.toLowerCase();
+	}
+	
+	private boolean containsGroupName(String name, Set<String> groups) {
+		for (String g : groups) {
+			if (g.equalsIgnoreCase(name)) {
+				return true;
+			}
 		}
 		return false;
 	}
@@ -1783,8 +1923,19 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 			String guid = UUID.nameUUIDFromBytes((byte[]) getAttribute(attributes.get(OBJECT_GUID_ATTRIBUTE)))
 					.toString();
 			byte[] sid = (byte[]) getAttribute(attributes.get(OBJECT_SID_ATTRIBUTE));
+			
+			Iterator<String> parentGroups = getGroups(attributes);
+			List<String> memberOf = new ArrayList<String>();
+			while (parentGroups.hasNext()) {
+				memberOf.add(parentGroups.next());
+			}
 
-			ActiveDirectoryGroup group = new ActiveDirectoryGroup(guid, commonName, new LdapName(dn), sid);
+			String[] member = getStringAttributes(attributes, MEMBER_ATTRIBUTE);
+			if (member == null) {
+				member = new String[0];
+			}
+			
+			ActiveDirectoryGroup group = new ActiveDirectoryGroup(guid, commonName, new LdapName(dn), sid, memberOf.toArray(new String[0]), member);
 
 			NamingEnumeration<? extends Attribute> en = attributes.getAll();
 			while (en.hasMoreElements()) {
@@ -1801,6 +1952,14 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 		}
 
 		return null;
+	}
+
+	private Iterator<String> getGroups(Attributes attributes) throws NamingException {
+		String[] memberOfAttribute = getStringAttributes(attributes, MEMBER_OF_ATTRIBUTE);
+		if (memberOfAttribute == null) {
+			return Collections.<String>emptyList().iterator();
+		}
+		return Arrays.asList(memberOfAttribute).iterator();
 	}
 
 	private ActiveDirectoryConfiguration getActiveDirectoryConfiguration() {
@@ -1821,6 +1980,19 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 
 	protected String getStringAttribute(Attributes attrs, String attrName) throws NamingException {
 		return (String) getAttributeValue(attrs, attrName);
+	}
+
+	protected String[] getStringAttributes(Attributes attrs, String attrName) throws NamingException {
+		Attribute attr = attrs.get(attrName);
+		if (attr == null) {
+			return null;
+		}
+		List<String> a = new ArrayList<>();
+		for(NamingEnumeration<?> en = attr.getAll(); en.hasMoreElements(); ) {
+			Object o = en.next();
+			a.add(o == null ? null : String.valueOf(o));
+		}
+		return a.toArray(new String[0]);
 	}
 
 	protected ADPasswordCharacteristics loadCharacteristics(SearchResult pso) throws NamingException, IOException {

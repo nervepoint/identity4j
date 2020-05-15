@@ -64,6 +64,7 @@ import com.identity4j.connector.PasswordCreationCallback;
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.exception.InvalidLoginCredentialsException;
 import com.identity4j.connector.exception.PrincipalNotFoundException;
+import com.identity4j.connector.jndi.directory.AbstractDirectoryConfiguration.RoleMode;
 import com.identity4j.connector.jndi.directory.LdapService.ResultMapper;
 import com.identity4j.connector.jndi.directory.filter.Eq;
 import com.identity4j.connector.jndi.directory.filter.Filter;
@@ -674,20 +675,71 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 		}
 
 		String idRoleAttr = getConfiguration().getIdentityRoleGuidAttribute();
+		Role role = null;
 		if (!StringUtil.isNullOrEmpty(idRoleAttr)) {
 			String roleObjectClass = getConfiguration().getRoleObjectClass();
 			String roleNameAttribute = getConfiguration().getRoleGuidAttribute();
 			Filter filter = ldapService.buildObjectClassFilter(roleObjectClass, roleNameAttribute,
 					attributes.get(idRoleAttr).get().toString());
-			directoryIdentity.addRole(getPrincipal(filter.encode(), getRoles(filter)));
+			role = getPrincipal(filter.encode(), getRoles(filter));
 		} else {
 			idRoleAttr = getConfiguration().getIdentityRoleNameAttribute();
 			if (!StringUtil.isNullOrEmpty(idRoleAttr)) {
-				directoryIdentity.addRole(getRoleByName(idRoleAttr));
+				role = getRoleByName(idRoleAttr);
 			}
+		}
+		
+		if(role != null) {
+			boolean included = isIncluded(role);
+			
+			if(included)
+				directoryIdentity.addRole(role);
 		}
 
 		return directoryIdentity;
+	}
+
+	protected boolean isIncluded(Role role) {
+		boolean included = true;
+		
+		if(getConfiguration().isFilteredByRolePrincipalName()) {
+			included = getConfiguration().getIncludedRoles().isEmpty();
+			if (!included) {
+				for (String name : getConfiguration().getIncludedRoles()) {
+					if (role.getPrincipalName().equals(name)) {
+						included = true;
+					}
+				}
+			}
+
+			if (included) {
+				for (String name : getConfiguration().getExcludedRoles()) {
+					if (role.getPrincipalName().equals(name)) {
+						included = false;
+					}
+				}
+			}
+
+		}
+		if(getConfiguration().isFilteredByRoleDistinguishedName() && !getConfiguration().getRoleMode().equals(RoleMode.serverDistinguishedNames)) {
+			included = getConfiguration().getIncludedRolesDN().isEmpty();
+			if (!included) {
+				for (String name : getConfiguration().getIncludedRolesDN()) {
+					if (role.getPrincipalName().equals(name)) {
+						included = true;
+					}
+				}
+			}
+
+			if (included) {
+				for (String name : getConfiguration().getExcludedRolesDN()) {
+					if (role.getPrincipalName().equals(name)) {
+						included = false;
+					}
+				}
+			}
+		}
+		return included;
 	}
 
 	@Override
@@ -754,6 +806,17 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 				directoryRole.setAttribute(a.getID(), vals.toArray(new String[0]));
 			}
 		}
+		
+		if (getConfiguration().getIncludedRoles().size() > 0) {
+			if (!getConfiguration().getIncludedRoles().contains(identityName)) {
+				return null;
+			}
+		} else if (getConfiguration().getExcludedRoles().size() > 0) {
+			if (getConfiguration().getExcludedRoles().contains(identityName)) {
+				return null;
+			}
+		}
+		
 		return directoryRole;
 	}
 
