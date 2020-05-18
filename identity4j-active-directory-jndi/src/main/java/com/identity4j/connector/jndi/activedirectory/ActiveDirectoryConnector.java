@@ -1491,7 +1491,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 									addRoles(groups, groupsByRID, userGroups, config, directoryIdentity, dn, dnKey);
 								}
 
-								if (getConfiguration().getIncludedRoles().size() > 0) {
+								if (getConfiguration().isFilteredByRolePrincipalName() && getConfiguration().getIncludedRoles().size() > 0) {
 									for (Role r : directoryIdentity.getRoles()) {
 										if (containsGroupName(r.getPrincipalName(), getConfiguration().getIncludedRoles())) {
 											foundRole = true;
@@ -1505,7 +1505,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 								// If we are including, making sure we don't
 								// need to
 								// exlucde
-								if (foundRole && !getConfiguration().getExcludedRoles().isEmpty()) {
+								if (getConfiguration().isFilteredByRolePrincipalName() && foundRole && !getConfiguration().getExcludedRoles().isEmpty()) {
 									for (Role r : directoryIdentity.getRoles()) {
 										if (containsGroupName(r.getPrincipalName(), getConfiguration().getExcludedRoles())) {
 											foundRole = false;
