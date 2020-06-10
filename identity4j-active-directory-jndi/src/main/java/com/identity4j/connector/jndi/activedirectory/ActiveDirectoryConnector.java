@@ -330,7 +330,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 	@Override
 	public Count<Long> countRoles(String tag) throws ConnectorException {
 		try {
-			USNWrapperIterator<Role> it = new USNWrapperIterator<Role>(getRoles(createTagFilter(buildRoleFilter(WILDCARD_SEARCH, true), tag)));
+			USNWrapperIterator<Role> it = new USNWrapperIterator<Role>(getRoles(createTagFilter(buildRoleFilter(WILDCARD_SEARCH, true), tag), true));
 			return new Count<Long>(count(it), it.tag());
 		} catch (NamingException e) {
 			throw new ConnectorException(processNamingException(e), e);
@@ -368,7 +368,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 	@Override
 	public final ResultIterator<Role> allRoles(String tag) throws ConnectorException {
 		try {
-			return new USNWrapperIterator<Role>(getRoles(createTagFilter(buildRoleFilter(WILDCARD_SEARCH, true), tag)));
+			return new USNWrapperIterator<Role>(getRoles(createTagFilter(buildRoleFilter(WILDCARD_SEARCH, true), tag), true));
 		} catch (NamingException e) {
 			throw new ConnectorException(processNamingException(e), e);
 		} catch (IOException e) {
@@ -859,8 +859,8 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 		return ActiveDirectoryDateUtil.adTimeToJavaDays(Long.parseLong(value));
 	}
 
-	protected Iterator<Role> getRoles(Filter filter) {
-
+	@Override
+	protected Iterator<Role> getRoles(Filter filter, boolean applyFilters) {
 		try {
 			return ldapService.search(filter, new ResultMapper<Role>() {
 
@@ -870,7 +870,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 				}
 
 				public boolean isApplyFilters() {
-					return true;
+					return applyFilters;
 				}
 			}, configureRoleSearchControls(ldapService.getSearchControls()));
 		} catch (NamingException e) {
@@ -1209,10 +1209,23 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 		final Map<String, List<String>> userGroups = new HashMap<String, List<String>>();
 
 		if (config.isEnableRoles()) {
-			Iterator<Role> it = getRoles();
+			Iterator<Role> it = getRoles(buildRoleFilter(WILDCARD_SEARCH, true), config.isCacheFilteredGroups());
+			LOG.info(String.format("Pre-caching roles (%s)", config.isCacheFilteredGroups() ? "using filtered groups for cache" : "using unfiltered groups for cache"));
 			while (it.hasNext()) {
 				ActiveDirectoryGroup group = (ActiveDirectoryGroup) it.next();
 				mapGroup(groups, groupsByRID, userGroups, group, group.getDn().toString());
+				if(groups.size() % 1000 == 0)
+					LOG.info(String.format("Cached %d roles so far for %d", groups.size(), getConfiguration().getDomain()));
+			}
+			int r = 0;
+			LOG.info(String.format("Pre-cached %d roles", groups.size()));
+			for(String k : groups.keySet()) {
+				r++;
+				LOG.info(String.format("    %s", k));
+				if(r > 10) {
+					LOG.info(String.format("  ... and %d others", groups.size() - 10));
+					break;
+				}
 			}
 		}
 
@@ -1486,9 +1499,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 							} else {
 								groupDnsItr = groupDns.iterator();
 								while (groupDnsItr.hasNext()) {
-									String dn = groupDnsItr.next();
-									String dnKey = makeDnKey(dn);
-									addRoles(groups, groupsByRID, userGroups, config, directoryIdentity, dn, dnKey);
+									addRoles(groups, groupsByRID, userGroups, config, directoryIdentity, groupDnsItr.next());
 								}
 
 								if (getConfiguration().isFilteredByRolePrincipalName() && getConfiguration().getIncludedRoles().size() > 0) {
@@ -1525,7 +1536,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 						// All except the first group which is already
 						// added
 						for (String dn : nonPrimaryGroupDns) {
-							addRoles(groups, groupsByRID, userGroups, config, directoryIdentity, dn, makeDnKey(dn));
+							addRoles(groups, groupsByRID, userGroups, config, directoryIdentity, dn);
 						}
 
 					} else {
@@ -1547,7 +1558,8 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 	}
 	
 	private void addRoles(final Map<String, ActiveDirectoryGroup> groups, final Map<Long, ActiveDirectoryGroup> groupsByRID, final Map<String, List<String>> userGroups,
-			ActiveDirectoryConfiguration config, DirectoryIdentity directoryIdentity, String dn, String dnKey) {
+			ActiveDirectoryConfiguration config, DirectoryIdentity directoryIdentity, String dn) {
+		String dnKey = makeDnKey(dn);
 		if (groups.containsKey(dnKey)) {
 			directoryIdentity.addRole(groups.get(dnKey));
 		} else {
@@ -1558,17 +1570,20 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 			// (and another solution to the horrible performance found
 			// maybe).
 			//
-			if ((config.isFilteredByRolePrincipalName() || isUsePSO())) {
-				LOG.info("Loading role " + dnKey.toLowerCase() + " because we have role filter or using PSOs");
-				try {
+			try {
+				if(isIncluded(dn)) {
+					LOG.info("Loading role " + dnKey + " because we have role filter or using PSOs and it is not in the cache");
 					ActiveDirectoryGroup activeDirectoryGroup = (ActiveDirectoryGroup)getRoleByName(dnKey);
 					if (activeDirectoryGroup != null) {
 						mapGroup(groups, groupsByRID, userGroups, activeDirectoryGroup, dn);
 						directoryIdentity.addRole(activeDirectoryGroup);
 					}
-				} catch (Exception ex) {
-					LOG.info("Ignoring " + dnKey + " because of " + ex.getMessage());
 				}
+				else {
+					LOG.info("Ignoring " + dnKey + " because it is not included in the main DN filter.");
+				}
+			} catch (Exception ex) {
+				LOG.info("Ignoring " + dnKey + " because of " + ex.getMessage());
 			}
 		}
 	}

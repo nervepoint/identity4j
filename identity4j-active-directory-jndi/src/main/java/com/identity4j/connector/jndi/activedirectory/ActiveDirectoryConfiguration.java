@@ -45,6 +45,7 @@ public class ActiveDirectoryConfiguration extends AbstractDirectoryConfiguration
 	private static final String CHILD_DOMAIN_CONTROLLERS = "directory.childDomainControllers";
 
 	public static final String ACTIVE_DIRECTORY_AUTHENTICATION = "activeDirectory.authenticationType";
+	public static final String ACTIVE_DIRECTORY_CACHE_FILTERED_GROUPS = "activeDirectory.cachedFilteredGroups";
 	public static final String ACTIVE_DIRECTORY_INCLUDE_DEFAULT_USERS = "activeDirectory.includeDefaultUsers";
 	public static final String ACTIVE_DIRECTORY_INCLUDE_BUILTN_GROUPS = "activeDirectory.includeBuiltInGroups";
 	public static final String ACTIVE_DIRECTORY_USERNAME_IS_SAMACCOUNTNAME = "activeDirectory.usernameSamAccountName";
@@ -311,7 +312,12 @@ public class ActiveDirectoryConfiguration extends AbstractDirectoryConfiguration
 		return Collections.singletonMap("java.naming.ldap.attributes.binary",
 				"objectSID objectGUID");
 	}
+	
+	public boolean isCacheFilteredGroups() {
+		return getConfigurationParameters().getBooleanOrDefault(ACTIVE_DIRECTORY_CACHE_FILTERED_GROUPS, true);
+	}
 
+	
 	public boolean isPasswordRulesEnforced() {
 		return getConfigurationParameters().getBoolean(ACTIVE_DIRECTORy_ENFORCE_PASSWORD_RULES);
 	}

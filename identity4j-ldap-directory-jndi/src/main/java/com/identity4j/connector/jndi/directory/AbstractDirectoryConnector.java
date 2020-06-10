@@ -681,7 +681,7 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 			String roleNameAttribute = getConfiguration().getRoleGuidAttribute();
 			Filter filter = ldapService.buildObjectClassFilter(roleObjectClass, roleNameAttribute,
 					attributes.get(idRoleAttr).get().toString());
-			role = getPrincipal(filter.encode(), getRoles(filter));
+			role = getPrincipal(filter.encode(), getRoles(filter, true));
 		} else {
 			idRoleAttr = getConfiguration().getIdentityRoleNameAttribute();
 			if (!StringUtil.isNullOrEmpty(idRoleAttr)) {
@@ -748,21 +748,21 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 			throw new PrincipalNotFoundException("Roles are not enabled");
 		}
 		Filter roleNameFilter = buildRoleFilter(roleName, false);
-		return getPrincipal(roleNameFilter.encode(), getRoles(roleNameFilter));
+		return getPrincipal(roleNameFilter.encode(), getRoles(roleNameFilter, true));
 	}
 
 	public final Iterator<Role> allRoles() throws ConnectorException {
 		if (!getConfiguration().isEnableRoles()) {
 			return ROLE_ITERATOR;
 		}
-		return getRoles(buildRoleFilter(WILDCARD_SEARCH, true));
+		return getRoles(buildRoleFilter(WILDCARD_SEARCH, true), true);
 	}
 
 	protected Iterator<Role> getRoles() {
-		return getRoles(buildRoleFilter(WILDCARD_SEARCH, true));
+		return getRoles(buildRoleFilter(WILDCARD_SEARCH, true), true);
 	}
 
-	protected Iterator<Role> getRoles(Filter filter) {
+	protected Iterator<Role> getRoles(Filter filter, boolean applyFilters) {
 		try {
 			return ldapService.search(filter, new ResultMapper<Role>() {
 
@@ -771,7 +771,7 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 				}
 
 				public boolean isApplyFilters() {
-					return true;
+					return applyFilters;
 				}
 			}, configureRoleSearchControls(ldapService.getSearchControls()));
 
