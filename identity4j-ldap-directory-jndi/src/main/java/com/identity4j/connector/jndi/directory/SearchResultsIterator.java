@@ -99,6 +99,8 @@ public class SearchResultsIterator<T extends Object> implements Iterator<T> {
 		} catch (Error e) {
 			close();
 			throw e;
+		} finally {
+			next = null;
 		}
 	}
 
@@ -107,6 +109,10 @@ public class SearchResultsIterator<T extends Object> implements Iterator<T> {
 	}
 
 	void fetchNext() {
+		
+		if(next!=null) {
+			return;
+		}
 		// If we haven't started on the next DN, get it
 		next = null;
 		boolean nullSearch = false;
