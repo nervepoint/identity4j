@@ -298,6 +298,21 @@ public abstract class AbstractConnector<P extends ConnectorConfigurationParamete
 	}
 
 	/**
+	 * Very inefficient default implementation. It is highly recommended sub-classes override this.
+	 */
+	@Override
+	public Identity getIdentityByGuid(String guid) throws PrincipalNotFoundException, ConnectorException {
+		for (Iterator<Identity> identityIterator = allIdentities(); identityIterator.hasNext();) {
+			Identity identity = identityIterator.next();
+			System.out.println(">> " + identity.getPrincipalName() + "/" + identity.getGuid() + " against " + guid);
+			if (identity.getGuid().equals(guid)) {
+				return identity;
+			}
+		}
+		throw new PrincipalNotFoundException(guid + " not found.");
+	}
+	
+	/**
 	 * Very inefficient default implementation. It is highly recommended
 	 * sub-classes override this.
 	 * 

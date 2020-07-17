@@ -608,6 +608,12 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 		Filter identityFilter = buildIdentityFilter(identityName);
 		return getPrincipal(identityFilter.encode(), getIdentities(identityFilter));
 	}
+	
+	@Override
+	public final Identity getIdentityByGuid(String identityGuid) throws PrincipalNotFoundException, ConnectorException {
+		Filter identityFilter = buildGuidFilter(identityGuid);
+		return getPrincipal(identityFilter.encode(), getIdentities(identityFilter));
+	}
 
 	public final Iterator<Identity> allIdentities() throws ConnectorException {
 		return getIdentities(buildIdentityFilter(WILDCARD_SEARCH));
@@ -619,6 +625,12 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 		return ldapService.buildObjectClassFilter(roleObjectClass, roleNameAttribute, roleName);
 	}
 
+	protected Filter buildGuidFilter(String identityGuid) {
+		String identityObjectClass = getConfiguration().getIdentityObjectClass();
+		String identityGuidAttribute = getConfiguration().getIdentityGuidAttribute();
+		return ldapService.buildObjectClassFilter(identityObjectClass, identityGuidAttribute, identityGuid);
+	}
+	
 	protected Filter buildIdentityFilter(String identityName) {
 		String identityObjectClass = getConfiguration().getIdentityObjectClass();
 		String identityNameAttribute = getConfiguration().getIdentityNameAttribute();

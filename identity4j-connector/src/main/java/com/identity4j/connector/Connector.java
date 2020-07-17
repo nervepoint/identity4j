@@ -228,6 +228,16 @@ public interface Connector<P extends ConnectorConfigurationParameters> extends C
 	Identity getIdentityByName(String identityName) throws PrincipalNotFoundException, ConnectorException;
 
 	/**
+	 * Get an account from its GUID.
+	 * 
+	 * @param identityGuid
+	 * @return
+	 * @throws PrincipalNotFoundException
+	 * @throws ConnectorException
+	 */
+	Identity getIdentityByGuid(String identityGuid) throws PrincipalNotFoundException, ConnectorException;
+	
+	/**
 	 * @return Roles
 	 * @throws ConnectorException
 	 */
@@ -435,4 +445,5 @@ public interface Connector<P extends ConnectorConfigurationParameters> extends C
 	 * @param value
 	 */
 	void setAttribute(String name, Object value);
+
 }
