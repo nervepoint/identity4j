@@ -282,6 +282,9 @@ public class ActiveDirectoryConfiguration extends AbstractDirectoryConfiguration
 		} else {
 			String baseDn = configurationParameters.getString(DIRECTORY_BASE_DN);
 			String[] hostNames = configurationParameters.getStringArrayOrFail(DIRECTORY_HOSTNAME);
+			if(hostNames.length == 0) {
+				throw new MultiMapException("Missing value for " + DIRECTORY_HOSTNAME);
+			}
 			String hostName = getControllerHostWithoutPort(hostNames[0]);
 			if (IpAddressValidator.isHostName(hostName)) {
 				int indexOf = hostName.indexOf('.');
