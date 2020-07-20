@@ -309,4 +309,10 @@ public class RemoteConnector implements Connector<RemoteConnectorConfiguration> 
 		return parameters;
 	}
 
+	@Override
+	public Identity getIdentityByGuid(String identityGuid) throws PrincipalNotFoundException, ConnectorException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }
