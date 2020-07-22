@@ -32,7 +32,6 @@ import org.apache.log4j.BasicConfigurator;
 import org.junit.Test;
 
 import com.identity4j.util.crypt.impl.DefaultEncoderManager;
-import com.identity4j.util.crypt.nss.DefaultNssTokenDatabase;
 
 public abstract class AbstractEncoderTest {
 	

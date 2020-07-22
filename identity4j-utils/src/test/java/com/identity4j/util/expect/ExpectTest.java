@@ -21,8 +21,8 @@ package com.identity4j.util.expect;
  * <http://www.gnu.org/licenses/lgpl-3.0.html>.
  * #L%
  */
-
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 
@@ -31,9 +31,6 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import com.identity4j.util.expect.Expect;
-import com.identity4j.util.expect.ExpectTimeoutException;
 
 public class ExpectTest {
 

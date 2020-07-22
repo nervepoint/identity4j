@@ -31,8 +31,6 @@ import java.util.List;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.identity4j.util.StringUtil;
-
 public class StringUtilTest {
 
 	private static final List<String> STRING2_LIST = Arrays.asList("value^One", "valueTwo\n", "\rvalueThree");

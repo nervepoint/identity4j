@@ -25,8 +25,6 @@ package com.identity4j.util.validator;
 
 
 import com.identity4j.util.MultiMap;
-import com.identity4j.util.validator.DateValidator;
-import com.identity4j.util.validator.Validator;
 
 public class DateValidatorTest extends AbstractSingleValueValidatorTest {
 

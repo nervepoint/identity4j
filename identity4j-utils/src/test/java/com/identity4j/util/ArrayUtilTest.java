@@ -26,8 +26,6 @@ import static org.junit.Assert.assertArrayEquals;
 
 import org.junit.Test;
 
-import com.identity4j.util.ArrayUtil;
-
 public class ArrayUtilTest {
 
     @Test

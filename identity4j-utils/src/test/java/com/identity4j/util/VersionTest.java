@@ -31,8 +31,6 @@ import java.util.List;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.identity4j.util.Version;
-
 public class VersionTest {
 
     private final static Version[] versions = new Version[] {

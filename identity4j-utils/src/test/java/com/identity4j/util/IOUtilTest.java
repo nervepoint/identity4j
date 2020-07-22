@@ -31,8 +31,6 @@ import java.io.InputStreamReader;
 
 import org.junit.Test;
 
-import com.identity4j.util.IOUtil;
-
 public class IOUtilTest {
 
     @Test

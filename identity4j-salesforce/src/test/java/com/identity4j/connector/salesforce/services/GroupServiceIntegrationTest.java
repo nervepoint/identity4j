@@ -36,7 +36,6 @@ import com.identity4j.connector.exception.PrincipalAlreadyExistsException;
 import com.identity4j.connector.exception.PrincipalNotFoundException;
 import com.identity4j.connector.salesforce.SalesforceConfiguration;
 import com.identity4j.connector.salesforce.entity.Group;
-import com.identity4j.connector.salesforce.services.GroupService;
 import com.identity4j.connector.salesforce.services.token.handler.SalesforceAuthorizationHelper;
 import com.identity4j.util.MultiMap;
 import com.identity4j.util.http.request.HttpRequestHandler;

@@ -25,7 +25,6 @@ package com.identity4j.util.crypt.impl;
 import java.io.UnsupportedEncodingException;
 
 import com.identity4j.util.crypt.AbstractEncoderTest;
-import com.identity4j.util.crypt.impl.Base64PBEWithMD5AndDESEncoder;
 
 public class Base64PBEWithMD5AndDESEncoderTest extends AbstractEncoderTest {
 

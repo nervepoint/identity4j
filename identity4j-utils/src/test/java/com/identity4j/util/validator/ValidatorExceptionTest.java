@@ -27,8 +27,6 @@ package com.identity4j.util.validator;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.identity4j.util.validator.ValidatorException;
-
 public class ValidatorExceptionTest {
 
     @Test
