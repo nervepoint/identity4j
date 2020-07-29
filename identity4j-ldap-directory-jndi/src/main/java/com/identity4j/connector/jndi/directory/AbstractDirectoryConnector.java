@@ -637,7 +637,7 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 		return ldapService.buildObjectClassFilter(identityObjectClass, identityNameAttribute, identityName);
 	}
 
-	protected Iterator<Identity> getIdentities(Filter filter) {
+	public Iterator<Identity> getIdentities(Filter filter) {
 		try {
 			return ldapService.search(filter, new ResultMapper<Identity>() {
 
