@@ -1199,7 +1199,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 	}
 
 	@Override
-	protected Iterator<Identity> getIdentities(Filter filter) {
+	public Iterator<Identity> getIdentities(Filter filter) {
 
 		final ActiveDirectoryConfiguration config = (ActiveDirectoryConfiguration) getConfiguration();
 		
