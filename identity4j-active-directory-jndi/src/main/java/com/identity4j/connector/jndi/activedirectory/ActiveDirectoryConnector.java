@@ -1215,7 +1215,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 				ActiveDirectoryGroup group = (ActiveDirectoryGroup) it.next();
 				mapGroup(groups, groupsByRID, userGroups, group, group.getDn().toString());
 				if(groups.size() % 1000 == 0)
-					LOG.info(String.format("Cached %d roles so far for %d", groups.size(), getConfiguration().getDomain()));
+					LOG.info(String.format("Cached %d roles so far for %s", groups.size(), getConfiguration().getDomain()));
 			}
 			int r = 0;
 			LOG.info(String.format("Pre-cached %d roles", groups.size()));
