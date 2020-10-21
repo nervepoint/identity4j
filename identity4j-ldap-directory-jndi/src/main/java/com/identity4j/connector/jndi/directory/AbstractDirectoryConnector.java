@@ -209,6 +209,8 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 				usersDn = new LdapName(identityOU);
 			}
 
+			identity.setAttribute(OU_ATTRIBUTE, "");
+			
 			LdapName userDn = new LdapName(usersDn.toString());
 			String principalName = identity.getPrincipalName();
 
@@ -512,6 +514,7 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 						+ identity.getAttribute(OU_ATTRIBUTE));
 				ldapService.rename(usersDn, newDN);
 			}
+			
 
 		} catch (NamingException e) {
 			processNamingException(e);
