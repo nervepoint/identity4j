@@ -35,10 +35,6 @@ import org.junit.Test;
 
 import com.identity4j.util.MultiMap;
 import com.identity4j.util.TestUtils;
-import com.identity4j.util.validator.AbstractSingleValueValidator;
-import com.identity4j.util.validator.StringValidator;
-import com.identity4j.util.validator.ValidationError;
-import com.identity4j.util.validator.Validator;
 
 public class StringValidatorTest extends AbstractSingleValueValidatorTest {
 

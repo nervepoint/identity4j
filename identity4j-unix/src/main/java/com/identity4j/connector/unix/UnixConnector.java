@@ -42,11 +42,10 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.commons.vfs2.Capability;
 import org.apache.commons.vfs2.FileObject;
 
-import com.identity4j.connector.ConnectorConfigurationParameters;
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.exception.PrincipalNotFoundException;
 import com.identity4j.connector.flatfile.AbstractFlatFile;
-import com.identity4j.connector.flatfile.FlatFileConnector;
+import com.identity4j.connector.flatfile.AbstractFlatFileConnector;
 import com.identity4j.connector.flatfile.LocalDelimitedFlatFile;
 import com.identity4j.connector.flatfile.LocalFixedWidthFlatFile;
 import com.identity4j.connector.principal.AccountStatusType;
@@ -68,7 +67,7 @@ import com.identity4j.util.passwords.PasswordCharacteristics;
 import com.identity4j.util.passwords.UNIXPasswordCharacteristics;
 import com.identity4j.util.validator.ValidationException;
 
-public class UnixConnector extends FlatFileConnector {
+public class UnixConnector extends AbstractFlatFileConnector<UnixConfiguration> {
 
 	// /etc/shadow
 	private static final int DAYS_SINCE_LAST_PASSWORD_CHANGE_INDEX = 2;
@@ -707,7 +706,7 @@ public class UnixConnector extends FlatFileConnector {
 	}
 
 	@Override
-	protected void onOpen(ConnectorConfigurationParameters config) {
+	protected void onOpen(UnixConfiguration config) {
 		super.onOpen(config);
 		reset();
 	}

@@ -34,9 +34,6 @@ import java.util.Map;
 import org.junit.Test;
 
 import com.identity4j.util.MultiMap;
-import com.identity4j.util.validator.IntegerValidator;
-import com.identity4j.util.validator.ValidationError;
-import com.identity4j.util.validator.Validator;
 
 public class IntegerValidatorTest extends AbstractSingleValueValidatorTest {
 

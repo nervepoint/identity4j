@@ -84,7 +84,7 @@ public class ConnectorBuilder {
 	 *         parameters
 	 * @throws ConnectorException on any exception
 	 */
-	public final Connector buildConnector(Map<String, String[]> configurationParameters) throws ConnectorException {
+	public final Connector<?> buildConnector(Map<String, String[]> configurationParameters) throws ConnectorException {
 		MultiMap multiMap = new MultiMap(configurationParameters);
 		return buildConnector(multiMap);
 	}
@@ -99,7 +99,7 @@ public class ConnectorBuilder {
 	 *         configuration parameters
 	 * @throws ConnectorException on any exception
 	 */
-	public final ConnectorConfigurationParameters buildConfiguration(Map<String, String[]> configurationParameters)
+	public final <P extends ConnectorConfigurationParameters> P buildConfiguration(Map<String, String[]> configurationParameters)
 			throws ConnectorException {
 		MultiMap multiMap = new MultiMap(configurationParameters);
 		return buildConfiguration(multiMap);
@@ -115,14 +115,9 @@ public class ConnectorBuilder {
 	 *         parameters
 	 * @throws ConnectorException on any exception
 	 */
-	public final Connector buildConnector(MultiMap configurationParameters) throws ConnectorException {
-		ConnectorConfigurationParameters connectorConfigurationParameters = buildConfiguration(configurationParameters);
-		String connectionClass = configurationParameters.getStringOrFail(CONNECTOR_CLASS);
-		Connector connector = (Connector) createClassInstance(connectionClass, new Class[] {}, new Object[] {});
-		if(socketFactory != null)
-			connector.setSocketFactory(socketFactory);
-		connector.open(connectorConfigurationParameters);
-		return connector;
+	@SuppressWarnings("unchecked")
+	public final <P extends Connector<?>> P buildConnector(MultiMap configurationParameters) throws ConnectorException {
+		return (P)buildConnector((ConnectorConfigurationParameters)buildConfiguration(configurationParameters));
 	}
 
 	/**
@@ -134,16 +129,36 @@ public class ConnectorBuilder {
 	 *         parameters
 	 * @throws ConnectorException on any exception
 	 */
-	public final Connector buildConnector(ConnectorConfigurationParameters configurationParameters) throws ConnectorException {
-		String connectionClass = configurationParameters.getConfigurationParameters().getStringOrFail(CONNECTOR_CLASS);
-		Connector connector = (Connector) createClassInstance(connectionClass, new Class[] {}, new Object[] {});
+	@SuppressWarnings("unchecked")
+	public final <P extends ConnectorConfigurationParameters> Connector<P> buildConnector(P configurationParameters) throws ConnectorException {
+		String connectionClass = configurationParameters.getConfigurationParameters().getString(CONNECTOR_CLASS);
+		Connector<P> connector;
+		if(StringUtil.isNullOrEmpty(connectionClass)) {
+			Class<? extends Connector<P>> clazz = (Class<? extends Connector<P>>) configurationParameters.getConnectorClass();
+			if(clazz != null) {
+				try {
+					connector = clazz.newInstance();
+				} catch (IllegalAccessException iae) {
+					throw new ConnectorException("Permissions error creating connector", iae);
+				} catch (IllegalArgumentException iae) {
+					throw new ConnectorException("Invalid argument creating connector", iae);
+				} catch (InstantiationException inse) {
+					throw new ConnectorException("Instantiation error", inse);
+				}
+			}
+			else
+				throw new ConnectorException("Parameters do not specify a default connector class, nor is a custom class provided.");
+		}
+		else
+			connector = (Connector<P>) createClassInstance(connectionClass, new Class[] {}, new Object[] {});
 		if(socketFactory != null)
 			connector.setSocketFactory(socketFactory);
 		connector.open(configurationParameters);
 		return connector;
 	}
 
-	public ConnectorConfigurationParameters buildConfiguration(MultiMap configurationParameters) throws ConnectorException {
+	@SuppressWarnings("unchecked")
+	public <P extends ConnectorConfigurationParameters> P buildConfiguration(MultiMap configurationParameters) throws ConnectorException {
 		String configurationClass = configurationParameters.getString(CONFIGURATION_CLASS);
 		ConnectorConfigurationParameters connectorConfigurationParameters = null;
 		if (!StringUtil.isNullOrEmpty(configurationClass)) {
@@ -153,7 +168,7 @@ public class ConnectorBuilder {
 		else {
 			connectorConfigurationParameters = new DefaultConnectorConfiguration(configurationParameters);
 		}
-		return connectorConfigurationParameters;
+		return (P)connectorConfigurationParameters;
 	}
 
 	/**

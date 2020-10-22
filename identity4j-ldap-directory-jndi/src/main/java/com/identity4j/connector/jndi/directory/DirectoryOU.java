@@ -27,7 +27,7 @@ public class DirectoryOU {
 	String dn;
 	String name;
 	
-	DirectoryOU(String dn, String name) {
+	public DirectoryOU(String dn, String name) {
 		this.dn = dn;
 		this.name = name;
 	}

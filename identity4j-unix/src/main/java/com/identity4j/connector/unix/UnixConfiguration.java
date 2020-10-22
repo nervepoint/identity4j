@@ -1,34 +1,17 @@
 package com.identity4j.connector.unix;
 
-/*
- * #%L
- * Identity4J Unix
- * %%
- * Copyright (C) 2013 - 2017 LogonBox
- * %%
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Lesser Public License for more details.
- * 
- * You should have received a copy of the GNU General Lesser Public
- * License along with this program.  If not, see
- * <http://www.gnu.org/licenses/lgpl-3.0.html>.
- * #L%
- */
-
-import com.identity4j.connector.flatfile.FlatFileConfiguration;
+import com.identity4j.connector.Connector;
+import com.identity4j.connector.flatfile.AbstractFlatFileConfiguration;
 import com.identity4j.util.MultiMap;
 
-public class UnixConfiguration extends FlatFileConfiguration {
+public class UnixConfiguration extends AbstractFlatFileConfiguration {
     public static final String KEY_GROUP_FILE = "groupFileName";
     public static final String KEY_SHADOW_FILE = "shadowFileName";
 
+    public UnixConfiguration() {
+        this(new MultiMap());
+    }
+    
     public UnixConfiguration(MultiMap configurationParameters) {
         super(configurationParameters);
         
@@ -51,6 +34,27 @@ public class UnixConfiguration extends FlatFileConfiguration {
         if(!configurationParameters.containsKey("fullNameFieldIndex")) {
         	configurationParameters.put("fullNameFieldIndex", new String[] {"4"});
         }
+        if(!configurationParameters.containsKey("charset")) {
+        	configurationParameters.put("charset", new String[] {"UTF-8"});
+        }
+        if(!configurationParameters.containsKey("fileName")) {
+        	configurationParameters.put("fileName", new String[] {"file:///etc/passwd"});
+        }
+        if(!configurationParameters.containsKey("groupFileName")) {
+        	configurationParameters.put("groupFileName", new String[] {"file:///etc/group"});
+        }
+        if(!configurationParameters.containsKey("shadowFileName")) {
+        	configurationParameters.put("shadowFileName", new String[] {"file:///etc/shadow"});
+        }
+        if(!configurationParameters.containsKey("includedUsers")) {
+        	configurationParameters.put("includedUsers", new String[] {"root"});
+        }
+        if(!configurationParameters.containsKey("allowPasswordReset")) {
+        	configurationParameters.put("allowPasswordReset", new String[] {"true"});
+        }
+        if(!configurationParameters.containsKey("allowPasswordChange")) {
+        	configurationParameters.put("allowPasswordChange", new String[] {"true"});
+        }
     }
 
     public String getGroupFileUri() {
@@ -60,4 +64,9 @@ public class UnixConfiguration extends FlatFileConfiguration {
     public String getShadowFileUri() {
         return getConfigurationParameters().getString(KEY_SHADOW_FILE);
     }
+
+	@Override
+	public Class<? extends Connector<?>> getConnectorClass() {
+		return UnixConnector.class;
+	}
 }

@@ -66,7 +66,7 @@ import com.identity4j.util.StringUtil;
  * @author gaurav
  *
  */
-public class MySQLUsersConnector extends JDBCConnector {
+public class MySQLUsersConnector extends JDBCConnector<MySQLUsersConfiguration> {
 	private final static long DAY = 60000 * 60 * 24;
 
 	private static Set<ConnectorCapability> capabilities = new HashSet<ConnectorCapability>(Arrays

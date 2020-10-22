@@ -23,6 +23,7 @@ package com.identity4j.connector.salesforce;
  */
 
 import com.identity4j.connector.AbstractConnectorConfiguration;
+import com.identity4j.connector.Connector;
 import com.identity4j.util.MultiMap;
 
 /**
@@ -296,5 +297,9 @@ public class SalesforceConfiguration extends AbstractConnectorConfiguration{
 	public String getGetGroupMembersForUser(){
 		return configurationParameters.getStringOrDefault(SALESFORCE_GET_GROUP_MEMBERS_FOR_USER,"q=SELECT %s from GroupMember where UserOrGroupId = '%s'");
 	}
-	
+
+	@Override
+	public Class<? extends Connector<?>> getConnectorClass() {
+		return SalesforceConnector.class;
+	}
 }

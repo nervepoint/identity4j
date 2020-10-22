@@ -75,8 +75,7 @@ public abstract class FixedWidthFlatFile extends AbstractFlatFile {
      */
     @Override
     public void onLoad(InputStream inputStream, String charsetName) throws IOException {
-        LineIterator it = IOUtils.lineIterator(inputStream, charsetName);
-        try {
+        try(LineIterator it = IOUtils.lineIterator(inputStream, charsetName)) {
             while (it.hasNext()) {
                 String line = it.nextLine();
                 LOG.debug("Parsing " + line);
@@ -127,9 +126,7 @@ public abstract class FixedWidthFlatFile extends AbstractFlatFile {
 
                 }
             }
-        } finally {
-            LineIterator.closeQuietly(it);
-        }
+        } 
     }
 
     /**

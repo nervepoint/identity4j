@@ -51,7 +51,7 @@ import com.identity4j.util.StringUtil;
 import com.identity4j.util.passwords.DefaultPasswordCharacteristics;
 import com.identity4j.util.passwords.PasswordCharacteristics;
 
-public class SAPUsersConnector extends JDBCConnector {
+public class SAPUsersConnector extends JDBCConnector<SAPUsersConfiguration> {
 
 	public final static Log LOG = LogFactory.getLog(SAPUsersConnector.class);
 

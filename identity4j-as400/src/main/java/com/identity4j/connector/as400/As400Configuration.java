@@ -28,6 +28,7 @@ import java.io.IOException;
 import com.ibm.as400.access.AS400;
 import com.ibm.as400.access.AS400SecurityException;
 import com.identity4j.connector.AbstractConnectorConfiguration;
+import com.identity4j.connector.Connector;
 import com.identity4j.util.MultiMap;
 import com.identity4j.util.StringUtil;
 
@@ -134,5 +135,10 @@ public class As400Configuration extends AbstractConnectorConfiguration {
 	@Override
 	public String getHostnameHint() {
 		return getControllerHost();
+	}
+
+	@Override
+	public Class<? extends Connector<?>> getConnectorClass() {
+		return As400Connector.class;
 	}
 }

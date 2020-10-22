@@ -132,7 +132,7 @@ public abstract class JDBCConfiguration extends AbstractConnectorConfiguration {
 	protected String getContent(String key) throws IOException {
 		String content = configurationParameters.getString(key);
 		if (content.startsWith("// res://")) {
-			return IOUtil.getStringFromResource(this.getClass(), content.substring(3));
+			return IOUtil.getStringFromResource(this.getClass(), content.substring(3), getCharset());
 		}
 		return content;
 	}

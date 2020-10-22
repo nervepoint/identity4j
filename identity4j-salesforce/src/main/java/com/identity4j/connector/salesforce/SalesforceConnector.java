@@ -36,7 +36,6 @@ import org.apache.commons.logging.LogFactory;
 
 import com.identity4j.connector.AbstractConnector;
 import com.identity4j.connector.ConnectorCapability;
-import com.identity4j.connector.ConnectorConfigurationParameters;
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.exception.PrincipalAlreadyExistsException;
 import com.identity4j.connector.exception.PrincipalNotFoundException;
@@ -71,10 +70,9 @@ import com.identity4j.util.passwords.PasswordCharacteristics;
  * @author gaurav
  *
  */
-public class SalesforceConnector extends AbstractConnector {
+public class SalesforceConnector extends AbstractConnector<SalesforceConfiguration> {
 
 
-	private SalesforceConfiguration configuration;
 	private Directory directory;
 	private static final Log log = LogFactory.getLog(SalesforceConnector.class);
 	
@@ -439,23 +437,22 @@ public class SalesforceConnector extends AbstractConnector {
 	 * </p>
 	 */
 	@Override
-	protected void onOpen(ConnectorConfigurationParameters parameters)
+	protected void onOpen(SalesforceConfiguration parameters)
 			throws ConnectorException {
-		configuration = (SalesforceConfiguration) parameters;
 		
 		SalesforceAuthorizationHelper.getInstance()
-		.setIpRangeOrAppIpLessRestrictive(configuration.getIpRangeOrAppIpLessRestrictive())
-		.setLoginSoapEnvelopTemplate(configuration.getLoginSoapEnvelopTemplate())
-		.setLoginSoapUrl(configuration.getLoginSoapUrl())
-		.setVersion(configuration.getRestApiVersion());
+		.setIpRangeOrAppIpLessRestrictive(parameters.getIpRangeOrAppIpLessRestrictive())
+		.setLoginSoapEnvelopTemplate(parameters.getLoginSoapEnvelopTemplate())
+		.setLoginSoapUrl(parameters.getLoginSoapUrl())
+		.setVersion(parameters.getRestApiVersion());
 		
-		SalesforceModelConvertor.getInstance().init(configuration);
+		SalesforceModelConvertor.getInstance().init(parameters);
 		
 		directory = Directory.getInstance();
 		
 		log.info("Directory instance created.");
 		try {
-			directory.init(configuration);
+			directory.init(parameters);
 		} catch (IOException e) {
 			throw new ConnectorException(e.getMessage(), e);
 		}

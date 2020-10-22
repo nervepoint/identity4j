@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.Charset;
 
 import org.apache.commons.io.IOUtils;
 
@@ -87,12 +88,24 @@ public class IOUtil {
      * @throws IOException on any error loading
      */
     public static String getStringFromResource(Class<?> clazz, String resourceName) throws IOException {
-        InputStream in = getStreamFromResource(clazz, resourceName);
-        try {
-            return IOUtils.toString(in);
-        }
-        finally {
-            IOUtils.closeQuietly(in);
+        return getStringFromResource(clazz, resourceName, null);
+    }
+
+    /**
+     * Get a string from a <i>Resource </i>. This can either be a URL, an absolute file name
+     * or a relative file name. A special URL that has a scheme of <i>res</i> is also supported,
+     * this gets the resource by name from the classloader that provided <code>clazz</code>.
+     * 
+     * @param clazz class to get classloader from (<code>null</code> to skip loading as classpath resource)
+     * @param resourceName resource name
+     * @param charset character set
+     * @return content of resource
+     * @throws IOException 
+     * @throws IOException on any error loading
+     */
+    public static String getStringFromResource(Class<?> clazz, String resourceName, String charset) throws IOException {
+        try(InputStream in = getStreamFromResource(clazz, resourceName)) {
+            return IOUtils.toString(in, charset == null ? Charset.defaultCharset().name() : charset);
         }
     }
 

@@ -32,9 +32,6 @@ import java.util.Map;
 
 import org.junit.Test;
 
-import com.identity4j.util.MultiMap;
-import com.identity4j.util.MultiMapException;
-
 public class MultiMapTest {
     private static final String MAP_KEY = "keyName";
 

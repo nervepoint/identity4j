@@ -40,15 +40,61 @@ import com.identity4j.connector.principal.Role;
 import com.identity4j.util.passwords.PasswordCharacteristics;
 import com.identity4j.util.validator.ValidationContext;
 
-public abstract class AbstractConnector implements Connector, ValidationContext {
+public abstract class AbstractConnector<P extends ConnectorConfigurationParameters> implements Connector<P>, ValidationContext {
 
-	private ConnectorConfigurationParameters parameters;
+	private P parameters;
 	private Map<String,Object> attributes = new HashMap<String,Object>();
 	
 	public PasswordCharacteristics getPasswordCharacteristics() {
 		throw new UnsupportedOperationException();
 	}
 	
+	@Override
+	public ResultIterator<Identity> allIdentities(String tag) throws ConnectorException {
+		Iterator<Identity> it = allIdentities();
+		return new ResultIterator<Identity>() {
+
+			@Override
+			public boolean hasNext() {
+				return it.hasNext();
+			}
+
+			@Override
+			public Identity next() {
+				return it.next();
+			}
+
+			@Override
+			public String tag() {
+				/* Tag not support, return null */
+				return null;
+			}
+		};
+	}
+
+	@Override
+	public ResultIterator<Role> allRoles(String tag) throws ConnectorException {
+		Iterator<Role> it = allRoles();
+		return new ResultIterator<Role>() {
+
+			@Override
+			public boolean hasNext() {
+				return it.hasNext();
+			}
+
+			@Override
+			public Role next() {
+				return it.next();
+			}
+
+			@Override
+			public String tag() {
+				/* Tag not support, return null */
+				return null;
+			}
+		};
+	}
+
 	@Override
 	public void setSocketFactory(SocketFactory socketFactory) {
 		throw new UnsupportedOperationException();
@@ -69,8 +115,20 @@ public abstract class AbstractConnector implements Connector, ValidationContext 
 	}
 
 	@Override
+	public Count<Long> countIdentities(String tag) throws ConnectorException {
+		/* No tags supported by default so return null */ 
+		return new Count<>(countIdentities(), null);
+	}
+
+	@Override
 	public long countRoles() throws ConnectorException {
 		return count(allRoles());
+	}
+
+	@Override
+	public Count<Long> countRoles(String tag) throws ConnectorException {
+		/* No tags supported by default so return null */ 
+		return new Count<>(countRoles(), null);
 	}
 
 	protected long count(Iterator<? extends Principal> it) {
@@ -240,6 +298,21 @@ public abstract class AbstractConnector implements Connector, ValidationContext 
 	}
 
 	/**
+	 * Very inefficient default implementation. It is highly recommended sub-classes override this.
+	 */
+	@Override
+	public Identity getIdentityByGuid(String guid) throws PrincipalNotFoundException, ConnectorException {
+		for (Iterator<Identity> identityIterator = allIdentities(); identityIterator.hasNext();) {
+			Identity identity = identityIterator.next();
+			System.out.println(">> " + identity.getPrincipalName() + "/" + identity.getGuid() + " against " + guid);
+			if (identity.getGuid().equals(guid)) {
+				return identity;
+			}
+		}
+		throw new PrincipalNotFoundException(guid + " not found.");
+	}
+	
+	/**
 	 * Very inefficient default implementation. It is highly recommended
 	 * sub-classes override this.
 	 * 
@@ -349,15 +422,19 @@ public abstract class AbstractConnector implements Connector, ValidationContext 
 		throw new UnsupportedOperationException("Unlock account is not supported");
 	}
 
-	public void open(ConnectorConfigurationParameters parameters) throws ConnectorException {
+	public final void open(P parameters) throws ConnectorException {
 		this.parameters = parameters;
 		onOpen(parameters);
 		if (!isOpen()) {
 			throw new ConnectorException("Connector should be open but was closed");
 		}
 	}
+	
+	public final P getConfiguration() {
+		return parameters;
+	}
 
-	protected abstract void onOpen(ConnectorConfigurationParameters parameters) throws ConnectorException;
+	protected abstract void onOpen(P parameters) throws ConnectorException;
 
 	public void reopen() throws ConnectorException {
 		close();

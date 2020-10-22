@@ -36,7 +36,6 @@ import org.apache.commons.logging.LogFactory;
 
 import com.identity4j.connector.AbstractConnector;
 import com.identity4j.connector.ConnectorCapability;
-import com.identity4j.connector.ConnectorConfigurationParameters;
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.exception.PrincipalAlreadyExistsException;
 import com.identity4j.connector.exception.PrincipalNotFoundException;
@@ -71,10 +70,9 @@ import com.identity4j.util.passwords.PasswordCharacteristics;
  * @author gaurav
  *
  */
-public class ZendeskConnector extends AbstractConnector {
+public class ZendeskConnector extends AbstractConnector<ZendeskConfiguration> {
 
 
-	private ZendeskConfiguration configuration;
 	private Directory directory;
 	private static final Log log = LogFactory.getLog(ZendeskConnector.class);
 	
@@ -441,24 +439,23 @@ public class ZendeskConnector extends AbstractConnector {
 	 * </p>
 	 */
 	@Override
-	protected void onOpen(ConnectorConfigurationParameters parameters)
+	protected void onOpen(ZendeskConfiguration parameters)
 			throws ConnectorException {
 		try {
-			configuration = (ZendeskConfiguration) parameters;
 			
 			ZendeskAuthorizationHelper.getInstance()
-			.setClientId(configuration.getClientId())
-			.setClientSecret(configuration.getClientSecret())
-			.setoAuthUrl(configuration.getOAuthUrl())
-			.setPasswordAccessJSON(configuration.getOAuthPasswordAccessJSON())
-			.setScope(configuration.getoAuthScope())
-			.setSubDomain(configuration.getSubDomain());
+			.setClientId(parameters.getClientId())
+			.setClientSecret(parameters.getClientSecret())
+			.setoAuthUrl(parameters.getOAuthUrl())
+			.setPasswordAccessJSON(parameters.getOAuthPasswordAccessJSON())
+			.setScope(parameters.getoAuthScope())
+			.setSubDomain(parameters.getSubDomain());
 			
 			directory = Directory.getInstance();
 			
 			log.info("Directory instance created.");
 		
-			directory.init(configuration);
+			directory.init(parameters);
 		} catch (IOException e) {
 			throw new ConnectorException(e.getMessage(), e);
 		}

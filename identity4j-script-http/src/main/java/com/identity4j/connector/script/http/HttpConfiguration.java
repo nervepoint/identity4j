@@ -24,11 +24,11 @@ package com.identity4j.connector.script.http;
  */
 
 import java.net.URL;
-
-import com.identity4j.connector.script.ScriptConfiguration;
+import com.identity4j.connector.Connector;
+import com.identity4j.connector.script.AbstractScriptConfiguration;
 import com.identity4j.util.MultiMap;
 
-public class HttpConfiguration extends ScriptConfiguration {
+public class HttpConfiguration extends AbstractScriptConfiguration {
 
 	public static final String HTTP_PROXY_SERVER = "http.proxyServer";
 	public static final String HTTP_URL = "http.url";
@@ -98,4 +98,8 @@ public class HttpConfiguration extends ScriptConfiguration {
 		}
 	}
 
+	@Override
+	public Class<? extends Connector<?>> getConnectorClass() {
+		return HttpConnector.class;
+	}
 }

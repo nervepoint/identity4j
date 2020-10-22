@@ -30,23 +30,31 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import com.identity4j.connector.jndi.directory.DirectoryConfiguration;
+import com.identity4j.connector.Connector;
+import com.identity4j.connector.jndi.directory.AbstractDirectoryConfiguration;
 import com.identity4j.util.MultiMap;
 import com.identity4j.util.MultiMapException;
 import com.identity4j.util.StringUtil;
 import com.identity4j.util.validator.IpAddressValidator;
 
-public class ActiveDirectoryConfiguration extends DirectoryConfiguration {
+public class ActiveDirectoryConfiguration extends AbstractDirectoryConfiguration {
 
-	private static final String CN_USERS = "CN=Users";
-	private static final String CN_BUILTIN = "CN=Builtin";
+	public static final String CN_USERS = "CN=Users";
+	public static final String CN_BUILTIN = "CN=Builtin";
 	private static final String USE_GLOBAL_CATALOG = "directory.isGlobalCatalog";
 	private static final String CHILD_DOMAIN_CONTROLLERS = "directory.childDomainControllers";
 
 	public static final String ACTIVE_DIRECTORY_AUTHENTICATION = "activeDirectory.authenticationType";
+	public static final String ACTIVE_DIRECTORY_CACHE_FILTERED_GROUPS = "activeDirectory.cachedFilteredGroups";
 	public static final String ACTIVE_DIRECTORY_INCLUDE_DEFAULT_USERS = "activeDirectory.includeDefaultUsers";
 	public static final String ACTIVE_DIRECTORY_INCLUDE_BUILTN_GROUPS = "activeDirectory.includeBuiltInGroups";
 	public static final String ACTIVE_DIRECTORY_USERNAME_IS_SAMACCOUNTNAME = "activeDirectory.usernameSamAccountName";
+	public static final String ACTIVE_DIRECTORY_GROUP_IS_SAMACCOUNTNAME = "activeDirectory.groupSamAccountName";
+	
+	@Deprecated
+	public static final String ACTIVE_DIRECTORy_ENFORCE_PASSWORD_RULES = "activeDirectory.enforcePasswordRules";
+	
+	public static final String ACTIVE_DIRECTORY_ENFORCE_PASSWORD_RULES = "activeDirectory.enforcePasswordRules";
 	
 	public static final String ACTIVE_DIRECTORy_ENFORCE_PASSWORD_RULES = "activeDirectory.enforcePasswordRules";
 	
@@ -84,17 +92,28 @@ public class ActiveDirectoryConfiguration extends DirectoryConfiguration {
 				"unicode");
 		configurationParameters.set("directory.roleObjectClass", "group");
 		configurationParameters.set("directory.roleNameAttribute",
-				"samAccountName");
+				"cn");
 		configurationParameters
 				.set("directory.roleGuidAttribute", "objectGUID");
-		
-		
-		/**
-		 * LDP - Missing attribute....
-		 */
 		configurationParameters.set("direcctory.identityCreationObjectClasses", "user");
 		configurationParameters.set("directory.distinguishedNameAttribute", "distinguishedName");
 		return configurationParameters;
+	}
+	
+	public boolean isIncludeBuiltInGroups() {
+		final List<String> includes = Arrays.asList(configurationParameters
+				.getStringArray(DIRECTORY_INCLUDES));
+		final List<String> excludes = Arrays.asList(configurationParameters
+				.getStringArray(DIRECTORY_EXCLUDES));
+		return ( includes.contains(CN_BUILTIN) || configurationParameters.getBoolean(ACTIVE_DIRECTORY_INCLUDE_BUILTN_GROUPS) ) && !excludes.contains(CN_BUILTIN);
+	}
+	
+	public boolean isIncludeDefaultUsers() {
+		final List<String> includes = Arrays.asList(configurationParameters
+				.getStringArray(DIRECTORY_INCLUDES));
+		final List<String> excludes = Arrays.asList(configurationParameters
+				.getStringArray(DIRECTORY_EXCLUDES));
+		return ( configurationParameters.getBoolean(ACTIVE_DIRECTORY_INCLUDE_DEFAULT_USERS) || includes.contains(CN_USERS) ) && !excludes.contains(CN_USERS);
 	}
 
 	private static void setIncludeBuiltInGroups(MultiMap configurationParameters) {
@@ -269,6 +288,9 @@ public class ActiveDirectoryConfiguration extends DirectoryConfiguration {
 		} else {
 			String baseDn = configurationParameters.getString(DIRECTORY_BASE_DN);
 			String[] hostNames = configurationParameters.getStringArrayOrFail(DIRECTORY_HOSTNAME);
+			if(hostNames.length == 0) {
+				throw new MultiMapException("Missing value for " + DIRECTORY_HOSTNAME);
+			}
 			String hostName = getControllerHostWithoutPort(hostNames[0]);
 			if (IpAddressValidator.isHostName(hostName)) {
 				int indexOf = hostName.indexOf('.');
@@ -299,7 +321,12 @@ public class ActiveDirectoryConfiguration extends DirectoryConfiguration {
 		return Collections.singletonMap("java.naming.ldap.attributes.binary",
 				"objectSID objectGUID");
 	}
+	
+	public boolean isCacheFilteredGroups() {
+		return getConfigurationParameters().getBooleanOrDefault(ACTIVE_DIRECTORY_CACHE_FILTERED_GROUPS, true);
+	}
 
+	
 	public boolean isPasswordRulesEnforced() {
 		return getConfigurationParameters().getBoolean(ACTIVE_DIRECTORy_ENFORCE_PASSWORD_RULES);
 	}
@@ -308,4 +335,15 @@ public class ActiveDirectoryConfiguration extends DirectoryConfiguration {
 		return configurationParameters.getBooleanOrDefault(
 				ACTIVE_DIRECTORY_USERNAME_IS_SAMACCOUNTNAME, Boolean.FALSE);
 	}
+	
+	public boolean isGroupSamAccountName() {
+		return configurationParameters.getBooleanOrDefault(
+				ACTIVE_DIRECTORY_GROUP_IS_SAMACCOUNTNAME, Boolean.FALSE);
+	}
+
+	@Override
+	public Class<? extends Connector<?>> getConnectorClass() {
+		return ActiveDirectoryConnector.class;
+	}
+
 }

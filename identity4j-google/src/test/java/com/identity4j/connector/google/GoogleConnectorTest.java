@@ -38,7 +38,6 @@ import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.exception.PasswordChangeRequiredException;
 import com.identity4j.connector.exception.PrincipalAlreadyExistsException;
 import com.identity4j.connector.exception.PrincipalNotFoundException;
-import com.identity4j.connector.google.GoogleIdentity;
 import com.identity4j.connector.principal.Identity;
 import com.identity4j.connector.principal.PasswordStatusType;
 import com.identity4j.connector.principal.Role;

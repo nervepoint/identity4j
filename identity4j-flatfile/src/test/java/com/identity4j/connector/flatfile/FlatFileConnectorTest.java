@@ -37,7 +37,6 @@ import org.junit.Test;
 
 import com.identity4j.connector.AbstractConnectorTest;
 import com.identity4j.connector.ConnectorConfigurationParameters;
-import com.identity4j.connector.flatfile.FlatFileConfiguration;
 
 public class FlatFileConnectorTest<C extends ConnectorConfigurationParameters> extends AbstractConnectorTest<C> {
 
@@ -65,19 +64,13 @@ public class FlatFileConnectorTest<C extends ConnectorConfigurationParameters> e
         try {
             final String fileName = properties.getProperty(key, defaultValue);
             FileObject obj = VFS.getManager().resolveFile(fileName);
-            InputStream in = obj.getContent().getInputStream();
-            try {
+            try(InputStream in = obj.getContent().getInputStream()) {
                 final File createTempFile = File.createTempFile("test", ".txt");
                 createTempFile.deleteOnExit();
-                FileOutputStream fos = new FileOutputStream(createTempFile);
-                try {
+                try(FileOutputStream fos = new FileOutputStream(createTempFile)) {
                     IOUtils.copy(in, fos);
-                } finally {
-                    IOUtils.closeQuietly(fos);
                 }
                 properties.put(key, createTempFile.getAbsolutePath());
-            } finally {
-                IOUtils.closeQuietly(in);
             }
         } catch (IOException ioe) {
             throw new Error(ioe);

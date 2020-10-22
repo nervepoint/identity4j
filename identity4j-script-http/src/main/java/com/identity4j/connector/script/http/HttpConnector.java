@@ -33,15 +33,14 @@ import org.apache.commons.logging.LogFactory;
 
 import com.identity4j.connector.ConnectorConfigurationParameters;
 import com.identity4j.connector.exception.ConnectorException;
-import com.identity4j.connector.script.ScriptConnector;
+import com.identity4j.connector.script.AbstractScriptConnector;
 import com.identity4j.util.http.Http;
 import com.identity4j.util.http.HttpProviderClient;
 
-public class HttpConnector extends ScriptConnector {
+public class HttpConnector extends AbstractScriptConnector<HttpConfiguration> {
 
 	private final static Log LOG = LogFactory.getLog(HttpConnector.class);
 
-	private HttpConfiguration httpConfiguration;
 	private HttpProviderClient client;
 
 	public HttpConnector() {
@@ -55,20 +54,15 @@ public class HttpConnector extends ScriptConnector {
 
 	@Override
 	protected String getScriptContent() throws IOException {
-		return httpConfiguration.getScriptContent();
-	}
-	protected void onOpen(ConnectorConfigurationParameters parameters) {
-		httpConfiguration = (HttpConfiguration) parameters;
-		super.onOpen(parameters);
+		return getConfiguration().getScriptContent();
 	}
 
 	@Override
 	protected void onOpened(ConnectorConfigurationParameters parameters) {
-		httpConfiguration = (HttpConfiguration) parameters;
-		client = Http.getProvider().getClient(httpConfiguration.getUrl(),  
-				httpConfiguration.getServiceAccountUsername(), 
-				httpConfiguration.getServiceAccountPassword() == null ? null : httpConfiguration.getServiceAccountPassword().toCharArray(),
-				httpConfiguration.getServiceAccountRealm());
+		client = Http.getProvider().getClient(getConfiguration().getUrl(),  
+				getConfiguration().getServiceAccountUsername(), 
+				getConfiguration().getServiceAccountPassword() == null ? null : getConfiguration().getServiceAccountPassword().toCharArray(),
+						getConfiguration().getServiceAccountRealm());
 		getEngine().put("httpClient", new HttpClientWrapper(client, (HttpConfiguration) getConfiguration()));
 		getEngine().put("httpProvider", Http.getProvider());
 		super.onOpened(parameters);
