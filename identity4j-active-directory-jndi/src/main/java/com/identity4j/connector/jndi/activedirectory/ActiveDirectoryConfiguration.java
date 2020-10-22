@@ -56,8 +56,6 @@ public class ActiveDirectoryConfiguration extends AbstractDirectoryConfiguration
 	
 	public static final String ACTIVE_DIRECTORY_ENFORCE_PASSWORD_RULES = "activeDirectory.enforcePasswordRules";
 	
-	public static final String ACTIVE_DIRECTORy_ENFORCE_PASSWORD_RULES = "activeDirectory.enforcePasswordRules";
-	
 	public ActiveDirectoryConfiguration(MultiMap configurationParameters) {
 		super(addConfigurationParameters(configurationParameters));
 	}
