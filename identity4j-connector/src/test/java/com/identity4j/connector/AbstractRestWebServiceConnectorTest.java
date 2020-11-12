@@ -26,6 +26,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -163,16 +164,23 @@ public abstract class AbstractRestWebServiceConnectorTest {
         }
     }
 
-    @Test(expected = PrincipalNotFoundException.class)
+    @Test
     public void itShouldThrowPrincipalNotFoundExceptionIfToUpdateIdentityIsNotPresentInDataStore() {
         Assume.assumeTrue(connector.getCapabilities().contains(ConnectorCapability.updateUser));
 
-        // given an identity not present in data store
-        // when identity is updated
-        Identity identity = getIdentity(invalidIdentityName);
-        identity.setFullName("Mock User");
-        connector.updateIdentity(identity);
-        // then PrincipalNotFoundException should be thrown
+        try {
+	        // given an identity not present in data store
+	        // when identity is updated
+	        Identity identity = getIdentity(invalidIdentityName);
+	        identity.setFullName("Mock User");
+	        connector.updateIdentity(identity);
+	        // then PrincipalNotFoundException should be thrown
+	        fail();
+        } catch(PrincipalNotFoundException e) {
+        	// exception was thrown
+		} catch (Exception e) {
+			fail(e.getMessage());
+		}
     }
 
     @Test
@@ -198,14 +206,21 @@ public abstract class AbstractRestWebServiceConnectorTest {
         }
     }
 
-    @Test(expected = PrincipalNotFoundException.class)
+    @Test
     public void itShouldThrowPrincipalNotFoundExceptionOnDeleteIfIdentityNotPresentInDataStore() {
         Assume.assumeTrue(connector.getCapabilities().contains(ConnectorCapability.deleteUser));
 
-        // given an identity not present in data store
-        // when identity is deleted
-        connector.deleteIdentity(invalidIdentityName);
-        // then PrincipalNotFoundException should be thrown
+        try {
+	        // given an identity not present in data store
+	        // when identity is deleted
+	        connector.deleteIdentity(invalidIdentityName);
+	        // then PrincipalNotFoundException should be thrown
+	        fail();
+        } catch (PrincipalNotFoundException e) {
+			// exception was thrown
+		} catch (Exception e) {
+			fail(e.getMessage());
+		}
     }
 
     @Test
@@ -290,6 +305,8 @@ public abstract class AbstractRestWebServiceConnectorTest {
 
     @Test
     public void itShouldDisableAnIdentity() {
+    	Assume.assumeTrue(connector.getCapabilities().contains(ConnectorCapability.accountDisable));
+    	
         // given a valid identity
         Identity identity = getIdentity(testIdentityName);
         identity.setFullName("Mock User");
@@ -403,15 +420,22 @@ public abstract class AbstractRestWebServiceConnectorTest {
         }
     }
 
-    @Test(expected = PrincipalNotFoundException.class)
+    @Test
     public void itShouldThrowPrincipalNotFoundExceptionWithInvalidGuidIdentityOnChangePassword() {
         Assume.assumeTrue(connector.getCapabilities().contains(ConnectorCapability.passwordChange));
 
-        // given an identity with invalid guid
-        final String invalidGuid = validIdentityId + validIdentityId;
-        // when change password is attempted
-        connector.changePassword(validIdentityName, invalidGuid, validIdentityPassword.toCharArray(), newPassword.toCharArray());
-        // then PrincipalNotFoundException should be thrown
+        try {
+	        // given an identity with invalid guid
+	        final String invalidGuid = validIdentityId + validIdentityId;
+	        // when change password is attempted
+	        connector.changePassword(validIdentityName, invalidGuid, validIdentityPassword.toCharArray(), newPassword.toCharArray());
+	        // then PrincipalNotFoundException should be thrown
+	        fail();
+        } catch (PrincipalNotFoundException e) {
+        	// exception was thrown
+		} catch (Exception e) {
+			fail(e.getMessage());
+		}
     }
 
     public void itShouldThrowPrincipalNotFoundExceptionWithInvalidPrincipalNameIdentityOnChangePassword() {
@@ -463,15 +487,22 @@ public abstract class AbstractRestWebServiceConnectorTest {
         }
     }
 
-    @Test(expected = PrincipalNotFoundException.class)
+    @Test
     public void itShouldThrowPrincipalNotFoundExceptionForInvalidIdentityOnSetPassword() {
         Assume.assumeTrue(connector.getCapabilities().contains(ConnectorCapability.passwordSet));
 
-        // given an invalid identity
-        final boolean forcePasswordChangeAtLogon = false;
-        // when set password is attempted
-        connector.setPassword(TestUtils.randomValue(), validIdentityId, newPassword.toCharArray(), forcePasswordChangeAtLogon);
-        // then PrincipalNotFoundException is thrown
+        try {
+	        // given an invalid identity
+	        final boolean forcePasswordChangeAtLogon = false;
+	        // when set password is attempted
+	        connector.setPassword(TestUtils.randomValue(), validIdentityId, newPassword.toCharArray(), forcePasswordChangeAtLogon);
+	        // then PrincipalNotFoundException is thrown
+	        fail();
+        } catch (PrincipalNotFoundException e) {
+        	// exception was thrown
+		} catch (Exception e) {
+			fail(e.getMessage());
+		}
     }
 
     @Test
