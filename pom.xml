@@ -101,6 +101,7 @@
 		<!-- <module>identity4j-sap</module> -->
 		<module>identity4j-sap-users</module>
 		<!-- <module>identity4j-webauth-test</module> -->
+		<module>identity4j-aws</module>
 	</modules>
 
 	<dependencies>
