@@ -419,6 +419,8 @@ public class AwsConnector extends AbstractConnector<AwsConfiguration> {
 	@Override
 	public void updateIdentity(Identity identity) throws ConnectorException {
 		
+		log.info(String.format("Updating identity for identity %s", identity.getPrincipalName()));
+		
 		checkIdentityExist(identity);
 		
 		Role[] roles = identity.getRoles();
@@ -431,6 +433,7 @@ public class AwsConnector extends AbstractConnector<AwsConfiguration> {
 		Iterator<Group> iteratorGroup = new RequestResultIterator<>(ListGroupsForUserRequestCommand.class, client, optionsForUserGroups);
 		while(iteratorGroup.hasNext()) {
 			Group group = iteratorGroup.next();
+			log.info(String.format("Removing role %s during update operation.", group.groupName()));
 			
 			Map<String, String> optionsRemove = new HashMap<>();
 			optionsRemove.put("userName", identity.getPrincipalName());
@@ -443,7 +446,7 @@ public class AwsConnector extends AbstractConnector<AwsConfiguration> {
 		}
 		
 		for (Role role : roles) {
-			log.info(String.format("Adding role  %s during update operation.", role.getPrincipalName()));
+			log.info(String.format("Adding role %s during update operation.", role.getPrincipalName()));
 			Map<String, String> op = new HashMap<>();
 			op.put("userName", identity.getPrincipalName());
 			op.put("groupName", role.getPrincipalName());
