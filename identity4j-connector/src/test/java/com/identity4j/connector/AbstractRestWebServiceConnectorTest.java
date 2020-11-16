@@ -115,11 +115,11 @@ public abstract class AbstractRestWebServiceConnectorTest {
         Assume.assumeTrue(connector.getCapabilities().contains(ConnectorCapability.createUser));
 
         // given an identity not present in data store
-        Identity identity = getIdentity(testIdentityName);
+        Identity identity = getIdentity(getTestIdentityName());
         identity.setFullName("Mock User");
         try {
             // when it is created in data store
-            identity = connector.createIdentity(identity, testIdentityPassword.toCharArray());
+            identity = connector.createIdentity(identity, getTestIdentityPassword().toCharArray());
             // then fetched instance from data store
             Identity identityFromSource = getIdentityFromSource(identity);
             // should have same assigned principal name
@@ -135,11 +135,12 @@ public abstract class AbstractRestWebServiceConnectorTest {
         Assume.assumeTrue(connector.getCapabilities().contains(ConnectorCapability.createUser));
 
         // given an identity already present in data store
-        Identity identity = getIdentity(validIdentityName);
+        Identity identity = getIdentity(getValidIdentityName());
         identity.setFullName("Mock User");
         // when it is created in data store
-        connector.createIdentity(identity, testIdentityPassword.toCharArray());
+        connector.createIdentity(identity, getTestIdentityPassword().toCharArray());
         // then PrincipalAlreadyExistsException should be thrown
+        fail(String.format("Identity with name %s should not have been created, it was supposed to already exist.", identity.getPrincipalName()));
     }
 
     @Test
@@ -147,9 +148,9 @@ public abstract class AbstractRestWebServiceConnectorTest {
         Assume.assumeTrue(connector.getCapabilities().contains(ConnectorCapability.updateUser));
 
         // given an identity
-        Identity identity = getIdentity(testIdentityName);
+        Identity identity = getIdentity(getTestIdentityName());
         identity.setFullName("Test Junit");
-        identity = connector.createIdentity(identity, testIdentityPassword.toCharArray());
+        identity = connector.createIdentity(identity, getTestIdentityPassword().toCharArray());
         try {
             // when the changes are updated
             identity.setFullName("Test JunitChanged");
@@ -171,7 +172,7 @@ public abstract class AbstractRestWebServiceConnectorTest {
         try {
 	        // given an identity not present in data store
 	        // when identity is updated
-	        Identity identity = getIdentity(invalidIdentityName);
+	        Identity identity = getIdentity(getInvalidIdentityName());
 	        identity.setFullName("Mock User");
 	        connector.updateIdentity(identity);
 	        // then PrincipalNotFoundException should be thrown
@@ -188,10 +189,10 @@ public abstract class AbstractRestWebServiceConnectorTest {
         Assume.assumeTrue(connector.getCapabilities().contains(ConnectorCapability.deleteUser));
 
         // given a valid identity present in data store
-        Identity identity = getIdentity(testIdentityName);
+        Identity identity = getIdentity(getTestIdentityName());
         identity.setFullName("Mock User");
 
-        identity = connector.createIdentity(identity, testIdentityPassword.toCharArray());
+        identity = connector.createIdentity(identity, getTestIdentityPassword().toCharArray());
         // when identity is deleted
         connector.deleteIdentity(identity.getPrincipalName());
 
@@ -213,7 +214,7 @@ public abstract class AbstractRestWebServiceConnectorTest {
         try {
 	        // given an identity not present in data store
 	        // when identity is deleted
-	        connector.deleteIdentity(invalidIdentityName);
+	        connector.deleteIdentity(getInvalidIdentityName());
 	        // then PrincipalNotFoundException should be thrown
 	        fail();
         } catch (PrincipalNotFoundException e) {
@@ -229,9 +230,9 @@ public abstract class AbstractRestWebServiceConnectorTest {
 
         // given an identity present in data source
         // when it is fetched by principal name
-        Identity identityFromSource = connector.getIdentityByName(validIdentityName);
+        Identity identityFromSource = connector.getIdentityByName(getValidIdentityName());
         // then it should return identity instance
-        assertPrincipalMatches(validIdentityName, identityFromSource);
+        assertPrincipalMatches(getValidIdentityName(), identityFromSource);
     }
 
     @Test(expected = PrincipalNotFoundException.class)
@@ -240,7 +241,7 @@ public abstract class AbstractRestWebServiceConnectorTest {
 
         // given an identity not present in data source
         // when it is fetched by principal name
-        connector.getIdentityByName(invalidIdentityName);
+        connector.getIdentityByName(getInvalidIdentityName());
         // then PrincipalNotFoundException should be thrown
     }
 
@@ -249,7 +250,7 @@ public abstract class AbstractRestWebServiceConnectorTest {
         Assume.assumeTrue(connector.getCapabilities().contains(ConnectorCapability.identities));
         // given a valid identity name present in data store
         // when a check is made for presence in data store
-        boolean identityNameInUse = connector.isIdentityNameInUse(validIdentityName);
+        boolean identityNameInUse = connector.isIdentityNameInUse(getValidIdentityName());
         // then it should return true flag
         assertTrue("Identity name should be in use", identityNameInUse);
     }
@@ -271,10 +272,10 @@ public abstract class AbstractRestWebServiceConnectorTest {
 
         // given an identity present in data store, with correct password
         // when login is attempted
-        Identity identity = connector.logon(validIdentityName, validIdentityPassword.toCharArray());
+        Identity identity = connector.logon(getValidIdentityName(), getValidIdentityPassword().toCharArray());
         // then it should login user to the system and return a valid instance
         // and should have same principal name
-        Assert.assertEquals("Principal names should be same", validIdentityName, identity.getPrincipalName());
+        Assert.assertEquals("Principal names should be same", getValidIdentityName(), identity.getPrincipalName());
     }
 
     @Test(expected = InvalidLoginCredentialsException.class)
@@ -286,7 +287,7 @@ public abstract class AbstractRestWebServiceConnectorTest {
 
         // given an identity present in data store, but invalid password
         // when login is attempted
-        connector.logon(validIdentityName, invalidPassword.toCharArray());
+        connector.logon(getValidIdentityName(), getInvalidPassword().toCharArray());
         // then InvalidLoginCredentialsException should be thrown
     }
 
@@ -299,7 +300,7 @@ public abstract class AbstractRestWebServiceConnectorTest {
 
         // given invalid identity not present in data store
         // when login is attempted
-        connector.logon(invalidIdentityName, invalidPassword.toCharArray());
+        connector.logon(getInvalidIdentityName(), getInvalidPassword().toCharArray());
         // then PrincipalNotFoundException should be thrown
     }
 
@@ -308,11 +309,11 @@ public abstract class AbstractRestWebServiceConnectorTest {
     	Assume.assumeTrue(connector.getCapabilities().contains(ConnectorCapability.accountDisable));
     	
         // given a valid identity
-        Identity identity = getIdentity(testIdentityName);
+        Identity identity = getIdentity(getTestIdentityName());
         identity.setFullName("Mock User");
         try {
             // and stored in data store
-            identity = connector.createIdentity(identity, testIdentityPassword.toCharArray());
+            identity = connector.createIdentity(identity, getTestIdentityPassword().toCharArray());
 
             // when it is disabled
             connector.disableIdentity(identity);
@@ -332,12 +333,12 @@ public abstract class AbstractRestWebServiceConnectorTest {
         Assume.assumeTrue(connector.getCapabilities().contains(ConnectorCapability.accountDisable));
 
         // given a valid identity
-        Identity identity = getIdentity(testIdentityName);
+        Identity identity = getIdentity(getTestIdentityName());
         identity.setFullName("Mock User");
         Identity identityFromSource = null;
         try {
             // and stored in data store
-            Identity identityCreated = connector.createIdentity(identity, testIdentityPassword.toCharArray());
+            Identity identityCreated = connector.createIdentity(identity, getTestIdentityPassword().toCharArray());
             // which is disabled
             connector.disableIdentity(identityCreated);
 
@@ -371,9 +372,9 @@ public abstract class AbstractRestWebServiceConnectorTest {
         Assume.assumeTrue(connector.getCapabilities().contains(ConnectorCapability.authentication));
 
         // given a valid user
-        boolean checkCredentials = connector.checkCredentials(validIdentityName,
+        boolean checkCredentials = connector.checkCredentials(getValidIdentityName(),
             // and valid password
-            validIdentityPassword.toCharArray());
+            getValidIdentityPassword().toCharArray());
         // when credential check is made
         // then it should return true flag
         assertTrue("Credentials are valid", checkCredentials);
@@ -381,9 +382,10 @@ public abstract class AbstractRestWebServiceConnectorTest {
 
     @Test
     public void itShouldReturnFalseFlagForInValidPrincipal() {
+    	Assume.assumeTrue(connector.getCapabilities().contains(ConnectorCapability.authentication));
         // given an identity with invalid principal name
         // when credential check is made
-        boolean checkCredentials = connector.checkCredentials(TestUtils.randomValue(), validIdentityPassword.toCharArray());
+        boolean checkCredentials = connector.checkCredentials(TestUtils.randomValue(), getValidIdentityPassword().toCharArray());
         // then it should return false flag
         assertFalse("Credentials are in valid. These should be valid", checkCredentials);
     }
@@ -392,7 +394,7 @@ public abstract class AbstractRestWebServiceConnectorTest {
     public void itShouldReturnFalseFlagForInValidPassword() {
         Assume.assumeTrue(connector.getCapabilities().contains(ConnectorCapability.authentication));
         // given an identity with valid principal name
-        boolean checkCredentials = connector.checkCredentials(validIdentityName,
+        boolean checkCredentials = connector.checkCredentials(getValidIdentityName(),
             // and in correct password
             TestUtils.randomValue().toCharArray());
         // when credential check is made
@@ -408,15 +410,15 @@ public abstract class AbstractRestWebServiceConnectorTest {
         try {
             // given a valid identity with new password
             // when password change is attempted
-            connector.changePassword(validIdentityName, validIdentityId, validIdentityPassword.toCharArray(), newPassword
+            connector.changePassword(getValidIdentityName(), getValidIdentityId(), getValidIdentityPassword().toCharArray(), getNewPassword()
                             .toCharArray());
             // then check with new password should return true flag
             // check with old password should return false
-            assertPasswordChange(validIdentityName, validIdentityPassword, newPassword);
+            assertPasswordChange(getValidIdentityName(), getValidIdentityPassword(), getNewPassword());
 
         } finally {
             // reset to original password
-            connector.setPassword(validIdentityName, validIdentityId, validIdentityPassword.toCharArray(), false);
+            connector.setPassword(getValidIdentityName(), getValidIdentityId(), getValidIdentityPassword().toCharArray(), false);
         }
     }
 
@@ -426,9 +428,9 @@ public abstract class AbstractRestWebServiceConnectorTest {
 
         try {
 	        // given an identity with invalid guid
-	        final String invalidGuid = validIdentityId + validIdentityId;
+	        final String invalidGuid = getValidIdentityId() + getValidIdentityId();
 	        // when change password is attempted
-	        connector.changePassword(validIdentityName, invalidGuid, validIdentityPassword.toCharArray(), newPassword.toCharArray());
+	        connector.changePassword(getValidIdentityName(), invalidGuid, getValidIdentityPassword().toCharArray(), getNewPassword().toCharArray());
 	        // then PrincipalNotFoundException should be thrown
 	        fail();
         } catch (PrincipalNotFoundException e) {
@@ -444,7 +446,7 @@ public abstract class AbstractRestWebServiceConnectorTest {
         // given an identity with invalid principal name
         // when change password is attempted
         try {
-            connector.changePassword(TestUtils.randomValue(), validIdentityId, validIdentityPassword.toCharArray(), newPassword
+            connector.changePassword(TestUtils.randomValue(), getValidIdentityId(), getValidIdentityPassword().toCharArray(), getNewPassword()
                             .toCharArray());
         } catch (PrincipalNotFoundException pnfe) {
             return;
@@ -459,7 +461,7 @@ public abstract class AbstractRestWebServiceConnectorTest {
         // given an identity with invalid password
         // when change password is attempted
         try {
-            connector.changePassword(validIdentityName, validIdentityId, TestUtils.randomValue().toCharArray(), newPassword
+            connector.changePassword(getValidIdentityName(), getValidIdentityId(), TestUtils.randomValue().toCharArray(), getNewPassword()
                             .toCharArray());
         } catch (InvalidLoginCredentialsException ilce) {
             return;
@@ -476,14 +478,14 @@ public abstract class AbstractRestWebServiceConnectorTest {
             // and no force change password
             final boolean forcePasswordChangeAtLogon = false;
             // when set password is attempted
-            connector.setPassword(validIdentityName, validIdentityId, newPassword.toCharArray(), forcePasswordChangeAtLogon);
+            connector.setPassword(getValidIdentityName(), getValidIdentityId(), getNewPassword().toCharArray(), forcePasswordChangeAtLogon);
             // then check with new password should return true flag
             // check with old password should return false
-            assertPasswordChange(validIdentityName, validIdentityPassword, newPassword);
+            assertPasswordChange(getValidIdentityName(), getValidIdentityPassword(), getNewPassword());
 
         } finally {
             // reset to original password
-            connector.setPassword(validIdentityName, validIdentityId, validIdentityPassword.toCharArray(), false);
+            connector.setPassword(getValidIdentityName(), getValidIdentityId(), getValidIdentityPassword().toCharArray(), false);
         }
     }
 
@@ -495,7 +497,7 @@ public abstract class AbstractRestWebServiceConnectorTest {
 	        // given an invalid identity
 	        final boolean forcePasswordChangeAtLogon = false;
 	        // when set password is attempted
-	        connector.setPassword(TestUtils.randomValue(), validIdentityId, newPassword.toCharArray(), forcePasswordChangeAtLogon);
+	        connector.setPassword(TestUtils.randomValue(), getValidIdentityId(), getNewPassword().toCharArray(), forcePasswordChangeAtLogon);
 	        // then PrincipalNotFoundException is thrown
 	        fail();
         } catch (PrincipalNotFoundException e) {
@@ -544,4 +546,68 @@ public abstract class AbstractRestWebServiceConnectorTest {
     protected void deleteIdentityFromSource(Identity identity) {
         connector.deleteIdentity(identity.getPrincipalName());
     }
+
+	protected String getValidIdentityName() {
+		return validIdentityName;
+	}
+
+	protected void setValidIdentityName(String validIdentityName) {
+		this.validIdentityName = validIdentityName;
+	}
+
+	protected String getTestIdentityName() {
+		return testIdentityName;
+	}
+
+	protected void setTestIdentityName(String testIdentityName) {
+		this.testIdentityName = testIdentityName;
+	}
+
+	protected String getTestIdentityPassword() {
+		return testIdentityPassword;
+	}
+
+	protected void setTestIdentityPassword(String testIdentityPassword) {
+		this.testIdentityPassword = testIdentityPassword;
+	}
+
+	protected String getNewPassword() {
+		return newPassword;
+	}
+
+	protected void setNewPassword(String newPassword) {
+		this.newPassword = newPassword;
+	}
+
+	protected String getInvalidIdentityName() {
+		return invalidIdentityName;
+	}
+
+	protected void setInvalidIdentityName(String invalidIdentityName) {
+		this.invalidIdentityName = invalidIdentityName;
+	}
+
+	protected String getInvalidPassword() {
+		return invalidPassword;
+	}
+
+	protected void setInvalidPassword(String invalidPassword) {
+		this.invalidPassword = invalidPassword;
+	}
+
+	protected String getValidIdentityId() {
+		return validIdentityId;
+	}
+
+	protected void setValidIdentityId(String validIdentityId) {
+		this.validIdentityId = validIdentityId;
+	}
+
+	protected String getValidIdentityPassword() {
+		return validIdentityPassword;
+	}
+
+	protected void setValidIdentityPassword(String validIdentityPassword) {
+		this.validIdentityPassword = validIdentityPassword;
+	}
 }

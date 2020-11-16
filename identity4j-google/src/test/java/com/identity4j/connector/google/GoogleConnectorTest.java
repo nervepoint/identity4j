@@ -75,14 +75,14 @@ public class GoogleConnectorTest extends AbstractRestWebServiceConnectorTest {
 
     @Before
     public void setup() {
-        validIdentityName = configurationParameters.getStringOrFail("connector.validIdentityName");
-        validIdentityId = configurationParameters.getStringOrFail("connector.validIdentityId");
-        validIdentityPassword = configurationParameters.getStringOrFail("connector.validIdentityPassword");
-        testIdentityName = configurationParameters.getStringOrFail("connector.testIdentityName");
-        testIdentityPassword = configurationParameters.getStringOrFail("connector.testIdentityPassword");
-        newPassword = configurationParameters.getStringOrFail("connector.newPassword");
-        invalidIdentityName = configurationParameters.getStringOrFail("connector.invalidIdentityName");
-        invalidPassword = configurationParameters.getStringOrFail("connector.invalidPassword");
+        setValidIdentityName(configurationParameters.getStringOrFail("connector.validIdentityName"));
+        setValidIdentityId(configurationParameters.getStringOrFail("connector.validIdentityId"));
+        setValidIdentityPassword(configurationParameters.getStringOrFail("connector.validIdentityPassword"));
+        setTestIdentityName(configurationParameters.getStringOrFail("connector.testIdentityName"));
+        setTestIdentityPassword(configurationParameters.getStringOrFail("connector.testIdentityPassword"));
+        setNewPassword(configurationParameters.getStringOrFail("connector.newPassword"));
+        setInvalidIdentityName(configurationParameters.getStringOrFail("connector.invalidIdentityName"));
+        setInvalidPassword(configurationParameters.getStringOrFail("connector.invalidPassword"));
         validRoleName = configurationParameters.getStringOrFail("connector.validRoleName");
         validRoleEmail = configurationParameters.getStringOrFail("connector.validRoleEmail");
         testRoleName = configurationParameters.getStringOrFail("connector.testRoleName");
@@ -152,7 +152,7 @@ public class GoogleConnectorTest extends AbstractRestWebServiceConnectorTest {
         // given an identity with bad password policy of length less than 8
         // when change password is attempted
         try {
-            connector.changePassword(validIdentityName, validIdentityId, validIdentityPassword.toCharArray(), "bad".toCharArray());
+            connector.changePassword(getValidIdentityName(), getValidIdentityId(), getValidIdentityPassword().toCharArray(), "bad".toCharArray());
         } catch (ConnectorException ce) {
             return;
         }
@@ -169,22 +169,22 @@ public class GoogleConnectorTest extends AbstractRestWebServiceConnectorTest {
         // and force change password
         final boolean forcePasswordChangeAtLogon = true;
         // when set password is attempted
-        connector.setPassword(validIdentityName, validIdentityId, newPassword.toCharArray(), forcePasswordChangeAtLogon);
+        connector.setPassword(getValidIdentityName(), getValidIdentityId(), getNewPassword().toCharArray(), forcePasswordChangeAtLogon);
         try {
             // then PasswordChangeRequiredException should be thrown
             try {
-                assertPasswordChange(validIdentityName, validIdentityPassword, newPassword);
+                assertPasswordChange(getValidIdentityName(), getValidIdentityPassword(), getNewPassword());
                 throw new IllegalStateException("Expected a PasswordChangeRequiredException");
             } catch (PasswordChangeRequiredException pcre) {
                 // Expect this
             }
             // and identity password status should be changeRequired
-            Identity identityByName = connector.getIdentityByName(validIdentityName);
+            Identity identityByName = connector.getIdentityByName(getValidIdentityName());
             assertEquals("Identity should have change password at next logon set", PasswordStatusType.changeRequired, identityByName
                             .getPasswordStatus().getType());
         } finally {
             // reset to original password
-            connector.setPassword(validIdentityName, validIdentityId, validIdentityPassword.toCharArray(), false);
+            connector.setPassword(getValidIdentityName(), getValidIdentityId(), getValidIdentityPassword().toCharArray(), false);
         }
     }
 
@@ -193,13 +193,13 @@ public class GoogleConnectorTest extends AbstractRestWebServiceConnectorTest {
         Assume.assumeTrue(connector.getCapabilities().contains(ConnectorCapability.createUser));
 
         // given an identity not present in data store
-        Identity googleIdentity = new GoogleIdentity(testIdentityName);
+        Identity googleIdentity = new GoogleIdentity(getTestIdentityName());
         googleIdentity.setFullName("Mock User");
         // and a valid role
         googleIdentity.addRole(connector.getRoleByName(validRoleEmail));
         try {
             // when it is created in data store
-            connector.createIdentity(googleIdentity, testIdentityPassword.toCharArray());
+            connector.createIdentity(googleIdentity, getTestIdentityPassword().toCharArray());
             // then fetched instance from data store
             Identity googleIdentityFromSource = connector.getIdentityByName(googleIdentity.getPrincipalName());
             // should have same assigned principal name
@@ -217,7 +217,7 @@ public class GoogleConnectorTest extends AbstractRestWebServiceConnectorTest {
         Assume.assumeTrue(connector.getCapabilities().contains(ConnectorCapability.createUser));
 
         // given an identity not present in data store
-        Identity googleIdentity = new GoogleIdentity(testIdentityName);
+        Identity googleIdentity = new GoogleIdentity(getTestIdentityName());
         googleIdentity.setFullName("Mock User");
 
         Role role = new RoleImpl(null, "dummy");
@@ -228,7 +228,7 @@ public class GoogleConnectorTest extends AbstractRestWebServiceConnectorTest {
         googleIdentity.addRole(role);
         try {
             // when it is created in data store
-            connector.createIdentity(googleIdentity, testIdentityPassword.toCharArray());
+            connector.createIdentity(googleIdentity, getTestIdentityPassword().toCharArray());
             // then it should throw PrincipalNotFoundException
             Assert.fail();
         } catch (PrincipalNotFoundException e) {
@@ -244,12 +244,12 @@ public class GoogleConnectorTest extends AbstractRestWebServiceConnectorTest {
         Assume.assumeTrue(connector.getCapabilities().contains(ConnectorCapability.updateUser));
 
         // given an identity
-        Identity googleIdentity = new GoogleIdentity(testIdentityName);
+        Identity googleIdentity = new GoogleIdentity(getTestIdentityName());
         googleIdentity.setFullName("Test Junit");
         // and a valid role
         googleIdentity.addRole(connector.getRoleByName(validRoleEmail));
         try {
-            connector.createIdentity(googleIdentity, testIdentityPassword.toCharArray());
+            connector.createIdentity(googleIdentity, getTestIdentityPassword().toCharArray());
             // when the changes are updated
             googleIdentity.setFullName("Test JunitChanged");
             googleIdentity.setRoles(new Role[] { connector.getRoleByName(testRoleEmail1), connector.getRoleByName(

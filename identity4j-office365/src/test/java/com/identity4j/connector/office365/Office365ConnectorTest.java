@@ -106,14 +106,14 @@ public class Office365ConnectorTest extends AbstractRestWebServiceConnectorTest 
 
 	@Before
 	public void setup() {
-		validIdentityName = configurationParameters.getStringOrFail("connector.validIdentityName");
-		validIdentityId = configurationParameters.getStringOrFail("connector.validIdentityId");
-		validIdentityPassword = configurationParameters.getStringOrFail("connector.validIdentityPassword");
-		testIdentityName = configurationParameters.getStringOrFail("connector.testIdentityName");
-		testIdentityPassword = configurationParameters.getStringOrFail("connector.testIdentityPassword");
-		newPassword = configurationParameters.getStringOrFail("connector.newPassword");
-		invalidIdentityName = configurationParameters.getStringOrFail("connector.invalidIdentityName");
-		invalidPassword = configurationParameters.getStringOrFail("connector.invalidPassword");
+		setValidIdentityName(configurationParameters.getStringOrFail("connector.validIdentityName"));
+		setValidIdentityId(configurationParameters.getStringOrFail("connector.validIdentityId"));
+		setValidIdentityPassword(configurationParameters.getStringOrFail("connector.validIdentityPassword"));
+		setTestIdentityName(configurationParameters.getStringOrFail("connector.testIdentityName"));
+		setTestIdentityPassword(configurationParameters.getStringOrFail("connector.testIdentityPassword"));
+		setNewPassword(configurationParameters.getStringOrFail("connector.newPassword"));
+		setInvalidIdentityName(configurationParameters.getStringOrFail("connector.invalidIdentityName"));
+		setInvalidPassword(configurationParameters.getStringOrFail("connector.invalidPassword"));
 		validRoleName = configurationParameters.getStringOrFail("connector.validRoleName");
 		validRoleEmail = configurationParameters.getStringOrFail("connector.validRoleEmail");
 		validRoleDescription = configurationParameters.getStringOrFail("connector.validRoleDescription");
@@ -292,13 +292,13 @@ public class Office365ConnectorTest extends AbstractRestWebServiceConnectorTest 
 		Assume.assumeTrue(connector.getCapabilities().contains(ConnectorCapability.createUser));
 
 		// given an identity not present in data store
-		Identity officeIdentity = new Office365Identity(testIdentityName);
+		Identity officeIdentity = new Office365Identity(getTestIdentityName());
 		officeIdentity.setFullName("Mock User");
 		// and a valid role
 		officeIdentity.addRole(connector.getRoleByName(validRoleName));
 		try {
 			// when it is created in data store
-			connector.createIdentity(officeIdentity, testIdentityPassword.toCharArray());
+			connector.createIdentity(officeIdentity, getTestIdentityPassword().toCharArray());
 			// then fetched instance from data store
 			Identity googleIdentityFromSource = connector.getIdentityByName(officeIdentity.getPrincipalName());
 			// should have same assigned principal name
@@ -509,7 +509,7 @@ public class Office365ConnectorTest extends AbstractRestWebServiceConnectorTest 
 		Assume.assumeTrue(connector.getCapabilities().contains(ConnectorCapability.createUser));
 
 		// given an identity not present in data store
-		Identity officeIdentity = new Office365Identity(testIdentityName);
+		Identity officeIdentity = new Office365Identity(getTestIdentityName());
 		officeIdentity.setFullName("Mock User");
 
 		Role role = new RoleImpl("bf4ec5c1-af3d-4ae9-9fa3-902217f766b5", "dummy");
@@ -522,7 +522,7 @@ public class Office365ConnectorTest extends AbstractRestWebServiceConnectorTest 
 		officeIdentity.addRole(role);
 		try {
 			// when it is created in data store
-			connector.createIdentity(officeIdentity, testIdentityPassword.toCharArray());
+			connector.createIdentity(officeIdentity, getTestIdentityPassword().toCharArray());
 			// then it should throw PrincipalNotFoundException
 			Assert.fail();
 		} catch (PrincipalNotFoundException e) {
@@ -538,7 +538,7 @@ public class Office365ConnectorTest extends AbstractRestWebServiceConnectorTest 
 		Assume.assumeTrue(connector.getCapabilities().contains(ConnectorCapability.updateUser));
 
 		// given an identity
-		Identity officeIdentity = new Office365Identity(testIdentityName);
+		Identity officeIdentity = new Office365Identity(getTestIdentityName());
 		officeIdentity.setFullName("Test Junit");
 		// and a valid role
 		officeIdentity.addRole(connector.getRoleByName(validRoleName));
@@ -547,7 +547,7 @@ public class Office365ConnectorTest extends AbstractRestWebServiceConnectorTest 
 			try {
 				connector.createRole(buildRole(dummy2RoleId, dummy2RoleId + "@something.com", dummy2RoleId));
 				try {
-					officeIdentity = connector.createIdentity(officeIdentity, testIdentityPassword.toCharArray());
+					officeIdentity = connector.createIdentity(officeIdentity, getTestIdentityPassword().toCharArray());
 					try {
 						// when the changes are updated
 						officeIdentity.setFullName("Test JunitChanged");

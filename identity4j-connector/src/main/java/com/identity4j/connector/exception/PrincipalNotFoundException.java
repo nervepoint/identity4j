@@ -38,6 +38,11 @@ public class PrincipalNotFoundException extends ConnectorException {
     public PrincipalNotFoundException(String message) {
         super(message);
     }
+    
+    public PrincipalNotFoundException(String message, PrincipalType principalType) {
+        super(message);
+        this.principalType = principalType;
+    }
 
     public PrincipalNotFoundException(String message, Throwable cause) {
         super(message, cause);

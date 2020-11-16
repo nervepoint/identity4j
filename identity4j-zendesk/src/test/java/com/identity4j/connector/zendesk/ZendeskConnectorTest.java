@@ -56,15 +56,15 @@ public class ZendeskConnectorTest extends AbstractRestWebServiceConnectorTest{
 	
 	@Before
 	public void setup(){
-		validIdentityName = configurationParameters.getStringOrFail("connector.validIdentityName");
-		validIdentityId = configurationParameters.getStringOrFail("connector.validIdentityId");
-		validIdentityPassword = configurationParameters.getStringOrFail("connector.validIdentityPassword");
-		testIdentityName = configurationParameters.getStringOrFail("connector.testIdentityName");
-		testIdentityPassword = configurationParameters.getStringOrFail("connector.testIdentityPassword");
-		newPassword = configurationParameters.getStringOrFail("connector.newPassword");
+		setValidIdentityName(configurationParameters.getStringOrFail("connector.validIdentityName"));
+		setValidIdentityId(configurationParameters.getStringOrFail("connector.validIdentityId"));
+		setValidIdentityPassword(configurationParameters.getStringOrFail("connector.validIdentityPassword"));
+		setTestIdentityName(configurationParameters.getStringOrFail("connector.testIdentityName"));
+		setTestIdentityPassword(configurationParameters.getStringOrFail("connector.testIdentityPassword"));
+		setNewPassword(configurationParameters.getStringOrFail("connector.newPassword"));
 		
-		invalidIdentityName = configurationParameters.getStringOrFail("connector.invalidIdentityName");
-		invalidPassword = configurationParameters.getStringOrFail("connector.invalidPassword");
+		setInvalidIdentityName(configurationParameters.getStringOrFail("connector.invalidIdentityName"));
+		setInvalidPassword(configurationParameters.getStringOrFail("connector.invalidPassword"));
 		
 		configurationParameters.getStringOrFail("connector.invalidRoleId");
 		
@@ -148,7 +148,7 @@ public class ZendeskConnectorTest extends AbstractRestWebServiceConnectorTest{
 				ConnectorCapability.createUser));
 		
 		//given an identity not present in data store and role agent
-		ZendeskIdentity identity = (ZendeskIdentity) getIdentity(testIdentityName);
+		ZendeskIdentity identity = (ZendeskIdentity) getIdentity(getTestIdentityName());
 		identity.setFullName("Mock User");
 		identity.setAttribute(ZendeskModelConvertor.USER_ROLE, "agent");
 		
@@ -156,7 +156,7 @@ public class ZendeskConnectorTest extends AbstractRestWebServiceConnectorTest{
 		identity.addRole(connector.getRoleByName(validRoleName));
 		try {
 			//when it is created in data store
-			identity = (ZendeskIdentity) connector.createIdentity(identity, testIdentityPassword.toCharArray());
+			identity = (ZendeskIdentity) connector.createIdentity(identity, getTestIdentityPassword().toCharArray());
 			//then fetched instance from data store
 			identityFromSource = getIdentityFromSource(identity);
 			//should have same assigned principal name
@@ -181,14 +181,14 @@ public class ZendeskConnectorTest extends AbstractRestWebServiceConnectorTest{
 		Identity identityFromSource = null;
 		
 		//given an identity
-		ZendeskIdentity identity = (ZendeskIdentity) getIdentity(testIdentityName);
+		ZendeskIdentity identity = (ZendeskIdentity) getIdentity(getTestIdentityName());
 		identity.setFullName("Test Junit");
 		identity.setAttribute(ZendeskModelConvertor.USER_ROLE, "agent");
 		
 		//and a valid role
 		identity.addRole(connector.getRoleByName(validRoleName));
 		try {
-			identity = (ZendeskIdentity) connector.createIdentity(identity, testIdentityPassword.toCharArray());
+			identity = (ZendeskIdentity) connector.createIdentity(identity, getTestIdentityPassword().toCharArray());
 			//when the changes are updated
 			identity.setFullName("Test JunitChanged");
 			identity.setRoles(new Role[]{connector.getRoleByName(dummy1RoleName),connector.getRoleByName(dummy2RoleName)});
@@ -212,7 +212,7 @@ public class ZendeskConnectorTest extends AbstractRestWebServiceConnectorTest{
 	@Override
 	protected Identity getIdentity(String identityName) {
 		ZendeskIdentity zendeskIdentity = null;
-		if(identityName.equals(invalidIdentityName)){
+		if(identityName.equals(getInvalidIdentityName())){
 			zendeskIdentity = new ZendeskIdentity(invalidIdentityId,identityName);
 		}else{
 			zendeskIdentity = new ZendeskIdentity(identityName);

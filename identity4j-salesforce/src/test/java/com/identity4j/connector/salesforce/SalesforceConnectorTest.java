@@ -52,15 +52,15 @@ public class SalesforceConnectorTest extends AbstractRestWebServiceConnectorTest
 	
 	@Before
 	public void setup(){
-		validIdentityName = configurationParameters.getStringOrFail("connector.validIdentityName");
-		validIdentityId = configurationParameters.getStringOrFail("connector.validIdentityId");
-		validIdentityPassword = configurationParameters.getStringOrFail("connector.validIdentityPassword");
-		testIdentityName = configurationParameters.getStringOrFail("connector.testIdentityName");
-		testIdentityPassword = configurationParameters.getStringOrFail("connector.testIdentityPassword");
-		newPassword = configurationParameters.getStringOrFail("connector.newPassword");
+		setValidIdentityName(configurationParameters.getStringOrFail("connector.validIdentityName"));
+		setValidIdentityId(configurationParameters.getStringOrFail("connector.validIdentityId"));
+		setValidIdentityPassword(configurationParameters.getStringOrFail("connector.validIdentityPassword"));
+		setTestIdentityName(configurationParameters.getStringOrFail("connector.testIdentityName"));
+		setTestIdentityPassword(configurationParameters.getStringOrFail("connector.testIdentityPassword"));
+		setNewPassword(configurationParameters.getStringOrFail("connector.newPassword"));
 		
-		invalidIdentityName = configurationParameters.getStringOrFail("connector.invalidIdentityName");
-		invalidPassword = configurationParameters.getStringOrFail("connector.invalidPassword");
+		setInvalidIdentityName(configurationParameters.getStringOrFail("connector.invalidIdentityName"));
+		setInvalidPassword(configurationParameters.getStringOrFail("connector.invalidPassword"));
 		
 		validRoleName = configurationParameters.getStringOrFail("connector.validRoleName");
 		testRoleName = configurationParameters.getStringOrFail("connector.testRoleName");
@@ -78,20 +78,20 @@ public class SalesforceConnectorTest extends AbstractRestWebServiceConnectorTest
 				ConnectorCapability.passwordChange));
 		
 		//given a valid identity with new password
-		Identity identity = getIdentity(testIdentityName);
+		Identity identity = getIdentity(getTestIdentityName());
 		identity.setFullName("Mock User");
 		
 		//and stored in data store
-		Identity identityCreated = connector.createIdentity(identity, testIdentityPassword.toCharArray());
+		Identity identityCreated = connector.createIdentity(identity, getTestIdentityPassword().toCharArray());
 		
 		
 		//when password change is attempted
 		connector.changePassword(identityCreated.getPrincipalName(), identityCreated.getGuid(),
-				testIdentityPassword.toCharArray(), 
-				newPassword.toCharArray());
+				getTestIdentityPassword().toCharArray(), 
+				getNewPassword().toCharArray());
 		//then check with new password should return true flag
 		//check with old password should return false
-		assertPasswordChange(identityCreated.getPrincipalName(), testIdentityPassword, newPassword);
+		assertPasswordChange(identityCreated.getPrincipalName(), getTestIdentityPassword(), getNewPassword());
 			
 		
 	}
@@ -102,18 +102,18 @@ public class SalesforceConnectorTest extends AbstractRestWebServiceConnectorTest
 				ConnectorCapability.passwordSet));
 		
 		//given a valid identity with new password
-		Identity identity = getIdentity(testIdentityName);
+		Identity identity = getIdentity(getTestIdentityName());
 		identity.setFullName("Mock User");
 		
 		//and stored in data store
-		Identity identityCreated = connector.createIdentity(identity, testIdentityPassword.toCharArray());
+		Identity identityCreated = connector.createIdentity(identity, getTestIdentityPassword().toCharArray());
 		
 		//when set password is attempted
 		connector.setPassword(identityCreated.getPrincipalName(), identityCreated.getGuid(),
-				newPassword.toCharArray(),false);
+				getNewPassword().toCharArray(),false);
 		//then check with new password should return true flag
 		//check with old password should return false
-		assertPasswordChange(identityCreated.getPrincipalName(), testIdentityPassword, newPassword);
+		assertPasswordChange(identityCreated.getPrincipalName(), getTestIdentityPassword(), getNewPassword());
 			
 	}
 	
@@ -159,7 +159,7 @@ public class SalesforceConnectorTest extends AbstractRestWebServiceConnectorTest
 				ConnectorCapability.createUser));
 		
 		//given an identity not present in data store
-		SalesforceIdentity identity = (SalesforceIdentity) getIdentity(testIdentityName);
+		SalesforceIdentity identity = (SalesforceIdentity) getIdentity(getTestIdentityName());
 		identity.setFullName("Mock User");
 		identity.setAttribute("ProfileId", profileIdForProfileWhichAllowsPublicGroupAddition);
 		
@@ -167,7 +167,7 @@ public class SalesforceConnectorTest extends AbstractRestWebServiceConnectorTest
 		identity.addRole(connector.getRoleByName(validRoleName));
 		try {
 			//when it is created in data store
-			connector.createIdentity(identity, testIdentityPassword.toCharArray());
+			connector.createIdentity(identity, getTestIdentityPassword().toCharArray());
 			//then fetched instance from data store
 			identityFromSource = connector
 					.getIdentityByName(identity.getPrincipalName());
@@ -191,7 +191,7 @@ public class SalesforceConnectorTest extends AbstractRestWebServiceConnectorTest
 				ConnectorCapability.createUser));
 		
 		//given an identity not present in data store
-		Identity identity = getIdentity(testIdentityName);
+		Identity identity = getIdentity(getTestIdentityName());
 		identity.setFullName("Mock User");
 		
 		Role role = new RoleImpl("00G90000001Ti0XEAA", "dummy");
@@ -200,7 +200,7 @@ public class SalesforceConnectorTest extends AbstractRestWebServiceConnectorTest
 		identity.addRole(role);
 		try {
 			//when it is created in data store
-			connector.createIdentity(identity, testIdentityPassword.toCharArray());
+			connector.createIdentity(identity, getTestIdentityPassword().toCharArray());
 			//then it should throw PrincipalNotFoundException
 			Assert.fail();
 		} catch(PrincipalNotFoundException e){
@@ -218,13 +218,13 @@ public class SalesforceConnectorTest extends AbstractRestWebServiceConnectorTest
 		Identity identityFromSource = null;
 		
 		//given an identity
-		SalesforceIdentity identity = (SalesforceIdentity) getIdentity(testIdentityName);
+		SalesforceIdentity identity = (SalesforceIdentity) getIdentity(getTestIdentityName());
 		identity.setFullName("Test Junit");
 		identity.setAttribute("ProfileId", profileIdForProfileWhichAllowsPublicGroupAddition);
 		//and a valid role
 		identity.addRole(connector.getRoleByName(validRoleName));
 		try {
-			identity = (SalesforceIdentity) connector.createIdentity(identity, testIdentityPassword.toCharArray());
+			identity = (SalesforceIdentity) connector.createIdentity(identity, getTestIdentityPassword().toCharArray());
 			//when the changes are updated
 			identity.setFullName("Test JunitChanged");
 			identity.setRoles(new Role[]{connector.getRoleByName(dummy1RoleName),connector.getRoleByName(dummy2RoleName)});
@@ -247,7 +247,7 @@ public class SalesforceConnectorTest extends AbstractRestWebServiceConnectorTest
 	
 	@Override
 	protected Identity getIdentity(String identityName) {
-		if(!identityName.equals(validIdentityName)){
+		if(!identityName.equals(getValidIdentityName())){
 			//we cannot delete an identity in Salesforce data store
 			//hence we need unique names for each test, we dont want each test to
 			//depend on single identity name,therefore we use Math.random
