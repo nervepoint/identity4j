@@ -4,6 +4,8 @@ import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 
+import com.identity4j.connector.principal.Identity;
+import com.identity4j.connector.principal.Role;
 import com.identity4j.connector.principal.RoleImpl;
 
 import software.amazon.awssdk.services.iam.model.Group;
@@ -14,6 +16,13 @@ import software.amazon.awssdk.services.iam.model.User;
 public class AwsModelConverter {
 
 	public static AwsIdentity userToAwsIdentity(User user){
+		
+		AwsIdentity awsIdentity = new AwsIdentity(user.userId(), user.userName());
+		
+		return userToAwsIdentity(user, awsIdentity);
+	}
+	
+	public static AwsIdentity userToAwsIdentity(User user, Identity identity){
 		
 		AwsIdentity awsIdentity = new AwsIdentity(user.userId(), user.userName());
 		
@@ -47,6 +56,12 @@ public class AwsModelConverter {
 	}
 
 	public static RoleImpl groupToRole(Group group) {
+		RoleImpl awsGroup = new RoleImpl(group.groupId(), group.groupName());
+		
+		return groupToRole(group, awsGroup);
+	}
+	
+	public static RoleImpl groupToRole(Group group, Role role) {
 		RoleImpl awsGroup = new RoleImpl(group.groupId(), group.groupName());
 		
 		String arn = group.arn();
