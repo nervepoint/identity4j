@@ -85,7 +85,7 @@ import com.identity4j.util.http.HttpUtil;
 public class HttpClientImpl implements HttpProviderClient {
 	private final static Log LOG = LogFactory.getLog(HttpClientImpl.class);
 
-	private final class Resp implements HttpResponse {
+	public final class Resp implements HttpResponse {
 		private final HttpRequestBase method;
 		boolean done;
 		HttpStatus status = HttpStatus.DEFAULT;
@@ -480,7 +480,7 @@ public class HttpClientImpl implements HttpProviderClient {
 							}))
 					.build();
 			cl.setConnectionManager(new BasicHttpClientConnectionManager(reg));
-			break;
+			break; 
 		case NONE:
 			reg = RegistryBuilder.<ConnectionSocketFactory> create()
 					.register("http", new PlainConnectionSocketFactory()).register("https",

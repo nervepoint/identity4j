@@ -1,8 +1,8 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	<artifactId>identity4j-script-http</artifactId>
-	<name>Identity4J Scripted HTTP Connector</name>
+	<artifactId>identity4j-script-hypersocket</artifactId>
+	<name>Identity4J Scripted Hypersocket Connector</name>
 	<parent>
 		<groupId>com.nervepoint</groupId>
 		<artifactId>identity4j</artifactId>
@@ -31,14 +31,16 @@
 
 		<dependency>
 			<groupId>com.nervepoint</groupId>
-			<artifactId>identity4j-script</artifactId>
+			<artifactId>identity4j-script-http</artifactId>
 			<version>${project.version}</version>
 		</dependency>
+
 		<dependency>
-			<groupId>com.google.code.gson</groupId>
-			<artifactId>gson</artifactId>
-			<version>2.5</version>
+			<groupId>com.sshtools</groupId>
+			<artifactId>j2ssh-maverick</artifactId>
+			<version>1.5.2</version>
 		</dependency>
+
 
 		<!-- Testing -->
 

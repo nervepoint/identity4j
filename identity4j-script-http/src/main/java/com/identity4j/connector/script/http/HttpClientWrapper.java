@@ -55,6 +55,10 @@ public class HttpClientWrapper {
 		return new HttpClientResponseWrapper(client.get(uri));
 	}
 
+	public HttpClientResponseWrapper delete(String uri) throws IOException {
+		return new HttpClientResponseWrapper(client.delete(uri));
+	}
+
 	public String toJSON(Object o) {
 		return toJSON(o, new StringBuilder()).toString();
 	}
@@ -173,7 +177,11 @@ public class HttpClientWrapper {
 			JsonObject obj = parse.getAsJsonObject();
 			return obj;
 		}
-
+		
+		public void content() {
+			resp.content();
+		}
+		
 		public int status() {
 			return resp.status().getCode();
 		}
