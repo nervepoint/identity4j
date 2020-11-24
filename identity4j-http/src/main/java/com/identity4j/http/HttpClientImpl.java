@@ -40,9 +40,11 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
+import org.apache.http.HttpHost;
 import org.apache.http.NameValuePair;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.AuthCache;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.config.RequestConfig.Builder;
@@ -55,6 +57,7 @@ import org.apache.http.client.methods.HttpPatch;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.config.Registry;
 import org.apache.http.config.RegistryBuilder;
 import org.apache.http.conn.socket.ConnectionSocketFactory;
@@ -64,6 +67,8 @@ import org.apache.http.entity.ContentProducer;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.EntityTemplate;
 import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.auth.BasicScheme;
+import org.apache.http.impl.client.BasicAuthCache;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
@@ -102,7 +107,7 @@ public class HttpClientImpl implements HttpProviderClient {
 			if (!done) {
 				try {
 					try {
-						response = httpClient.execute(method);
+						response = httpClient.execute(method, context);
 						status = new HttpStatus(response.getStatusLine().getStatusCode(),
 								response.getStatusLine().getReasonPhrase(),
 								response.getStatusLine().getProtocolVersion().getProtocol());
@@ -183,6 +188,7 @@ public class HttpClientImpl implements HttpProviderClient {
 	private String url;
 	//private HttpClientBuilder cl;
 	private CloseableHttpClient httpClient;
+	private HttpClientContext context;
 	private int connectionRequestTimeout = -1;
 	private int connectTimeout = -1;
 	private int soTimeout = -1;
@@ -428,26 +434,35 @@ public class HttpClientImpl implements HttpProviderClient {
 	private void checkClient() {
 		if (httpClient == null) {
 			try {
-				httpClient = createHttpClient();
+				 createHttpClient();
 			} catch (IOException e) {
 				throw new HttpException(e);
 			}
 		}
 	}
 
-	protected CloseableHttpClient createHttpClient() throws IOException {
+	protected void createHttpClient() throws IOException {
 		HttpClientBuilder cl = HttpClients.custom();
 
+		// Add AuthCache to the execution context
+		context = HttpClientContext.create();
+		
 		try {
 			URL url = new URL(this.url);
 			if (username != null && username.length() > 0) {
 				CredentialsProvider credsProvider = new BasicCredentialsProvider();
+				int port = url.getPort() == -1 ? url.getDefaultPort() : url.getPort();
 				credsProvider.setCredentials(
-						new AuthScope(url.getHost(), url.getPort() == -1 ? url.getDefaultPort() : url.getPort(),
-								realm.length() == 0 ? AuthScope.ANY_REALM : realm),
+						new AuthScope(url.getHost(), port,
+								realm == null || realm.length() == 0 ? AuthScope.ANY_REALM : realm),
 						new UsernamePasswordCredentials(username, password == null ? null : new String(password)));
 				cl.setDefaultCredentialsProvider(credsProvider);
-
+				HttpHost targetHost = new HttpHost(url.getHost(), port, url.getProtocol());
+				AuthCache authCache = new BasicAuthCache();
+				authCache.put(targetHost, new BasicScheme());
+				
+				context.setCredentialsProvider(credsProvider);
+				context.setAuthCache(authCache);
 			}
 		} catch (MalformedURLException mrle) {
 			throw new IllegalArgumentException(mrle);
@@ -498,8 +513,9 @@ public class HttpClientImpl implements HttpProviderClient {
 			break;
 		}
 
-		cl.setDefaultRequestConfig(builder.build());
-		return cl.build();
+		RequestConfig client = builder.build();
+		cl.setDefaultRequestConfig(client);
+		httpClient = cl.build();
 	}
 
 }

@@ -7,6 +7,10 @@ importClass(com.identity4j.connector.principal.AccountStatusType);
 importClass(com.identity4j.util.Util); 
 importClass(com.identity4j.util.StringUtil);
 importClass(java.text.SimpleDateFormat);
+importClass(com.identity4j.connector.script.http.HttpClientWrapper);
+
+var connectorParameters;
+var csrfToken;
 
 // Public API functions
 /**
@@ -15,10 +19,18 @@ importClass(java.text.SimpleDateFormat);
  * @param parameters connector configuration
  */
 function onOpen(parameters) {
+	connectorParameters = parameters;
 	var response = httpClient.get(parameters.getLogonSchemeUri());
 	if(!response || response.status() != 200) 
 		throw "Failed to logon. " + response.status();
-	response.release(); // consume response
+		
+    var json = response.toJSON();
+	var session = json.get("session").getAsJsonObject();
+	if(json.get("success").getAsBoolean()) {
+		csrfToken = session.get("csrfToken").getAsString();
+	}
+	else 
+		throw "Failed to logon. " + json.get("errorMsg").getAsString();
 }
 
 /**
@@ -27,7 +39,7 @@ function onOpen(parameters) {
  * @param parameters connector configuration
  */
 function onClose() {
-	var response = httpClient.get("api/logoff");
+	var response = doGet("api/logoff");
 	if(!response || response.status() != 200) 
 		log.warn("Failed to logoff. " + response.status());
 }
@@ -42,7 +54,7 @@ function allRoles() {
 	var offset = 0;
 	var limit = 100;
 	while(true) {
-		var response = httpClient.get("api/currentRealm/groups/table?sort=name&order=asc&offset=" + offset + "&limit=" + limit);
+		var response = doGet("api/currentRealm/groups/table?sort=name&order=asc&offset=" + offset + "&limit=" + limit);
 		if(response) {
 			try {
 				if(response.status() == 200) {
@@ -87,7 +99,7 @@ function allIdentities() {
 	var limit = 100;
 	while(true) {
 		log.info("Getting identities from offset of " + offset);
-		var response = httpClient.get("api/currentRealm/users/table?sort=name&order=asc&offset=" + offset + "&limit=" + limit);
+		var response = doGet("api/currentRealm/users/table?sort=name&order=asc&offset=" + offset + "&limit=" + limit);
 		if(response) {
 			try {
 				if(response.status() == 200) {
@@ -130,7 +142,7 @@ function allIdentities() {
 function countIdentities() {
 	var offset = 0;
 	var limit = 100;
-	var response = httpClient.get("api/currentRealm/users/table?sort=name&order=asc&offset=" + offset + "&limit=" + limit);
+	var response = doGet("api/currentRealm/users/table?sort=name&order=asc&offset=" + offset + "&limit=" + limit);
 	if(response) {
 		try {
 			if(response.status() == 200) {
@@ -158,7 +170,7 @@ function parseIdentity(entry) {
 	 */
 	if(!entry.has("groups")) {
 		log.debug('Getting identity by ID ' + id);
-	    var response = httpClient.get("api/currentRealm/user/" + id);
+	    var response = doGet("api/currentRealm/user/" + id);
 		if(response) {
 			try {
 				if(response.status() == 200) {
@@ -193,7 +205,7 @@ function parseIdentity(entry) {
 	if(gen.isJsonNull()) {
 		// HS does not populate this :(
 		log.debug('Getting groups by user ID ' + id);
-	    var response = httpClient.get("api/currentRealm/groups/user/" + id);
+	    var response = doGet("api/currentRealm/groups/user/" + id);
 		if(response) {
 			try {
 				if(response.status() == 200) {
@@ -241,7 +253,7 @@ function parseIdentity(entry) {
  */
 function getRoleByName(name) {
     log.debug('Getting identity by name ' + name);
-    var response = httpClient.get("api/currentRealm/group/byName/" + encodeURIComponent(name));
+    var response = doGet("api/currentRealm/group/byName/" + encodeURIComponent(name));
 	if(response) {
 		try {
 			if(response.status() == 200) {
@@ -276,7 +288,7 @@ function getRoleByName(name) {
  */
 function getIdentityByName(name) {
     log.debug('Getting identity by name ' + name);
-    var response = httpClient.get("api/currentRealm/user/byName/" + encodeURIComponent(name));
+    var response = doGet("api/currentRealm/user/byName/" + encodeURIComponent(name));
 	if(response) {
 		try {
 			if(response.status() == 200) {
@@ -311,22 +323,26 @@ function getIdentityByName(name) {
  */
 function areCredentialsValid(identity, password) {
 	log.debug('Checking credentials of ' + identity);
-	var client = httpProvider.getClient(config.getUrl(), identity.getPrincipalName(), password.toCharArray(), null);
-	var response = client.get("api/logon/system");
+	var client = new HttpClientWrapper(httpProvider.getClient(config.getUrl(), identity.getPrincipalName(), password.toCharArray(), null), connectorParameters);
+	var response = client.get("api/logon/userLogin");
 	try {
-		if(!response || response.status() != 200) 
-			return false;
+		if(!response || response.status() != 200) {
+			throw 'Failed credential check for ' + identity.getPrincipalName() + ' with ' + response.status();
+		}
+		
+		return response.toJSON().get("success").getAsBoolean();
 	}
 	finally {
 		response.release();
-	}
-	response = client.get("api/logoff");
-	try {
-		if(!response || response.status() != 200) 
-			log.warn("Failed to logon. " + response.status());
-	}
-	finally {
-		response.release();
+		log.debug('Passed credential check for ' + identity.getPrincipalName() + '.');
+		response = client.get("api/logoff");
+		try {
+			if(!response || response.status() != 200) 
+				log.warn("Failed to logoff. " + response.status());
+		}
+		finally {
+			response.release();
+		}
 	}
 	return true;
 }
@@ -341,7 +357,7 @@ function areCredentialsValid(identity, password) {
  */
 function setPassword(identity, password, forceChangeAtNextLogon) { 
 	log.debug('Setting credentials of name ' + identity);
-    var response = httpClient.post("api/currentRealm/user/credentials", { 
+    var response = doPost("api/currentRealm/user/credentials", { 
 		"principalId" : identity.getGuid(), 
 		"password" : password, 
 		"force" :  forceChangeAtNextLogon 
@@ -374,7 +390,7 @@ function updateIdentity(identity) {
 		var en = enit.next();
 		props.push({ id: en.getKey(), value: en.getValue() });
 	}
-	var response = httpClient.post("api/currentRealm/user", {
+	var response = doPost("api/currentRealm/user", {
 		"name" : identity.getPrincipalName(), 
 		"password" : "", 
 		"force" : false,
@@ -425,7 +441,7 @@ function deleteRole(role) {
  */
 function createRole(role) {
 	log.debug('Create role (hypersocket group) ' + role);
-    var response = httpClient.post("api/currentRealm/group", { 
+    var response = doPost("api/currentRealm/group", { 
 		"name" : role.getPrincipalName(),
 		"groups" : [],
 		"users": [],
@@ -451,7 +467,7 @@ function createRole(role) {
  */
 function getPasswordCharacteristics() {
 	/*
-	var response = httpClient.get("api/passwordPolicys/policy/" + princId);
+	var response = doGet("api/passwordPolicys/policy/" + princId);
 	if(!response || response.status() != 200) 
 		log.warn("Failed to get password characteristics. " + response.status());
 	else {
@@ -491,4 +507,19 @@ function getPasswordCharacteristics() {
 	}
 	*/
 	return new DefaultPasswordCharacteristics();
+}
+
+function doPost(uri, content, headers) {
+	if(csrfToken)
+		headers["X-Csrf-Token"] = csrfToken;
+	return httpClient.post(uri, content, headers);
+}
+
+function doGet(uri) {
+	if(csrfToken) {
+		return httpClient.get(uri, {"X-Csrf-Token":csrfToken});
+	}
+	else {
+		return httpClient.get(uri);
+	}
 }
