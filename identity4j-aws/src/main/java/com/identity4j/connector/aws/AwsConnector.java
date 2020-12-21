@@ -25,7 +25,6 @@ import com.identity4j.connector.aws.command.group.GetGroupRequestCommand;
 import com.identity4j.connector.aws.command.group.ListGroupAttachedPolicyRequestCommand;
 import com.identity4j.connector.aws.command.group.ListGroupsRequestCommand;
 import com.identity4j.connector.aws.command.policy.GetPolicyRequestCommand;
-import com.identity4j.connector.aws.command.policy.ListPoliciesRequestCommand;
 import com.identity4j.connector.aws.command.user.AddUserToGroupRequestCommand;
 import com.identity4j.connector.aws.command.user.AttachPolicyToUserRequestCommand;
 import com.identity4j.connector.aws.command.user.CreateUserRequestCommand;
@@ -55,7 +54,6 @@ import software.amazon.awssdk.services.iam.model.AttachedPolicy;
 import software.amazon.awssdk.services.iam.model.EntityAlreadyExistsException;
 import software.amazon.awssdk.services.iam.model.Group;
 import software.amazon.awssdk.services.iam.model.NoSuchEntityException;
-import software.amazon.awssdk.services.iam.model.Policy;
 import software.amazon.awssdk.services.iam.model.User;
 import software.amazon.awssdk.utils.StringUtils;
 
@@ -101,6 +99,16 @@ public class AwsConnector extends AbstractConnector<AwsConfiguration> {
 				User user = iterator.next();
 				AwsIdentity identity = AwsModelConverter.userToAwsIdentity(user);
 				
+				Map<String, String> optionsForUserGroups = new HashMap<>();
+				optionsForUserGroups.put("userName", identity.getPrincipalName());
+				
+				Iterator<Group> iteratorGroup = new RequestResultIterator<>(ListGroupsForUserRequestCommand.class, client, optionsForUserGroups);
+				while(iteratorGroup.hasNext()) {
+					Group group = iteratorGroup.next();
+					Role role = AwsModelConverter.groupToRole(group);
+					identity.addRole(role);
+				}
+				
 				Map<String, String> options = new HashMap<>();
 				options.put("userName", identity.getPrincipalName());
 				
@@ -140,29 +148,6 @@ public class AwsConnector extends AbstractConnector<AwsConfiguration> {
 				setPolicyInfo(awsGroup, policyIterator);
 				
 				return awsGroup;
-			}
-		};
-	}
-	
-	public Iterator<AwsPolicy> allPolicies() throws ConnectorException {
-		
-		log.info("Listing all policies.");
-		
-		return new Iterator<AwsPolicy>() {
-
-			Iterator<Policy> iterator = new RequestResultIterator<>(ListPoliciesRequestCommand.class, client);
-
-			@Override
-			public boolean hasNext() {
-				return iterator.hasNext();
-			}
-
-			@Override
-			public AwsPolicy next() {
-				Policy policy = iterator.next();
-				AwsPolicy awsPolicy = AwsModelConverter.policyToAwsPolicy(policy);
-				
-				return awsPolicy;
 			}
 		};
 	}
@@ -360,11 +345,11 @@ public class AwsConnector extends AbstractConnector<AwsConfiguration> {
 			Map<String, String> optionsForUserPolicies = new HashMap<>();
 			optionsForUserPolicies.put("userName", name);
 			
-			Iterator<Policy> iteratorPolicy = new RequestResultIterator<>(ListUserAttachedPolicyRequestCommand.class, client, optionsForUserPolicies);
+			Iterator<AttachedPolicy> iteratorPolicy = new RequestResultIterator<>(ListUserAttachedPolicyRequestCommand.class, client, optionsForUserPolicies);
 			List<String> policyArns = new ArrayList<>();
 			while(iteratorPolicy.hasNext()) {
-				Policy policy = iteratorPolicy.next();
-				policyArns.add(policy.arn());
+				AttachedPolicy policy = iteratorPolicy.next();
+				policyArns.add(policy.policyArn());
 			}
 			identity.setAttribute(AWS_ATTRIBUTE_POLICY_ARNS, policyArns.toArray(new String[0]));
 			
@@ -400,11 +385,11 @@ public class AwsConnector extends AbstractConnector<AwsConfiguration> {
 			Map<String, String> optionsForGroupPolicies = new HashMap<>();
 			optionsForGroupPolicies.put("groupName", name);
 			
-			Iterator<Policy> iteratorPolicy = new RequestResultIterator<>(ListGroupAttachedPolicyRequestCommand.class, client, optionsForGroupPolicies);
+			Iterator<AttachedPolicy> iteratorPolicy = new RequestResultIterator<>(ListGroupAttachedPolicyRequestCommand.class, client, optionsForGroupPolicies);
 			List<String> policyArns = new ArrayList<>();
 			while(iteratorPolicy.hasNext()) {
-				Policy policy = iteratorPolicy.next();
-				policyArns.add(policy.arn());
+				AttachedPolicy policy = iteratorPolicy.next();
+				policyArns.add(policy.policyArn());
 			}
 			role.setAttribute(AWS_ATTRIBUTE_POLICY_ARNS, policyArns.toArray(new String[0]));
 			
