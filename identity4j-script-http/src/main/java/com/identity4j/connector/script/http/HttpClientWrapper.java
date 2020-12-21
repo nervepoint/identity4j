@@ -52,7 +52,25 @@ public class HttpClientWrapper {
 	}
 
 	public HttpClientResponseWrapper get(String uri) throws IOException {
-		return new HttpClientResponseWrapper(client.get(uri));
+		return get(uri, null);
+	}
+	
+	public HttpClientResponseWrapper get(String uri, Object headers) throws IOException {
+		List<HttpPair> h = new ArrayList<HttpPair>();
+		if (headers instanceof Map) {
+			for (Map.Entry<Object, Object> en : ((Map<Object, Object>) headers).entrySet()) {
+				String key = String.valueOf(en.getKey());
+				String val = String.valueOf(en.getValue());
+				h.add(new HttpPair(key, val));
+			}
+		} else if (headers != null) {
+			throw new IllegalArgumentException("Headers when supplied must be java.uti.Map or Javascript object.");
+		}
+		return new HttpClientResponseWrapper(client.get(uri, h.toArray(new HttpPair[0])));
+	}
+
+	public HttpClientResponseWrapper delete(String uri) throws IOException {
+		return new HttpClientResponseWrapper(client.delete(uri));
 	}
 
 	public String toJSON(Object o) {
@@ -116,7 +134,7 @@ public class HttpClientWrapper {
 	@SuppressWarnings("unchecked")
 	public HttpClientResponseWrapper post(String uri, Object parms, Object headers) throws IOException {
 		String contentType = "application/x-www-form-urlencoded";
-
+ 
 		List<HttpPair> h = new ArrayList<HttpPair>();
 		if (headers instanceof Map) {
 			for (Map.Entry<Object, Object> en : ((Map<Object, Object>) headers).entrySet()) {
@@ -168,12 +186,25 @@ public class HttpClientWrapper {
 		}
 
 		public JsonObject toJSON() throws JsonSyntaxException, UnsupportedEncodingException {
-			String str = new String(resp.content(), "UTF-8");
+			String str = toString();
 			JsonElement parse = new JsonParser().parse(str);
 			JsonObject obj = parse.getAsJsonObject();
 			return obj;
 		}
 
+		@Override
+		public String toString() {
+			try {
+				return new String(resp.content(), "UTF-8");
+			} catch (UnsupportedEncodingException e) {
+				throw new IllegalStateException(e);
+			}
+		}
+		
+		public void content() {
+			resp.content();
+		}
+		
 		public int status() {
 			return resp.status().getCode();
 		}

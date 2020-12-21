@@ -447,7 +447,12 @@ public class AbstractScriptConnector<P extends AbstractScriptConfiguration> exte
 	}
 
 	void processScriptExecption(ScriptException se) {
-		if (se.getMessage() != null && se.getMessage().startsWith("UnsupportedOperationException")) {
+		String seMessage = se.getMessage();
+		if (seMessage != null && seMessage.startsWith("Not found.")) {
+			throw new PrincipalNotFoundException(seMessage);
+		}
+		
+		if (seMessage != null && seMessage.startsWith("UnsupportedOperationException")) {
 			throw new UnsupportedOperationException();
 		}
 		/*

@@ -63,6 +63,7 @@ public class HttpConnector extends AbstractScriptConnector<HttpConfiguration> {
 				getConfiguration().getServiceAccountUsername(), 
 				getConfiguration().getServiceAccountPassword() == null ? null : getConfiguration().getServiceAccountPassword().toCharArray(),
 						getConfiguration().getServiceAccountRealm());
+		client.setCertificateRequirements(getConfiguration().getCertificateRequirements());
 		getEngine().put("httpClient", new HttpClientWrapper(client, (HttpConfiguration) getConfiguration()));
 		getEngine().put("httpProvider", Http.getProvider());
 		super.onOpened(parameters);

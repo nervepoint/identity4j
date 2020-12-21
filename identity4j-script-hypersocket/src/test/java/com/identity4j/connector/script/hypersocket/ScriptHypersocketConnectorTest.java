@@ -1,9 +1,9 @@
 /* HEADER */
-package com.identity4j.connector.script.http;
+package com.identity4j.connector.script.hypersocket;
 
 /*
  * #%L
- * Identity4J Scripted HTTP Connector
+ * Identity4J Scripted SSH Connector
  * %%
  * Copyright (C) 2013 - 2017 LogonBox
  * %%
@@ -26,17 +26,16 @@ package com.identity4j.connector.script.http;
 import org.junit.Test;
 
 import com.identity4j.connector.AbstractConnectorTest;
+import com.identity4j.connector.script.http.HttpConfiguration;
 
-public class HttpConnectorTest extends AbstractConnectorTest<HttpConfiguration> {
 
+public class ScriptHypersocketConnectorTest extends AbstractConnectorTest<HttpConfiguration> {
+    public ScriptHypersocketConnectorTest() {
+        super("/script-hypersocket-connector.properties");
+    }
 
-	public HttpConnectorTest() {
-		super("/script-http-connector.properties");
-	}
-
-	@Test
-	public void test() {
-		// Makes Eclipse think it can test this class
-	}
-	
+    @Test
+    public void test() {
+        // Makes Eclipse think it can test this class
+    }
 }

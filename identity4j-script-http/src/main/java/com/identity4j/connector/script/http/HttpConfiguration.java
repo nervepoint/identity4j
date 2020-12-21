@@ -27,6 +27,7 @@ import java.net.URL;
 import com.identity4j.connector.Connector;
 import com.identity4j.connector.script.AbstractScriptConfiguration;
 import com.identity4j.util.MultiMap;
+import com.identity4j.util.http.HttpProviderClient.CertificateRequirements;
 
 public class HttpConfiguration extends AbstractScriptConfiguration {
 
@@ -35,6 +36,7 @@ public class HttpConfiguration extends AbstractScriptConfiguration {
 	public static final String HTTP_SERVICE_ACCOUNT_PASSWORD = "http.serviceAccountPassword";
 	public static final String HTTP_SERVICE_ACCOUNT_USERNAME = "http.serviceAccountUsername";
 	public static final String HTTP_SERVICE_ACCOUNT_REALM = "http.serviceAccountRealm";
+	public static final String HTTP_CERTIFICATE_REQUIREMENTS = "http.certificateRequirements";
 
 	/**
 	 * @param configurationParameters
@@ -101,5 +103,11 @@ public class HttpConfiguration extends AbstractScriptConfiguration {
 	@Override
 	public Class<? extends Connector<?>> getConnectorClass() {
 		return HttpConnector.class;
+	}
+
+	public final CertificateRequirements getCertificateRequirements() {
+		return CertificateRequirements.valueOf(
+				getConfigurationParameters().getStringOrDefault(HTTP_CERTIFICATE_REQUIREMENTS,
+				CertificateRequirements.DEFAULT.name()));
 	}
 }
