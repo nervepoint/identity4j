@@ -6,6 +6,7 @@ import java.util.Map;
 import com.identity4j.connector.aws.command.group.AttachPolicyToGroupRequestCommand;
 import com.identity4j.connector.aws.command.group.CreateGroupRequestCommand;
 import com.identity4j.connector.aws.command.group.DeleteGroupRequestCommand;
+import com.identity4j.connector.aws.command.group.DetachPolicyFromGroupRequestCommand;
 import com.identity4j.connector.aws.command.group.GetGroupRequestCommand;
 import com.identity4j.connector.aws.command.group.ListGroupAttachedPolicyRequestCommand;
 import com.identity4j.connector.aws.command.group.ListGroupsRequestCommand;
@@ -66,6 +67,9 @@ public class CommandFactory {
 			case "AddUserToGroupRequestCommand":
 				return (T) new AddUserToGroupRequestCommand((Map<String, String>) options);
 				
+			case "DetachPolicyFromUserRequestCommand":
+				return	(T) new DetachPolicyFromUserRequestCommand((Map<String, String>) options);
+				
 			case "RemoveUserFromGroupRequestCommand":
 				return (T) new RemoveUserFromGroupRequestCommand((Map<String, String>) options);
 				
@@ -96,8 +100,8 @@ public class CommandFactory {
 			case "AttachPolicyToGroupRequestCommand":
 				return	(T) new AttachPolicyToGroupRequestCommand((Map<String, String>) options);
 				
-			case "DetachPolicyFromUserRequestCommand":
-				return	(T) new DetachPolicyFromUserRequestCommand((Map<String, String>) options);
+			case "DetachPolicyFromGroupRequestCommand":	
+				return	(T) new DetachPolicyFromGroupRequestCommand((Map<String, String>) options);
 				
 			case "ListGroupAttachedPolicyRequestCommand":
 				return (T) new ListGroupAttachedPolicyRequestCommand((Map<String, String>) options, marker);

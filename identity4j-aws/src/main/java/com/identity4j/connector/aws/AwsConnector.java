@@ -21,14 +21,17 @@ import com.identity4j.connector.aws.command.RequestResultIterator;
 import com.identity4j.connector.aws.command.group.AttachPolicyToGroupRequestCommand;
 import com.identity4j.connector.aws.command.group.CreateGroupRequestCommand;
 import com.identity4j.connector.aws.command.group.DeleteGroupRequestCommand;
+import com.identity4j.connector.aws.command.group.DetachPolicyFromGroupRequestCommand;
 import com.identity4j.connector.aws.command.group.GetGroupRequestCommand;
 import com.identity4j.connector.aws.command.group.ListGroupAttachedPolicyRequestCommand;
 import com.identity4j.connector.aws.command.group.ListGroupsRequestCommand;
 import com.identity4j.connector.aws.command.policy.GetPolicyRequestCommand;
+import com.identity4j.connector.aws.command.policy.ListPoliciesRequestCommand;
 import com.identity4j.connector.aws.command.user.AddUserToGroupRequestCommand;
 import com.identity4j.connector.aws.command.user.AttachPolicyToUserRequestCommand;
 import com.identity4j.connector.aws.command.user.CreateUserRequestCommand;
 import com.identity4j.connector.aws.command.user.DeleteUserRequestCommand;
+import com.identity4j.connector.aws.command.user.DetachPolicyFromUserRequestCommand;
 import com.identity4j.connector.aws.command.user.GetUserRequestCommand;
 import com.identity4j.connector.aws.command.user.ListGroupsForUserRequestCommand;
 import com.identity4j.connector.aws.command.user.ListUserAttachedPolicyRequestCommand;
@@ -39,8 +42,8 @@ import com.identity4j.connector.aws.command.user.UpdateUserPasswordRequestComman
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.exception.PrincipalAlreadyExistsException;
 import com.identity4j.connector.exception.PrincipalNotFoundException;
-import com.identity4j.connector.principal.AbstractPrincipal;
 import com.identity4j.connector.principal.Identity;
+import com.identity4j.connector.principal.Principal;
 import com.identity4j.connector.principal.Role;
 import com.identity4j.connector.principal.RoleImpl;
 
@@ -54,6 +57,7 @@ import software.amazon.awssdk.services.iam.model.AttachedPolicy;
 import software.amazon.awssdk.services.iam.model.EntityAlreadyExistsException;
 import software.amazon.awssdk.services.iam.model.Group;
 import software.amazon.awssdk.services.iam.model.NoSuchEntityException;
+import software.amazon.awssdk.services.iam.model.Policy;
 import software.amazon.awssdk.services.iam.model.User;
 import software.amazon.awssdk.utils.StringUtils;
 
@@ -70,7 +74,7 @@ public class AwsConnector extends AbstractConnector<AwsConfiguration> {
 					ConnectorCapability.createUser, ConnectorCapability.updateUser, 
 					ConnectorCapability.deleteUser, 
 					ConnectorCapability.roles,
-					ConnectorCapability.createRole, ConnectorCapability.deleteRole,
+					ConnectorCapability.createRole, ConnectorCapability.deleteRole, ConnectorCapability.updateRole,
 					ConnectorCapability.identities, ConnectorCapability.identityAttributes,
 					ConnectorCapability.roleAttributes }));
 
@@ -151,6 +155,29 @@ public class AwsConnector extends AbstractConnector<AwsConfiguration> {
 			}
 		};
 	}
+	
+	public Iterator<AwsPolicy> allPolicies() throws ConnectorException {
+			
+		log.info("Listing all policies.");
+		
+		return new Iterator<AwsPolicy>() {
+
+			Iterator<Policy> iterator = new RequestResultIterator<>(ListPoliciesRequestCommand.class, client);
+
+			@Override
+			public boolean hasNext() {
+				return iterator.hasNext();
+			}
+
+			@Override
+			public AwsPolicy next() {
+				Policy policy = iterator.next();
+				AwsPolicy awsPolicy = AwsModelConverter.policyToAwsPolicy(policy);
+				
+				return awsPolicy;
+			}
+		};
+	}
 
 	@Override
 	public Identity createIdentity(Identity identity, char[] password) throws ConnectorException {
@@ -163,35 +190,15 @@ public class AwsConnector extends AbstractConnector<AwsConfiguration> {
 			options.put("password", new String(password));
 			options.put("passwordResetRequired", "false");
 			
-			String[] policyArns = identity.getAttributes(AWS_ATTRIBUTE_POLICY_ARNS);
-			checkPoliciesExists(policyArns);
-			
-			
-			Role[] roles = identity.getRoles();
-			checkRolesExists(roles);
-			
 			CreateUserRequestCommand createUserRequestCommand = CommandFactory.get(CreateUserRequestCommand.class, options);
 			CommandResult<User> result = createUserRequestCommand.execute(client);
 			
-			if (policyArns != null) {
-				for (String policyArn : policyArns) {
-					log.info(String.format("Adding policy arn %s", policyArn));
-					Map<String, String> op = new HashMap<>();
-					op.put("userName", identity.getPrincipalName());
-					op.put("policyArn", policyArn);
-					AttachPolicyToUserRequestCommand attachPolicyToUserRequestCommand = CommandFactory.get(AttachPolicyToUserRequestCommand.class, op);
-					attachPolicyToUserRequestCommand.execute(client);
-				}
-			}
+			String[] policyArns = getPolicyArnsFromNameAndValue(identity);
+			attachPolicyToUser(identity, policyArns);
 			
-			for (Role role : roles) {
-				log.info(String.format("Adding role %s", role.getPrincipalName()));
-				Map<String, String> op = new HashMap<>();
-				op.put("userName", identity.getPrincipalName());
-				op.put("groupName", role.getPrincipalName());
-				AddUserToGroupRequestCommand addUserToGroupRequestCommand = CommandFactory.get(AddUserToGroupRequestCommand.class, op);
-				addUserToGroupRequestCommand.execute(client);
-			}
+			Role[] roles = identity.getRoles();
+			
+			addRolesToUser(identity, roles);
 	
 			Identity identityRespnse = AwsModelConverter.userToAwsIdentity(result.getResult(), identity);
 			return identityRespnse;
@@ -211,22 +218,11 @@ public class AwsConnector extends AbstractConnector<AwsConfiguration> {
 			Map<String, String> options = new HashMap<>();
 			options.put("groupName", role.getPrincipalName());
 			
-			String[] policyArns = role.getAttributes(AWS_ATTRIBUTE_POLICY_ARNS);
-			checkPoliciesExists(policyArns);
-			
 			CreateGroupRequestCommand createGroupRequestCommand = CommandFactory.get(CreateGroupRequestCommand.class, options);
 			CommandResult<Group> result = createGroupRequestCommand.execute(client);
 			
-			if (policyArns != null) {
-				for (String policyArn : policyArns) {
-					log.info(String.format("Adding policy arn %s", policyArn));
-					Map<String, String> op = new HashMap<>();
-					op.put("groupName", role.getPrincipalName());
-					op.put("policyArn", policyArn);
-					AttachPolicyToGroupRequestCommand attachPolicyToGroupRequestCommand = CommandFactory.get(AttachPolicyToGroupRequestCommand.class, op);
-					attachPolicyToGroupRequestCommand.execute(client);
-				}
-			}
+			String[] policyArns = getPolicyArnsFromNameAndValue(role);
+			attachPolicyToRole(role, policyArns);
 			
 			Role roleResponse = AwsModelConverter.groupToRole(result.getResult(), role);
 			return roleResponse;
@@ -346,12 +342,7 @@ public class AwsConnector extends AbstractConnector<AwsConfiguration> {
 			optionsForUserPolicies.put("userName", name);
 			
 			Iterator<AttachedPolicy> iteratorPolicy = new RequestResultIterator<>(ListUserAttachedPolicyRequestCommand.class, client, optionsForUserPolicies);
-			List<String> policyArns = new ArrayList<>();
-			while(iteratorPolicy.hasNext()) {
-				AttachedPolicy policy = iteratorPolicy.next();
-				policyArns.add(policy.policyArn());
-			}
-			identity.setAttribute(AWS_ATTRIBUTE_POLICY_ARNS, policyArns.toArray(new String[0]));
+			setPolicyInfo(identity, iteratorPolicy);
 			
 			return identity;
 		} catch(NoSuchEntityException e) {
@@ -386,12 +377,8 @@ public class AwsConnector extends AbstractConnector<AwsConfiguration> {
 			optionsForGroupPolicies.put("groupName", name);
 			
 			Iterator<AttachedPolicy> iteratorPolicy = new RequestResultIterator<>(ListGroupAttachedPolicyRequestCommand.class, client, optionsForGroupPolicies);
-			List<String> policyArns = new ArrayList<>();
-			while(iteratorPolicy.hasNext()) {
-				AttachedPolicy policy = iteratorPolicy.next();
-				policyArns.add(policy.policyArn());
-			}
-			role.setAttribute(AWS_ATTRIBUTE_POLICY_ARNS, policyArns.toArray(new String[0]));
+			setPolicyInfo(role, iteratorPolicy);
+			
 			
 			return role;
 		} catch(NoSuchEntityException e) {
@@ -408,9 +395,7 @@ public class AwsConnector extends AbstractConnector<AwsConfiguration> {
 		
 		checkIdentityExist(identity);
 		
-		Role[] roles = identity.getRoles();
-		checkRolesExists(roles);
-		
+		// Adjust roles
 		// get iterator of current groups.
 		Map<String, String> optionsForUserGroups = new HashMap<>();
 		optionsForUserGroups.put("userName", identity.getPrincipalName());
@@ -430,14 +415,58 @@ public class AwsConnector extends AbstractConnector<AwsConfiguration> {
 			removeUserFromGroupRequestCommand.execute(client);
 		}
 		
-		for (Role role : roles) {
-			log.info(String.format("Adding role %s during update operation.", role.getPrincipalName()));
-			Map<String, String> op = new HashMap<>();
-			op.put("userName", identity.getPrincipalName());
-			op.put("groupName", role.getPrincipalName());
-			AddUserToGroupRequestCommand addUserToGroupRequestCommand = CommandFactory.get(AddUserToGroupRequestCommand.class, op);
-			addUserToGroupRequestCommand.execute(client);
+		Role[] roles = identity.getRoles();
+		addRolesToUser(identity, roles);
+		
+		
+		// Adjust policies
+		Map<String, String> optionsForUserPolicies = new HashMap<>();
+		optionsForUserPolicies.put("userName", identity.getPrincipalName());
+		
+		Iterator<AttachedPolicy> iteratorPolicy = new RequestResultIterator<>(ListUserAttachedPolicyRequestCommand.class, client, optionsForUserPolicies);
+		while(iteratorPolicy.hasNext()) {
+			AttachedPolicy policy = iteratorPolicy.next();
+			
+			log.info(String.format("Removing policy %s", policy.policyArn()));
+			
+			Map<String, String> optionsRemove = new HashMap<>();
+			optionsRemove.put("userName", identity.getPrincipalName());
+			optionsRemove.put("policyArn", policy.policyArn());
+			
+			DetachPolicyFromUserRequestCommand detachPolicyFromUserRequestCommand = CommandFactory.get(DetachPolicyFromUserRequestCommand.class, optionsRemove);
+			detachPolicyFromUserRequestCommand.execute(client);
 		}
+		
+		String[] policyArns = getPolicyArnsFromNameAndValue(identity);
+		attachPolicyToUser(identity, policyArns);
+	}
+
+	@Override
+	public void updateRole(Role role) throws ConnectorException {
+		log.info(String.format("Updating role for principal %s", role.getPrincipalName()));
+		
+		checkRoleExists(role);
+		
+		// Adjust policies
+		Map<String, String> optionsForGroupPolicies = new HashMap<>();
+		optionsForGroupPolicies.put("groupName", role.getPrincipalName());
+		
+		Iterator<AttachedPolicy> iteratorPolicy = new RequestResultIterator<>(ListGroupAttachedPolicyRequestCommand.class, client, optionsForGroupPolicies);
+		while(iteratorPolicy.hasNext()) {
+			AttachedPolicy policy = iteratorPolicy.next();
+			
+			log.info(String.format("Removing policy %s", policy.policyArn()));
+			
+			Map<String, String> optionsRemove = new HashMap<>();
+			optionsRemove.put("groupName", role.getPrincipalName());
+			optionsRemove.put("policyArn", policy.policyArn());
+			
+			DetachPolicyFromGroupRequestCommand detachPolicyFromGroupRequestCommand = CommandFactory.get(DetachPolicyFromGroupRequestCommand.class, optionsRemove);
+			detachPolicyFromGroupRequestCommand.execute(client);
+		}
+		
+		String[] policyArns = getPolicyArnsFromNameAndValue(role);
+		attachPolicyToRole(role, policyArns);
 	}
 	
 	@Override
@@ -490,22 +519,85 @@ public class AwsConnector extends AbstractConnector<AwsConfiguration> {
 			client.close();
 		}
 	}
-
-	private void setPolicyInfo(AbstractPrincipal principal, Iterator<AttachedPolicy> policyIterator) {
+	
+	private void attachPolicyToRole(Role role, String[] policyArns) {
+		checkPoliciesExists(policyArns);
+		
+		if (policyArns != null) {
+			for (String policyArn : policyArns) {
+				log.info(String.format("Adding policy arn %s", policyArn));
+				Map<String, String> op = new HashMap<>();
+				op.put("groupName", role.getPrincipalName());
+				op.put("policyArn", policyArn);
+				AttachPolicyToGroupRequestCommand attachPolicyToGroupRequestCommand = CommandFactory.get(AttachPolicyToGroupRequestCommand.class, op);
+				attachPolicyToGroupRequestCommand.execute(client);
+			}
+		}
+	}
+	
+	private void attachPolicyToUser(Identity identity, String[] policyArns) {
+		checkPoliciesExists(policyArns);
+		
+		if (policyArns != null) {
+			for (String policyArn : policyArns) {
+				log.info(String.format("Adding policy arn %s", policyArn));
+				Map<String, String> op = new HashMap<>();
+				op.put("userName", identity.getPrincipalName());
+				op.put("policyArn", policyArn);
+				AttachPolicyToUserRequestCommand attachPolicyToUserRequestCommand = CommandFactory.get(AttachPolicyToUserRequestCommand.class, op);
+				attachPolicyToUserRequestCommand.execute(client);
+			}
+		}
+	}
+	
+	private void addRolesToUser(Identity identity, Role[] roles) {
+		checkRolesExists(roles);
+		
+		for (Role role : roles) {
+			log.info(String.format("Adding role %s", role.getPrincipalName()));
+			Map<String, String> op = new HashMap<>();
+			op.put("userName", identity.getPrincipalName());
+			op.put("groupName", role.getPrincipalName());
+			AddUserToGroupRequestCommand addUserToGroupRequestCommand = CommandFactory.get(AddUserToGroupRequestCommand.class, op);
+			addUserToGroupRequestCommand.execute(client);
+		}
+	}
+	
+	private String[] getPolicyArnsFromNameAndValue(Principal principal) {
+		
+		String[] policyArnsNameValuePairs = principal.getAttributes(AWS_ATTRIBUTE_POLICY_ARNS);
+		
+		if (policyArnsNameValuePairs == null || policyArnsNameValuePairs.length == 0) {
+			return new String[0];
+		}
+		
+		List<NameValuePair> list = new ArrayList<NameValuePair>();
+		
+		for (String pair : policyArnsNameValuePairs) {
+			list.add(new NameValuePair(pair)); 
+		}
 		
 		List<String> policyArns = new ArrayList<String>();
+		for (NameValuePair string : list) {
+			policyArns.add(string.getName());
+		}
+		
+		return policyArns.toArray(new String[0]);
+	}
+
+	private void setPolicyInfo(Principal principal, Iterator<AttachedPolicy> policyIterator) {
+		
+		List<NameValuePair> policyArns = new ArrayList<>();
 		
 		while (policyIterator.hasNext()) {
 			
 			AttachedPolicy attachedPolicy = policyIterator.next();
 			
-			String arn = attachedPolicy.policyArn();
-			
-			policyArns.add(arn);
+			policyArns.add(new NameValuePair(attachedPolicy.policyArn(), attachedPolicy.policyName()));
 			
 		}
 		
-		principal.setAttribute(AWS_ATTRIBUTE_POLICY_ARNS, policyArns.toArray(new String[0]));
+		principal.setAttribute(AWS_ATTRIBUTE_POLICY_ARNS, NameValuePair.implodeNamePairs(policyArns));
 		
 	}
 	
@@ -524,31 +616,39 @@ public class AwsConnector extends AbstractConnector<AwsConfiguration> {
 	private void checkRolesExists(Role[] roles) {
 		if (roles != null) {
 			for (Role role: roles) {
-				Map<String, String> op = new HashMap<>();
-				op.put("groupName", role.getPrincipalName());
-				GetGroupRequestCommand getGroupRequestCommand = CommandFactory.get(GetGroupRequestCommand.class, op);
-				try {
-					getGroupRequestCommand.execute(client);
-				} catch (NoSuchEntityException e) {
-					throw new PrincipalNotFoundException(role.getPrincipalName() + " not found.", PrincipalType.role);
-				}
+				checkRoleExists(role);
 			}
 		}
 		
 	}
 
+	private void checkRoleExists(Role role) {
+		Map<String, String> op = new HashMap<>();
+		op.put("groupName", role.getPrincipalName());
+		GetGroupRequestCommand getGroupRequestCommand = CommandFactory.get(GetGroupRequestCommand.class, op);
+		try {
+			getGroupRequestCommand.execute(client);
+		} catch (NoSuchEntityException e) {
+			throw new PrincipalNotFoundException(role.getPrincipalName() + " not found.", PrincipalType.role);
+		}
+	}
+
 	private void checkPoliciesExists(String[] policyArns) {
 		if (policyArns != null) {
 			for (String policyArn : policyArns) {
-				Map<String, String> op = new HashMap<>();
-				op.put("policyArn", policyArn);
-				GetPolicyRequestCommand getPolicyRequestCommand = CommandFactory.get(GetPolicyRequestCommand.class, op);
-				try {
-					getPolicyRequestCommand.execute(client);
-				} catch (NoSuchEntityException e) {
-					throw new ConnectorException(String.format("Policy %s not found.", policyArn));
-				}
+				checkPolicyExists(policyArn);
 			}
+		}
+	}
+
+	private void checkPolicyExists(String policyArn) {
+		Map<String, String> op = new HashMap<>();
+		op.put("policyArn", policyArn);
+		GetPolicyRequestCommand getPolicyRequestCommand = CommandFactory.get(GetPolicyRequestCommand.class, op);
+		try {
+			getPolicyRequestCommand.execute(client);
+		} catch (NoSuchEntityException e) {
+			throw new ConnectorException(String.format("Policy %s not found.", policyArn));
 		}
 	}
 	

@@ -1,9 +1,12 @@
 package com.identity4j.connector.aws;
 
+import java.io.Serializable;
 import java.time.Instant;
 
-public class AwsPolicy {
+public class AwsPolicy implements Serializable {
 	
+	private static final long serialVersionUID = -4125798687167007969L;
+
 	private String policyName;
 
     private String policyId;
