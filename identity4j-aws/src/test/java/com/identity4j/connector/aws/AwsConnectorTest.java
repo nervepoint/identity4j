@@ -4,6 +4,8 @@ import static org.junit.Assert.fail;
 
 import java.util.UUID;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
@@ -19,6 +21,8 @@ import com.identity4j.connector.principal.RoleImpl;
 import com.identity4j.util.TestUtils;
 
 public class AwsConnectorTest extends AbstractRestWebServiceConnectorTest {
+	
+	private static final Log log = LogFactory.getLog(AwsConnectorTest.class);
 
 	static {
 		init("/aws-connector.properties");
@@ -112,7 +116,7 @@ public class AwsConnectorTest extends AbstractRestWebServiceConnectorTest {
 		} catch (PrincipalAlreadyExistsException e) {
 			// ignore marks test as pass
 		} catch (Exception e) {
-			e.printStackTrace();
+			log.error(e.getMessage(), e);
 			fail("Was expecting PrincipalAlreadyExistsException, " + e.getMessage());
 		}
 		
@@ -147,7 +151,9 @@ public class AwsConnectorTest extends AbstractRestWebServiceConnectorTest {
 		} finally {
 			try {
 				deleteIdentityFromSource(identity);
-			} catch (Exception e) {	e.printStackTrace(); }
+			} catch (Exception e) {
+				log.error(e.getMessage(), e);
+			}
 		}
 	}
 	
@@ -171,7 +177,7 @@ public class AwsConnectorTest extends AbstractRestWebServiceConnectorTest {
 		} catch (PrincipalNotFoundException e) {
             // ignore
         } catch (Exception e) {
-        	e.printStackTrace();
+        	log.error(e.getMessage(), e);
         	fail("Was expecting PrincipalNotFoundException, " + e.getMessage());
 		}
 	}
@@ -213,12 +219,12 @@ public class AwsConnectorTest extends AbstractRestWebServiceConnectorTest {
 			try {
 				deleteRoleFromSource(roleImplNew);
 			} catch (Exception e) {
-				e.printStackTrace();
+				log.error(e.getMessage(), e);
 			}
 			try {
 				deleteIdentityFromSource(identity);
 			} catch (Exception e) {
-				e.printStackTrace();
+				log.error(e.getMessage(), e);
 			}
 		}
 	}
@@ -244,7 +250,7 @@ public class AwsConnectorTest extends AbstractRestWebServiceConnectorTest {
 		} catch (PrincipalNotFoundException e) {
             // ignore
         } catch (Exception e) {
-        	e.printStackTrace();
+        	log.error(e.getMessage(), e);
         	fail("Was expecting PrincipalNotFoundException, " + e.getMessage());
 		}
 	}
@@ -316,6 +322,6 @@ public class AwsConnectorTest extends AbstractRestWebServiceConnectorTest {
 	 */
 	@Override
 	protected String getTestIdentityPassword() {
-		return TestUtils.randomValue();
+		return TestUtils.randomValue() + getValidIdentityPassword();
 	}
 }
