@@ -60,6 +60,7 @@ import com.identity4j.connector.AbstractConnector;
 import com.identity4j.connector.BrowseNode;
 import com.identity4j.connector.BrowseableConnector;
 import com.identity4j.connector.ConnectorCapability;
+import com.identity4j.connector.Media;
 import com.identity4j.connector.PasswordCreationCallback;
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.exception.InvalidLoginCredentialsException;
@@ -283,6 +284,10 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 				if (getCoreIdentityAttributes().contains(entry.getKey())) {
 					continue;
 				}
+				if(entry.getKey().equals(getEmailAttribute())
+						|| entry.getKey().equals(getMobileAttribute())) {
+					continue;
+				}
 				String[] value = entry.getValue();
 				if (value.length > 0 && !StringUtils.isEmpty(value[0])) {
 					if (value.length == 1) {
@@ -297,6 +302,9 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 					}
 				}
 			}
+			
+			attributes.add(new BasicAttribute(getEmailAttribute(), identity.getAddress(Media.email)));
+			attributes.add(new BasicAttribute(getMobileAttribute(), identity.getAddress(Media.mobile)));
 
 			BasicAttribute objectClassAttributeValues = new BasicAttribute(OBJECT_CLASS_ATTRIBUTE);
 			for (String objectClass : getIdentityCreationObjectClasses(identity)) {
@@ -374,6 +382,14 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 		return RESERVED_ATTRIBUTES_FOR_CREATION;
 	}
 
+	protected String getEmailAttribute() {
+		return "mail";
+	}
+	
+	protected String getMobileAttribute() {
+		return "mobile";
+	}
+	
 	protected List<ModificationItem> getCreationPasswordModificationItems(char[] password,
 			final DirectoryConfiguration config) throws EncoderException {
 		List<ModificationItem> items = new ArrayList<ModificationItem>();
