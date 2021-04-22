@@ -87,7 +87,7 @@ public class NssTokenDatabase {
 	private byte[] passphrase;
 	private String keyName = "nam";
 	private boolean fipsMode = true;
-	private Mode mode = Mode.AUTO;
+	private Mode mode = Mode.valueOf(System.getProperty("hypersocket.nss.mode", Mode.AUTO.name()));
 
 	public NssTokenDatabase() throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException,
 			InterruptedException {
@@ -223,7 +223,7 @@ public class NssTokenDatabase {
 			PrintWriter pw = new PrintWriter(configFile);
 			try {
 				if (fipsMode) {
-					if (mode == Mode.SQL) {
+					if (getActualMode() == Mode.SQL) {
 						pw.println("name = NSScrypto");
 						pw.println("nssModule = keystore");
 					} else {
@@ -428,7 +428,7 @@ public class NssTokenDatabase {
 				}
 			}
 
-			if (mode == Mode.SQL || (mode == Mode.AUTO /* && TODO version > 3.35 */ )) {
+			if (actualMode == Mode.SQL) {
 				File secmod = new File(privateDir, "secmod.db");
 				secmod.delete();
 				secmod.createNewFile();
