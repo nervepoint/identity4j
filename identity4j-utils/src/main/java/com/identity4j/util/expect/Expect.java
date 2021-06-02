@@ -380,6 +380,11 @@ public class Expect {
 				}
 				/**
 				 * What is this? available could easily be zero??????
+				 * 
+				 * BPS I think the point is, it would still be zero
+				 * after the above timeout. No bytes have been
+				 * available for the past X milliseconds, and after X
+				 * milliseconds there are still none available.
 				 */
 				if(in.available()==0) {
 					throw new ExpectTimeoutException();
