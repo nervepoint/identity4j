@@ -252,9 +252,7 @@ public class NssTokenDatabase {
 //				pw.println("nssLibraryDirectory = " + libFolder64bit);
 
 				// Only OpenJDK
-				if (System.getProperty("java.vm.name") != null
-						&& System.getProperty("java.vm.name").indexOf("OpenJDK") != -1
-						&&  System.getProperty("java.vm.name").indexOf("AdoptOpenJDK") == -1) {
+				if(System.getProperty("identity4j.nss.ignoreMultipleInitialisation", "false").equals("true")) {
 					pw.println("handleStartupErrors = ignoreMultipleInitialisation");
 				}
 
