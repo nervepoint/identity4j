@@ -303,9 +303,14 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 				}
 			}
 			
-			attributes.add(new BasicAttribute(getEmailAttribute(), identity.getAddress(Media.email)));
-			attributes.add(new BasicAttribute(getMobileAttribute(), identity.getAddress(Media.mobile)));
-
+			if(StringUtils.isNotBlank(identity.getAddress(Media.email))) {
+				attributes.add(new BasicAttribute(getEmailAttribute(), identity.getAddress(Media.email)));
+			}
+			
+			if(StringUtils.isNotBlank(identity.getAddress(Media.mobile))) {
+				attributes.add(new BasicAttribute(getMobileAttribute(), identity.getAddress(Media.mobile)));
+			}
+			
 			BasicAttribute objectClassAttributeValues = new BasicAttribute(OBJECT_CLASS_ATTRIBUTE);
 			for (String objectClass : getIdentityCreationObjectClasses(identity)) {
 				objectClassAttributeValues.add(objectClass);
