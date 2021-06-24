@@ -31,38 +31,24 @@ import com.identity4j.connector.script.ssh.SshCommand;
 import com.identity4j.util.expect.Expect;
 import com.identity4j.util.expect.ExpectTimeoutException;
 import com.identity4j.util.expect.RegularExpressionExpectMatcher;
-import com.sshtools.ssh.ChannelOpenException;
-import com.sshtools.ssh.PseudoTerminalModes;
-import com.sshtools.ssh.SshClient;
-import com.sshtools.ssh.SshException;
-import com.sshtools.ssh.SshIOException;
-import com.sshtools.ssh.SshSession;
-import com.sshtools.ssh2.Ssh2Session;
+
+import net.sf.sshapi.SshClient;
+import net.sf.sshapi.SshException;
 
 public class SshCommandImpl extends Expect implements SshCommand {
 
     final static Log LOG = LogFactory.getLog(SshCommandImpl.class);
 
-    private boolean ok;
-    private SshSession session;
+    private net.sf.sshapi.SshCommand session;
 
-    public SshCommandImpl(SshClient ssh, String command) throws IOException, SshException, ChannelOpenException,
+    public SshCommandImpl(SshClient ssh, String command) throws IOException, SshException,
         ExpectTimeoutException {
         this(ssh, command, null, null, null);
     }
 
     public SshCommandImpl(SshClient ssh, String command, String sudoCommand, String sudoPrompt, String sudoPassword)
-        throws IOException, SshException, ChannelOpenException, ExpectTimeoutException {
+        throws IOException, SshException, ExpectTimeoutException {
         super(new RegularExpressionExpectMatcher());
-
-        LOG.debug("Opening session channel");
-        // session = ssh.openSessionChannel(10000);
-        session = ssh.openSessionChannel();
-        LOG.debug("Requesting terminal");
-        PseudoTerminalModes pty = new PseudoTerminalModes(ssh);
-        if (!session.requestPseudoTerminal("dumb", 0, 0, 0, 0, pty)) {
-            throw new IOException("Could not start pseudo tty");
-        }
 
         boolean useSudo = false;
 
@@ -74,7 +60,7 @@ public class SshCommandImpl extends Expect implements SshCommand {
 
         LOG.debug("Executing command " + command);
 
-        ok = session.executeCommand(command);
+        session = ssh.command(command, "dumb", 0,0,0,0, null);
 
         LOG.debug("Gettings streams");
         setIn(session.getInputStream());
@@ -86,6 +72,9 @@ public class SshCommandImpl extends Expect implements SshCommand {
                 LOG.debug("Expecting sudo password prompt: " + actualPrompt);
                 if (maybeExpect(actualPrompt, 5000)) {
                     typeAndReturn(sudoPassword);
+                    
+                    /* Need to read echo'd asterisks and backspaces */
+                    readLine(3000);
                 } else {
                     LOG.debug("Expect did not match");
                 }
@@ -103,7 +92,7 @@ public class SshCommandImpl extends Expect implements SshCommand {
 
     @Override
     public int drainAndWaitForExit() throws IOException {
-        if (!session.isClosed()) {
+        if (session.isOpen()) {
             while (session.getInputStream().read() > -1)
                 ;
             session.close();
@@ -119,12 +108,20 @@ public class SshCommandImpl extends Expect implements SshCommand {
 
     @Override
     public int getExitCode() {
-        return ok ? session.exitCode() : 1;
+        try {
+			return session != null ? session.exitCode() : 1;
+		} catch (IOException e) {
+			throw new IllegalStateException();
+		}
     }
 
     @Override
     public boolean isOpen() {
-        return !session.isClosed() && session.exitCode() == Ssh2Session.EXITCODE_NOT_RECEIVED && super.isOpen();
+        try {
+			return session.isOpen() && session.exitCode() == net.sf.sshapi.SshCommand.EXIT_CODE_NOT_RECEIVED && super.isOpen();
+		} catch (IOException e) {
+			return false;
+		}
     }
 
     @Override
@@ -134,23 +131,25 @@ public class SshCommandImpl extends Expect implements SshCommand {
 
     @Override
     public boolean isRunning() throws IOException {
-        return session.exitCode() == Ssh2Session.EXITCODE_NOT_RECEIVED || in.available() > 0;
+        return session.exitCode() == net.sf.sshapi.SshCommand.EXIT_CODE_NOT_RECEIVED || in.available() > 0;
     }
 
     @Override
     public int read(long timeout) throws IOException, ExpectTimeoutException {
-        try {
+    	// TODO not sure how this will work with SSHAPI, may need special
+    	// support for it in each provider
+//        try {
             return super.read(timeout);
-        } catch (SshIOException e) {
-            if (e.getRealException().getReason() == SshException.MESSAGE_TIMEOUT) {
-                // Ignore this exception as shell will throw its own
-                // ExpectTimeoutException
-                return Integer.MIN_VALUE;
-            } else {
-                IOException ioe = new IOException();
-                ioe.initCause(e.getRealException());
-                throw ioe;
-            }
-        }
+//        } catch (SshException e) {
+//            if (e.getRealException().getReason() == SshException.MESSAGE_TIMEOUT) {
+//                // Ignore this exception as shell will throw its own
+//                // ExpectTimeoutException
+//                return Integer.MIN_VALUE;
+//            } else {
+//                IOException ioe = new IOException();
+//                ioe.initCause(e.getRealException());
+//                throw ioe;
+//            }
+//        }
     }
 }

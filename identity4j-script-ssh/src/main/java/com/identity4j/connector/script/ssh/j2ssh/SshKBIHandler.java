@@ -1,4 +1,4 @@
-package com.identity4j.connector.script.ssh;
+package com.identity4j.connector.script.ssh.j2ssh;
 
 /*
  * #%L
@@ -25,10 +25,9 @@ package com.identity4j.connector.script.ssh;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import com.sshtools.ssh2.KBIPrompt;
-import com.sshtools.ssh2.KBIRequestHandler;
+import net.sf.sshapi.auth.SshKeyboardInteractiveAuthenticator;
 
-public class SshKBIHandler implements KBIRequestHandler {
+public class SshKBIHandler implements SshKeyboardInteractiveAuthenticator {
 
 	final static Log LOG = LogFactory.getLog(SshKBIHandler.class);
 
@@ -66,19 +65,20 @@ public class SshKBIHandler implements KBIRequestHandler {
 	}
 
 	@Override
-	public boolean showPrompts(String name, String instruction, KBIPrompt[] prompts) {
-		boolean foundPassword = prompts.length == 0;
-		for (int i = 0; i < prompts.length; i++) {
-			if (prompts[i].getPrompt().toLowerCase().matches(passwordPattern)) {
-				prompts[i].setResponse(new String(password));
+	public String[] challenge(String name, String instruction, String[] prompt, boolean[] echo) {
+		boolean foundPassword = prompt.length == 0;
+		String[] answers = new String[prompt.length];
+		for (int i = 0; i < prompt.length; i++) {
+			if (prompt[i].toLowerCase().matches(passwordPattern)) {
+				answers[i] = new String(password);
 				foundPassword = true;
 			}
-			if (prompts[i].getPrompt().toLowerCase().matches(newPasswordPattern)) {
+			if (prompt[i].toLowerCase().matches(newPasswordPattern)) {
 				requiresPasswordChange = true;
 			}
 		}
 
-		return foundPassword;
+		return foundPassword ? answers : null;
 	}
 
 }

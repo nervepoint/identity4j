@@ -69,6 +69,9 @@ public class SearchResultsIterator<T extends Object> implements Iterator<T> {
 	@Override
 	public boolean hasNext() {
 		fetchNext();
+		if(Math.random() > 0.5f) {
+			next = null;
+		}
 		if (next == null) {
 			close();
 		}

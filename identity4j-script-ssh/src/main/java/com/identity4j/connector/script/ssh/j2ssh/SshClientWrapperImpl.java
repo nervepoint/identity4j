@@ -23,23 +23,19 @@ package com.identity4j.connector.script.ssh.j2ssh;
  */
 
 import java.io.BufferedReader;
+import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-
-import org.apache.commons.io.IOUtils;
 
 import com.identity4j.connector.script.ssh.SshClientWrapper;
 import com.identity4j.connector.script.ssh.SshCommand;
 import com.identity4j.connector.script.ssh.SshConfiguration;
 import com.identity4j.util.expect.ExpectTimeoutException;
-import com.sshtools.scp.ScpClient;
-import com.sshtools.scp.ScpClientIO;
-import com.sshtools.sftp.SftpClient;
-import com.sshtools.sftp.SftpStatusException;
-import com.sshtools.ssh.ChannelOpenException;
-import com.sshtools.ssh.SshClient;
-import com.sshtools.ssh.SshException;
+
+import net.sf.sshapi.SshClient;
+import net.sf.sshapi.SshException;
+import net.sf.sshapi.sftp.SftpClient;
 
 public class SshClientWrapperImpl implements SshClientWrapper {
 	SshClient client;
@@ -72,8 +68,6 @@ public class SshClientWrapperImpl implements SshClientWrapper {
 					config.getServiceAccountPassword());
 		} catch (SshException e) { 
 			throw new IOException(e.getMessage(), e);
-		} catch(ChannelOpenException e) {
-			throw new IOException(e.getMessage(), e);
 		}
 	}
 
@@ -83,26 +77,10 @@ public class SshClientWrapperImpl implements SshClientWrapper {
 	@Override
 	public BufferedReader readFile(String path) throws IOException {
 		try {
-			final SftpClient c = new SftpClient(client);
-			return new BufferedReader(new InputStreamReader(c.getInputStream(path))) {
-				@Override
-				public void close() throws IOException {
-					super.close();
-					try {
-						c.exit();
-					} catch (SshException e) {
-						throw new IOException(e.getMessage(), e);
-					}
-				}
-
-			};
+			return new BufferedReader(new InputStreamReader(downloadFile(path)));
 		} catch (SshException e) { 
 			throw new IOException(e.getMessage(), e);
-		} catch (SftpStatusException e) { 
-			throw new IOException(e.getMessage(), e);
-		} catch(ChannelOpenException e) {
-			throw new IOException(e.getMessage(), e);
-		}
+		} 
 	}
 
 
@@ -121,7 +99,10 @@ public class SshClientWrapperImpl implements SshClientWrapper {
 	@Override
 	public void disconnect() {
 		if(client.isConnected()) {
-			client.disconnect();
+			try {
+				client.close();
+			} catch (IOException e) {
+			}
 		}
 	}
 
@@ -129,26 +110,38 @@ public class SshClientWrapperImpl implements SshClientWrapper {
 	@Override
 	public void uploadFile(InputStream in, String filename) throws IOException {
 		
-		ScpClient scp = new ScpClient(client);
+		SftpClient scp = client.sftp();
 		try {
-			scp.put(in, in.available(), filename, filename);
+			scp.put(filename, in);
 		} catch (Exception e) {
 			throw new IOException(e.getMessage(), e);
 		} finally {
-			IOUtils.closeQuietly(in);
 			try {
-				scp.exit();
-			} catch (SshException e) {
+				in.close();
+			} catch (IOException e) {
+			}
+			try {
+				scp.close();
+			} catch (IOException e) {
 			}
 		}
 	}
 	
 	@Override
 	public InputStream downloadFile(String filename) throws IOException {
-		
-		ScpClientIO scp = new ScpClientIO(client);
+		SftpClient scp = client.sftp();
 		try {
-			return scp.get(filename);
+			return new FilterInputStream(scp.get(filename)) {
+				@Override
+				public void close() throws IOException {
+					try {
+						scp.close();
+					}
+					finally {
+						super.close();
+					}
+				}
+			};
 		} catch(Exception e) {
 			throw new IOException(e.getMessage(), e);
 		} 

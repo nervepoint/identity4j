@@ -46,16 +46,6 @@ importClass(java.text.SimpleDateFormat);
  * Password setting and changing is performed using the 
  * 'passwd' command and requires that the server account
  * is root.
- * 
- * The following beans available are in SSH connector
- * scripts.
- * 
- * log          (org.apache.commons.logging.Log)
- * connector    (com.nervepoint.connector.script.ScriptConnector)
- * shell        (com.maverick.ssh.Shell)
- * sshClient    (com.maverick.ssh.SshClient)
- * config       (com.nervepoint.connector.ssh.SshConfiguration)
- * connector    (com.maverick.ssh.SshConnector)
  */
 
 var users = new ArrayList();
@@ -139,13 +129,16 @@ function getIdentityByName(name) {
             identity = parseIdentity(line);
             var uid = parseInt(identity.getGuid());
             if(uid >= minUid && uid <= maxUid) {
+        		log.debug('UID in range');
             	group = line.split(":")[3];
             }
             else {
+        		log.debug('UID out of range (uid: ' + uid + ' for min of ' + minUid + ' and max of ' + maxUid + ' from line ' + line);
             	return null;
             }
         }
         else {
+        	log.debug('EOF');
             return null;
         }
     }
@@ -385,30 +378,6 @@ function deleteIdentity(principalName) {
         if (ret != 0) {
             throw "deluser exited with non-zero status.";
         } 
-    }
-}
-
-/**
- * Test if credentials are valid. 
- * 
- * @param identity identity (com.nervepoint.connector.principal.Identity)
- * @param password password (java.lang.String)
- * @return all roles (boolean true or false).
- */
-function areCredentialsValid(identity, password) {
-    var transport = new SocketTransport(config.getHost(), config.getPort());
-    var clientTest = sshProtocolConnector.connect(transport, identity.getPrincipalName(), true);
-    try {
-        pwd = new PasswordAuthentication();
-        pwd.setPassword(password);
-        if (clientTest.authenticate(pwd) == SshAuthentication.COMPLETE) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-    finally {
-        clientTest.disconnect();
     }
 }
 

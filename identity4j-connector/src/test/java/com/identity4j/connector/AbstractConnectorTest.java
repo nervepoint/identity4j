@@ -431,6 +431,8 @@ public abstract class AbstractConnectorTest<C extends ConnectorConfigurationPara
 			} finally {
 				endResetPasswordOrRecreateUser();
 			}
+		} catch(Throwable t) {
+			t.printStackTrace();
 		} finally {
 
 		}
