@@ -18,9 +18,10 @@ public class DirectoryDataServiceAuthorizationHelperIntegrationTest extends Abst
 		ADToken token = DirectoryDataServiceAuthorizationHelper.getOAuthAccessTokenFromACS(
 				configurationParameters.getString("office365TenantDomainName"),
 				configurationParameters.getString("office365GraphPrincipalId"), 
-				configurationParameters.getString("office365StsUrl"), 
+				configurationParameters.getString("microsoftGraphApiAuthorityUri"), 
 				configurationParameters.getString("office365AppPrincipalId"), 
-				configurationParameters.getString("office365SymmetricKey"));
+				configurationParameters.getString("office365SymmetricKey"),
+				new String[] {configurationParameters.getString("microsoftGraphApiDefaultScope")});
 		//then it should return valid non null access token
 		Assert.assertNotNull("Got token instance", token);
 		Assert.assertNotNull("Got token value", token.getAccessToken());
@@ -34,9 +35,10 @@ public class DirectoryDataServiceAuthorizationHelperIntegrationTest extends Abst
 		DirectoryDataServiceAuthorizationHelper.getOAuthAccessTokenFromACS(
 				configurationParameters.getString("office365TenantDomainName"),
 				configurationParameters.getString("office365GraphPrincipalId"), 
-				configurationParameters.getString("office365StsUrl"), 
+				configurationParameters.getString("microsoftGraphApiAuthorityUri"), 
 				"abc", 
-				configurationParameters.getString("office365SymmetricKey"));
+				configurationParameters.getString("office365SymmetricKey"),
+				new String[] {configurationParameters.getString("microsoftGraphApiDefaultScope")});
 		//then it should throw connector exception
 	}
 	
@@ -47,9 +49,10 @@ public class DirectoryDataServiceAuthorizationHelperIntegrationTest extends Abst
 		DirectoryDataServiceAuthorizationHelper.getOAuthAccessTokenFromACS(
 				"abc",
 				configurationParameters.getString("office365GraphPrincipalId"), 
-				configurationParameters.getString("office365StsUrl"), 
+				configurationParameters.getString("microsoftGraphApiAuthorityUri"), 
 				configurationParameters.getString("office365AppPrincipalId"), 
-				configurationParameters.getString("office365SymmetricKey"));
+				configurationParameters.getString("office365SymmetricKey"),
+				new String[] {configurationParameters.getString("microsoftGraphApiDefaultScope")});
 		//then it should throw connector exception
 	}
 }

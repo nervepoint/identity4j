@@ -33,9 +33,14 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 public class Group extends Principal {
 	
 	private String description;	
-	private String lastDirSyncTime;
 	private String mailEnabled;
 	private String securityEnabled;
+	
+	/**
+	 * MS Graph API
+	 */
+	private String onPremisesLastSyncDateTime;
+	
 	/**
 	 * @return The description of the Group.
 	 */
@@ -48,18 +53,7 @@ public class Group extends Principal {
 	public void setDescription(String description) {
 		this.description = description;
 	}
-	/**
-	 * @return The lastDirSyncTime of this Group.
-	 */
-	public String getLastDirSyncTime() {
-		return lastDirSyncTime;
-	}
-	/**
-	 * @param lastDirSyncTime The lastDirSyncTime to set to this Group.
-	 */
-	public void setLastDirSyncTime(String lastDirSyncTime) {
-		this.lastDirSyncTime = lastDirSyncTime;
-	}
+	
 	/**
 	 * @return The mailEnabled attribute of this Group.
 	 */
@@ -84,6 +78,12 @@ public class Group extends Principal {
 	public void setSecurityEnabled(String securityEnabled) {
 		this.securityEnabled = securityEnabled;
 	}
-
+	public String getOnPremisesLastSyncDateTime() {
+		return onPremisesLastSyncDateTime;
+	}
+	public void setOnPremisesLastSyncDateTime(String onPremisesLastSyncDateTime) {
+		this.onPremisesLastSyncDateTime = onPremisesLastSyncDateTime;
+	}
+	
 
 }

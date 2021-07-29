@@ -23,19 +23,18 @@ package com.identity4j.connector.office365.services.token.handler;
  */
 
 import java.io.IOException;
-import java.io.OutputStreamWriter;
 import java.util.Arrays;
+import java.util.HashSet;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.office365.Office365Configuration;
-import com.identity4j.util.http.Http;
-import com.identity4j.util.http.HttpPair;
-import com.identity4j.util.http.HttpProviderClient;
-import com.identity4j.util.http.HttpResponse;
-import com.identity4j.util.json.JsonMapperService;
+import com.microsoft.aad.msal4j.ClientCredentialFactory;
+import com.microsoft.aad.msal4j.ClientCredentialParameters;
+import com.microsoft.aad.msal4j.ConfidentialClientApplication;
+import com.microsoft.aad.msal4j.IAuthenticationResult;
 
 /**
  * This class is responsible for handling oAuth related activities. It provides
@@ -50,6 +49,7 @@ import com.identity4j.util.json.JsonMapperService;
  *
  */
 public class DirectoryDataServiceAuthorizationHelper {
+	
 	private static final Log log = LogFactory.getLog(DirectoryDataServiceAuthorizationHelper.class);
 
 	/**
@@ -66,48 +66,37 @@ public class DirectoryDataServiceAuthorizationHelper {
 	 * @throws IOException
 	 */
 	public static ADToken getOAuthAccessTokenFromACS(String tenantName,
-			String graphPrincipalId, String stsUrl, String principalId,
-			String clientKey) throws IOException {
+			String graphPrincipalId, String authorityURI, String principalId,
+			String clientKey, String...scopes) throws IOException {
 
-		OutputStreamWriter wr = null;
+		
 		try {
-			stsUrl = String.format(stsUrl, tenantName);
-			HttpProviderClient client = Http.getProvider().getClient(stsUrl, null, null, null);
-			client.setConnectTimeout(60000);
-			log.info(String.format("Getting new client_credentials access token for %s (resource %s), secret %s, princ %s", tenantName, graphPrincipalId, clientKey, principalId ));
-			HttpResponse resp = client.post(null,
-					Arrays.asList(
-							new HttpPair("grant_type","client_credentials"),
-							new HttpPair("resource", graphPrincipalId), 
-							new HttpPair("client_id", principalId),
-							new HttpPair("client_secret", clientKey)),
-					new HttpPair("Content-Type", "application/x-www-form-urlencoded"));
-			try {
-				int res = resp.status().getCode();
-				if(res == 200) {
-                    String contentString = resp.contentString();
-                    log.info("Full token response " + contentString);
-                    ADToken object = JsonMapperService.getInstance().getObject(ADToken.class, contentString);
-                    log.info("New token " + object);
-                    object.recalcExpiresOn();
-					return object;
-                } else if(res == 401)
-					throw new ConnectorException(Office365Configuration.ErrorGeneratingToken + ":"
-							+ Office365Configuration.ErrorAuthenticatingForToken);
-				else
-					throw new ConnectorException(Office365Configuration.ErrorGeneratingToken + ":"
-							+ Office365Configuration.ErrorGeneratingTokenMessage + ". Response code " + res);
-			} finally {
-				resp.release();
-			}
+			
+			log.info(String.format("Getting new client_credentials access token for %s (resource %s), princ %s",
+					tenantName, graphPrincipalId, principalId ));
+			
+			ConfidentialClientApplication app = ConfidentialClientApplication
+				.builder(principalId, ClientCredentialFactory.createFromSecret(clientKey))
+				.authority(String.format(authorityURI,tenantName))
+				.connectTimeoutForDefaultHttpClient(60000)
+				.build();
+			
+			ClientCredentialParameters clientCredentialParameters = ClientCredentialParameters.builder(new HashSet<String>(Arrays.asList(scopes))).build();
+			
+			IAuthenticationResult token = app.acquireToken(clientCredentialParameters).get();
+			
+			log.info(token);
+			
+			ADToken adToken = new ADToken();
+			adToken.setAccessToken(token.accessToken());
+			adToken.setExpiresOn(token.expiresOnDate().getTime());
+			
+			return adToken;
 
 		} catch (Exception e) {
 			throw new ConnectorException(Office365Configuration.ErrorGeneratingToken + ":"
 					+ Office365Configuration.ErrorGeneratingTokenMessage, e);
-		} finally {
-			if (wr != null)
-				wr.close();
-		}
+		} 
 	}
 
 	public static void sleep() {

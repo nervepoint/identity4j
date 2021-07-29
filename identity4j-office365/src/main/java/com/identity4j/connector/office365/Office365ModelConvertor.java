@@ -76,7 +76,7 @@ public class Office365ModelConvertor {
 		User user = new User();
 		user.setMail(emptyStringToNull(office365Identity.getAttribute(ATTR_MAIL)));
 		user.setMailNickname(emptyStringToNull(office365Identity.getPrincipalName().split("@")[0]).replace(" ", ""));
-		user.setMobile(emptyStringToNull(office365Identity.getAttribute(ATTR_MOBILE)));
+		user.setMobilePhone(emptyStringToNull(office365Identity.getAttribute(ATTR_MOBILE)));
 		user.setObjectId(office365Identity.getGuid());
 		user.setUserPrincipalName(office365Identity.getPrincipalName());
 		user.setDisplayName(emptyStringToNull(office365Identity.getFullName()));
@@ -98,8 +98,8 @@ public class Office365ModelConvertor {
 		user.setPostalCode(emptyStringToNull(office365Identity.getAttribute(ATTR_POSTAL_CODE)));
 		user.setCountry(emptyStringToNull(office365Identity.getAttribute(ATTR_COUNTRY)));
 		
-		user.setTelephoneNumber(emptyStringToNull(office365Identity.getAttribute(ATTR_TELEPHONE)));
-		user.setFacsimileTelephoneNumber(emptyStringToNull(office365Identity.getAttribute(ATTR_FAX)));
+		user.setBusinessPhones(stringToArray(office365Identity.getAttribute(ATTR_TELEPHONE)));
+		user.setFaxNumber(emptyStringToNull(office365Identity.getAttribute(ATTR_FAX)));
 		
 		
 		Role[] roles = office365Identity.getRoles();
@@ -108,6 +108,17 @@ public class Office365ModelConvertor {
 			user.addNewGroup(roleToGroup(role));
 		}
 		return user;
+	}
+	
+	private static String arrayToString(String[] str) {
+		return str != null ? String.join(",", str) : "";
+	}
+	
+	private static String[] stringToArray(String str) {
+		if(str == null || str.trim().equals("")) {
+			return new String[0];
+		}
+		return str.split(",");
 	}
 	
 	private static String emptyStringToNull(String str) {
@@ -141,13 +152,13 @@ public class Office365ModelConvertor {
 		identity.setFullName(user.getDisplayName());
 
 		identity.setAddress(Media.email, user.getMail());
-		identity.setAddress(Media.mobile, user.getMobile());
+		identity.setAddress(Media.mobile, user.getMobilePhone());
 		identity.setAccountStatus(new AccountStatus());
 		if(user.getAccountEnabled() != null)
 			identity.getAccountStatus().setDisabled(!user.getAccountEnabled());
 		identity.getAccountStatus().calculateType();
 		
-		identity.setAttribute(ATTR_MOBILE, nullToEmptyString(user.getMobile()));
+		identity.setAttribute(ATTR_MOBILE, nullToEmptyString(user.getMobilePhone()));
 		identity.setAttribute(ATTR_MAIL, nullToEmptyString(user.getMail()));
 		identity.setAttribute(ATTR_GIVEN_NAME, nullToEmptyString(user.getGivenName()));
 		identity.setAttribute(ATTR_SURNAME,nullToEmptyString(user.getSurname()));
@@ -163,8 +174,8 @@ public class Office365ModelConvertor {
 		identity.setAttribute(ATTR_POSTAL_CODE,nullToEmptyString(user.getPostalCode()));
 		identity.setAttribute(ATTR_COUNTRY,nullToEmptyString(user.getCountry()));
 		
-		identity.setAttribute(ATTR_TELEPHONE,nullToEmptyString(user.getTelephoneNumber()));
-		identity.setAttribute(ATTR_FAX,nullToEmptyString(user.getFacsimileTelephoneNumber()));
+		identity.setAttribute(ATTR_TELEPHONE,nullToEmptyString(arrayToString(user.getBusinessPhones())));
+		identity.setAttribute(ATTR_FAX,nullToEmptyString(user.getFaxNumber()));
 		
 		List<Group> groups = user.getMemberOf();
 		if(groups != null){

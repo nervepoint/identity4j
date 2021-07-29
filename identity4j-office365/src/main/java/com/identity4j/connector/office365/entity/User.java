@@ -38,12 +38,8 @@ public class User extends Principal {
 	private String city;
 	private String country;
 	private String department;
-	private String dirSyncEnabled;
-	private String facsimileTelephoneNumber;
 	private String givenName;
 	private String jobTitle;
-	private String lastDirSyncTime;
-	private String mobile;
 	private String passwordPolicies;
 	private String physicalDeliveryOfficeName;
 	private String postalCode;
@@ -51,10 +47,21 @@ public class User extends Principal {
 	private String state;
 	private String streetAddress;
 	private String surname;
-	private String telephoneNumber;
 	private String usageLocation;
 	private String userPrincipalName;
 	private PasswordProfile passwordProfile;
+	
+	/**
+	 * MS Graph  API
+	 */
+	private String onPremisesSyncEnabled;
+	private String faxNumber;
+	private String onPremisesImmutableId;
+	private String onPremisesLastSyncDateTime;
+	private String mobilePhone;
+	private String signinSessionsValidFromDateTime;
+	private String[] businessPhones;
+	private String lastPasswordChangeDateTime;
 
 	/**
 	 * The list groups holds a list of group entity this user belongs to.
@@ -159,34 +166,6 @@ public class User extends Principal {
 	}
 
 	/**
-	 * @return the dirSyncEnabled
-	 */
-	public String getDirSyncEnabled() {
-		return dirSyncEnabled;
-	}
-
-	/**
-	 * @param dirSyncEnabled the dirSyncEnabled to set
-	 */
-	public void setDirSyncEnabled(String dirSyncEnabled) {
-		this.dirSyncEnabled = dirSyncEnabled;
-	}
-
-	/**
-	 * @return the facsimileTelephoneNumber
-	 */
-	public String getFacsimileTelephoneNumber() {
-		return facsimileTelephoneNumber;
-	}
-
-	/**
-	 * @param facsimileTelephoneNumber the facsimileTelephoneNumber to set
-	 */
-	public void setFacsimileTelephoneNumber(String facsimileTelephoneNumber) {
-		this.facsimileTelephoneNumber = facsimileTelephoneNumber;
-	}
-
-	/**
 	 * @return the givenName
 	 */
 	public String getGivenName() {
@@ -212,34 +191,6 @@ public class User extends Principal {
 	 */
 	public void setJobTitle(String jobTitle) {
 		this.jobTitle = jobTitle;
-	}
-
-	/**
-	 * @return the lastDirSyncTime
-	 */
-	public String getLastDirSyncTime() {
-		return lastDirSyncTime;
-	}
-
-	/**
-	 * @param lastDirSyncTime the lastDirSyncTime to set
-	 */
-	public void setLastDirSyncTime(String lastDirSyncTime) {
-		this.lastDirSyncTime = lastDirSyncTime;
-	}
-
-	/**
-	 * @return the mobile
-	 */
-	public String getMobile() {
-		return mobile;
-	}
-
-	/**
-	 * @param mobile the mobile to set
-	 */
-	public void setMobile(String mobile) {
-		this.mobile = mobile;
 	}
 
 	/**
@@ -338,20 +289,6 @@ public class User extends Principal {
 	 */
 	public void setSurname(String surname) {
 		this.surname = surname;
-	}
-
-	/**
-	 * @return the telephoneNumber
-	 */
-	public String getTelephoneNumber() {
-		return telephoneNumber;
-	}
-
-	/**
-	 * @param telephoneNumber the telephoneNumber to set
-	 */
-	public void setTelephoneNumber(String telephoneNumber) {
-		this.telephoneNumber = telephoneNumber;
 	}
 
 	/**
@@ -461,6 +398,72 @@ public class User extends Principal {
 	public void setPasswordProfile(PasswordProfile passwordProfile) {
 		this.passwordProfile = passwordProfile;
 	}
+	
+	public String getOnPremisesSyncEnabled() {
+		return onPremisesSyncEnabled;
+	}
+
+	public void setOnPremisesSyncEnabled(String onPremisesSyncEnabled) {
+		this.onPremisesSyncEnabled = onPremisesSyncEnabled;
+	}
+
+	public String getFaxNumber() {
+		return faxNumber;
+	}
+
+	public void setFaxNumber(String faxNumber) {
+		this.faxNumber = faxNumber;
+	}
+
+	public String getOnPremisesImmutableId() {
+		return onPremisesImmutableId;
+	}
+
+	public void setOnPremisesImmutableId(String onPremisesImmutableId) {
+		this.onPremisesImmutableId = onPremisesImmutableId;
+	}
+
+	public String getOnPremisesLastSyncDateTime() {
+		return onPremisesLastSyncDateTime;
+	}
+
+	public void setOnPremisesLastSyncDateTime(String onPremisesLastSyncDateTime) {
+		this.onPremisesLastSyncDateTime = onPremisesLastSyncDateTime;
+	}
+
+	public String getMobilePhone() {
+		return mobilePhone;
+	}
+
+	public void setMobilePhone(String mobilePhone) {
+		this.mobilePhone = mobilePhone;
+	}
+
+	public String getSigninSessionsValidFromDateTime() {
+		return signinSessionsValidFromDateTime;
+	}
+
+	public void setSigninSessionsValidFromDateTime(String signinSessionsValidFromDateTime) {
+		this.signinSessionsValidFromDateTime = signinSessionsValidFromDateTime;
+	}
+
+	public String[] getBusinessPhones() {
+		return businessPhones;
+	}
+
+	public void setBusinessPhones(String[] businessPhones) {
+		this.businessPhones = businessPhones;
+	}
+
+	public String getLastPasswordChangeDateTime() {
+		return lastPasswordChangeDateTime;
+	}
+
+	public void setLastPasswordChangeDateTime(String lastPasswordChangeDateTime) {
+		this.lastPasswordChangeDateTime = lastPasswordChangeDateTime;
+	}
+
+
 
 	public static class PasswordProfile {
 		private String password;

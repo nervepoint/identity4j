@@ -190,7 +190,6 @@ public class Office365Connector extends AbstractConnector<Office365Configuration
 
 	private final class RoleFilterIterator extends PrincipalFilterIterator<Role> {
 
-		Set<String> inc = getConfiguration().getIncludedGroups();
 		Set<String> exc = getConfiguration().getExcludedGroups();
 
 		RoleFilterIterator(Iterator<Role> source) {
@@ -827,9 +826,9 @@ public class Office365Connector extends AbstractConnector<Office365Configuration
 		log.info("Directory instance created.");
 		try {
 			directory.init(parameters);
-			isDeletePrivilege = directory.users().isDeletePrivilege(parameters.getAppPrincipalObjectId(),
+			/*isDeletePrivilege = directory.users().isDeletePrivilege(parameters.getAppPrincipalObjectId(),
 					parameters.getAppDeletePrincipalRole());
-			log.info("Delete privilege found as " + isDeletePrivilege);
+			log.info("Delete privilege found as " + isDeletePrivilege);*/
 		} catch (IOException e) {
 			throw new ConnectorException(e.getMessage(), e);
 		}

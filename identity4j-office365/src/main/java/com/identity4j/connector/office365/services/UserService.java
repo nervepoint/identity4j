@@ -53,7 +53,7 @@ public class UserService extends AbstractRestAPIService {
 			@Override
 			public HttpResponse call() throws Exception {
 				return httpRequestHandler.handleRequestGet(
-						constructURI(String.format("/users/%s", objectId), null), getHeaders().toArray(new HttpPair[0]));
+						constructURI(String.format("/users/%s?%s", objectId, selectList()), null), getHeaders().toArray(new HttpPair[0]));
 			}
 		});
 		
@@ -105,7 +105,8 @@ public class UserService extends AbstractRestAPIService {
 	 */
 	public Users all(String nextLink, Filter filter) {
 		final StringBuilder q = new StringBuilder();
-		q.append("$top=");
+		q.append(selectList());
+		q.append("&$top=");
 		q.append(office365Configuration.getRequestSizeLimit());
 		if(filter != null) {
 			q.append("&$filter=");
@@ -351,4 +352,10 @@ public class UserService extends AbstractRestAPIService {
 		private List<Group> groups = new ArrayList<Group>();
 	}
 
+	private String selectList() {
+		return "$select=objectId,dirSyncEnabled,displayName,mail,mailNickname,objectReference,objectType,privateBooleanaccountEnabled,city,"
+				+ "country,department,givenName,jobTitle,passwordPolicies,physicalDeliveryOfficeName,postalCode,preferredLanguage,state,streetAddress,"
+				+ "surname,usageLocation,userPrincipalName,privatePasswordProfilepasswordProfile,onPremisesSyncEnabled,faxNumber,onPremisesImmutableId,"
+				+ "onPremisesLastSyncDateTime,mobilePhone,signinSessionsValidFromDateTime,businessPhones,lastPasswordChangeDateTime";
+	}
 }

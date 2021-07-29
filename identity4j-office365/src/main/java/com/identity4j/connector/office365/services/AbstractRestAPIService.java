@@ -112,9 +112,12 @@ public abstract class AbstractRestAPIService {
 	 * @return
 	 */
 	protected URI constructURI(String path, String queryOption) {
-		queryOption = queryOption == null ? office365Configuration.getApiVersion() :  queryOption + "&" + office365Configuration.getApiVersion();
 		try {
-			return new URI(Office365Configuration.PROTOCOL_NAME,office365Configuration.getRestServiceHost(), "/"	+ office365Configuration.getTenantDomainName() + path,	queryOption, null);
+			return queryOption == null ? 
+					new URI(Office365Configuration.PROTOCOL_NAME,office365Configuration.getRestServiceHost(), "/" +  office365Configuration.getApiVersion()  
+			 + path,  null) :
+				 new URI(Office365Configuration.PROTOCOL_NAME,office365Configuration.getRestServiceHost(), "/" +  office365Configuration.getApiVersion()  
+				 + path, queryOption, null);
 		} catch (URISyntaxException e) {
 			throw new ConnectorException(e.getMessage(),e);
 		}
