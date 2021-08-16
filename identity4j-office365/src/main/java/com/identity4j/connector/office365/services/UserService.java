@@ -353,7 +353,7 @@ public class UserService extends AbstractRestAPIService {
 	}
 
 	private String selectList() {
-		return "$select=objectId,dirSyncEnabled,displayName,mail,mailNickname,objectReference,objectType,privateBooleanaccountEnabled,city,"
+		return "$select=id,objectId,dirSyncEnabled,displayName,mail,mailNickname,objectReference,objectType,privateBooleanaccountEnabled,city,"
 				+ "country,department,givenName,jobTitle,passwordPolicies,physicalDeliveryOfficeName,postalCode,preferredLanguage,state,streetAddress,"
 				+ "surname,usageLocation,userPrincipalName,privatePasswordProfilepasswordProfile,onPremisesSyncEnabled,faxNumber,onPremisesImmutableId,"
 				+ "onPremisesLastSyncDateTime,mobilePhone,signinSessionsValidFromDateTime,businessPhones,lastPasswordChangeDateTime";
