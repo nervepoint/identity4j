@@ -47,6 +47,7 @@ public class Principal {
 	 */
 	public void setObjectId(String objectId) {
 		this.objectId = objectId;
+		this.id = this.objectId;
 	}
 
 	/**
