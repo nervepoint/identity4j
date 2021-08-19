@@ -1,5 +1,12 @@
 package com.identity4j.connector.office365;
 
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.TemporalAccessor;
+
 /*
  * #%L
  * Identity4J OFFICE 365
@@ -23,6 +30,7 @@ package com.identity4j.connector.office365;
  */
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import com.identity4j.connector.Media;
@@ -30,6 +38,7 @@ import com.identity4j.connector.office365.entity.Group;
 import com.identity4j.connector.office365.entity.User;
 import com.identity4j.connector.principal.AccountStatus;
 import com.identity4j.connector.principal.Identity;
+import com.identity4j.connector.principal.PasswordStatus;
 import com.identity4j.connector.principal.Role;
 import com.identity4j.connector.principal.RoleImpl;
 import com.identity4j.util.StringUtil;
@@ -110,6 +119,14 @@ public class Office365ModelConvertor {
 		return user;
 	}
 	
+	private static Date parseIso8601(String datetime) {
+		if(datetime == null || datetime.equals(""))
+			return null;
+	    TemporalAccessor ta = DateTimeFormatter.ISO_INSTANT.parse(datetime);
+	    Instant i = Instant.from(ta);
+	    return Date.from(i);
+	}
+	
 	private static String arrayToString(String[] str) {
 		return str != null ? String.join(",", str) : "";
 	}
@@ -153,10 +170,15 @@ public class Office365ModelConvertor {
 
 		identity.setAddress(Media.email, user.getMail());
 		identity.setAddress(Media.mobile, user.getMobilePhone());
+		
 		identity.setAccountStatus(new AccountStatus());
 		if(user.getAccountEnabled() != null)
 			identity.getAccountStatus().setDisabled(!user.getAccountEnabled());
 		identity.getAccountStatus().calculateType();
+		
+		identity.setPasswordStatus(new PasswordStatus());
+		identity.getPasswordStatus().setLastChange(parseIso8601(user.getLastPasswordChangeDateTime()));
+		identity.getPasswordStatus().calculateType();
 		
 		identity.setAttribute(ATTR_MOBILE, nullToEmptyString(user.getMobilePhone()));
 		identity.setAttribute(ATTR_MAIL, nullToEmptyString(user.getMail()));
