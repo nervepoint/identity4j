@@ -126,7 +126,7 @@ public abstract class AbstractRestWebServiceConnectorTest {
             Assert.assertEquals("Principal names should be same", identity.getPrincipalName(), identityFromSource
                             .getPrincipalName());
         } finally {
-            deleteIdentityFromSource(getTestIdentityName());
+            deleteIdentityByName(getTestIdentityName());
         }
     }
 
@@ -161,7 +161,7 @@ public abstract class AbstractRestWebServiceConnectorTest {
             Assert.assertEquals("Full name should be same as updated name", identity.getFullName(), identityFromSource
                             .getFullName());
         } finally {
-            deleteIdentityFromSource(getTestIdentityName());
+            deleteIdentityByName(getTestIdentityName());
         }
     }
 
@@ -324,7 +324,7 @@ public abstract class AbstractRestWebServiceConnectorTest {
             Assert.assertTrue("Identity is disabled", identityFromSource.getAccountStatus().isDisabled());
 
         } finally {
-            deleteIdentityFromSource(getTestIdentityName());
+            deleteIdentityByName(getTestIdentityName());
         }
     }
 
@@ -352,7 +352,7 @@ public abstract class AbstractRestWebServiceConnectorTest {
             Assert.assertFalse("Identity is enabled", identityFromSource.getAccountStatus().isDisabled());
 
         } finally {
-            deleteIdentityFromSource(getTestIdentityName());
+            deleteIdentityByName(getTestIdentityName());
         }
     }
 
@@ -540,8 +540,12 @@ public abstract class AbstractRestWebServiceConnectorTest {
         return connector.getIdentityByName(identity.getPrincipalName());
     }
 
-    protected void deleteIdentityFromSource(String identity) {
+    protected void deleteIdentityByName(String identity) {
         connector.deleteIdentity(identity);
+    }
+
+    protected void deleteIdentityFromSource(Identity identity) {
+        deleteIdentityByName(identity.getPrincipalName());
     }
 
 	protected String getValidIdentityName() {

@@ -525,7 +525,7 @@ public class Office365ConnectorTest extends AbstractRestWebServiceConnectorTest 
 			// and PrincipalType should be role
 			Assert.assertEquals("", PrincipalType.role, e.getPrincipalType());
 		} finally {
-			deleteIdentityFromSource(getTestIdentityName());
+			deleteIdentityByName(getTestIdentityName());
 		}
 	}
 
