@@ -1,6 +1,7 @@
 package com.identity4j.connector.office365.services;
 
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
@@ -52,21 +53,30 @@ public class UserService extends AbstractRestAPIService {
 		HttpResponse response = retryIfTokenFails(new Callable<HttpResponse>() {
 			@Override
 			public HttpResponse call() throws Exception {
+				URI uri = constructURI(String.format("/users/%s", objectId), selectList());
 				return httpRequestHandler.handleRequestGet(
-						constructURI(String.format("/users/%s?%s", objectId, selectList()), null), getHeaders().toArray(new HttpPair[0]));
+						uri, getHeaders().toArray(new HttpPair[0]));
 			}
 		});
 		
 		try {
 			if (response.status().getCode() == 404) {
 				throw new PrincipalNotFoundException(objectId + " not found.", null, PrincipalType.user);
-			}
-			user = JsonMapperService.getInstance().getObject(User.class, response.contentString());
+			} else
+				checkResponse(response, 200);
+			String json = response.contentString();
+			user = JsonMapperService.getInstance().getObject(User.class, json);
 
 			probeGroupsAndRoles(user);
 			return user;
 		} finally {
 			response.release();
+		}
+	}
+
+	protected void checkResponse(HttpResponse response, int code) {
+		if(response.status().getCode() != code) {
+			throw new ConnectorException(String.format("Unexpected response code %d. %s", response.status().getCode(), response.status().getError()));
 		}
 	}
 
@@ -132,6 +142,7 @@ public class UserService extends AbstractRestAPIService {
 		
 		try {
 			String string = response.contentString();
+			checkResponse(response, 200);
 			return JsonMapperService.getInstance().getObject(Users.class, string);
 		} finally {
 			response.release();
@@ -152,15 +163,16 @@ public class UserService extends AbstractRestAPIService {
 		HttpResponse response = retryIfTokenFails(new Callable<HttpResponse>() {
 			@Override
 			public HttpResponse call() throws Exception {
+				String json = JsonMapperService.getInstance().getJson(user);
 				return httpRequestHandler.handleRequestPost(constructURI("/users", null),
-						JsonMapperService.getInstance().getJson(user), getHeaders().toArray(new HttpPair[0]));
+						json, getHeaders().toArray(new HttpPair[0]));
 			}
 		});
 		
 		if (response.status().getCode() == 400) {
 			AppErrorMessage errorMessage = JsonMapperService.getInstance().getObject(AppErrorMessage.class,
 					response.contentString().replaceAll("odata.error", "error"));
-			String err = errorMessage.getError().getMessage().getValue();
+			String err = errorMessage.getError().getMessage();
 
 			// TODO is there not a better way to test for error messages?
 			// This seems crazy
@@ -190,24 +202,26 @@ public class UserService extends AbstractRestAPIService {
 	 *             for service related exception.
 	 */
 	public void update(final User user) {
-
+		/* Do not try to save object ID */
+		User nuser = new User(user);
+		nuser.setId(null);
+		nuser.setObjectId(null);
+		
 		HttpResponse response = retryIfTokenFails(new Callable<HttpResponse>() {
 			@Override
 			public HttpResponse call() throws Exception {
+				String json = JsonMapperService.getInstance().getJson(nuser);
 				return httpRequestHandler.handleRequestPatch(
 						constructURI(String.format("/users/%s", user.getObjectId()), null),
-						JsonMapperService.getInstance().getJson(user), getHeaders().toArray(new HttpPair[0]));
+						json, getHeaders().toArray(new HttpPair[0]));
 			}
 		});
 		
 		if (response.status().getCode() == 404) {
 			throw new PrincipalNotFoundException(user.getObjectId() + " not found.", null, PrincipalType.user);
 		}
-
-		if (response.status().getCode() != 204) {
-			throw new ConnectorException("Problem in updating user as status code is not 204 is "
-					+ response.status().getCode() + ". " + response.status().getError());
-		}
+		else
+			checkResponse(response, 204);
 	}
 
 	/**
@@ -232,11 +246,8 @@ public class UserService extends AbstractRestAPIService {
 		if (response.status().getCode() == 404) {
 			throw new PrincipalNotFoundException(objectId + " not found.", null, PrincipalType.user);
 		}
-
-		if (response.status().getCode() != 204) {
-			throw new ConnectorException("Problem in deleting user as status code is not 204 is "
-					+ response.status().getCode() + ". " + response.status().getError());
-		}
+		else
+			checkResponse(response, 204);
 
 	}
 
@@ -265,6 +276,8 @@ public class UserService extends AbstractRestAPIService {
 			if (response.status().getCode() == 404) {
 				throw new PrincipalNotFoundException(objectId + " not found.", null, PrincipalType.user);
 			}
+			else
+				checkResponse(response, 204);
 
 			return mapGroupsAndRoles(response);
 		} finally {
@@ -329,11 +342,11 @@ public class UserService extends AbstractRestAPIService {
 		List<?> groupsAndRolesList = (List<?>) groupsAndRolesMap.get("value");
 		if (groupsAndRolesList != null) {
 			for (Object object : groupsAndRolesList) {
-				Object type = ((Map<?, ?>) object).get("objectType");
-				if ("Group".equals(type.toString())) {
-					groupsAndRoles.groups.add(JsonMapperService.getInstance().convert(object, Group.class));
-				} else {
+				Object type = ((Map<?, ?>) object).get("isAssignableRole");
+				if (Boolean.TRUE.equals(type)) {
 					groupsAndRoles.roles.add(JsonMapperService.getInstance().convert(object, Role.class));
+				} else {
+					groupsAndRoles.groups.add(JsonMapperService.getInstance().convert(object, Group.class));
 				}
 			}
 		}
@@ -353,9 +366,9 @@ public class UserService extends AbstractRestAPIService {
 	}
 
 	private String selectList() {
-		return "$select=id,objectId,dirSyncEnabled,displayName,mail,mailNickname,objectReference,objectType,privateBooleanaccountEnabled,city,"
+		return "$select=id,objectId,dirSyncEnabled,displayName,mail,mailNickname,objectReference,objectType,accountEnabled,city,"
 				+ "country,department,givenName,jobTitle,passwordPolicies,physicalDeliveryOfficeName,postalCode,preferredLanguage,state,streetAddress,"
-				+ "surname,usageLocation,userPrincipalName,privatePasswordProfilepasswordProfile,onPremisesSyncEnabled,faxNumber,onPremisesImmutableId,"
+				+ "surname,usageLocation,userPrincipalName,passwordProfile,onPremisesSyncEnabled,faxNumber,onPremisesImmutableId,"
 				+ "onPremisesLastSyncDateTime,mobilePhone,signinSessionsValidFromDateTime,businessPhones,lastPasswordChangeDateTime";
 	}
 }

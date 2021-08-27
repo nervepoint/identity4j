@@ -658,7 +658,6 @@ public abstract class AbstractDirectoryConfiguration extends AbstractConnectorCo
 					builder.append(LDAPS_PROTOCOL).append(controllerHost).append(":").append(port);
 					break;
 				default:
-					LOG.warn("Unexpected LDAP port in controller host " + controllerHost);
 					builder.append(ssl ? LDAPS_PROTOCOL : LDAP_PROTOCOL).append(controllerHost).append(":")
 							.append(port);
 				}

@@ -256,7 +256,7 @@ public class AwsConnectorTest extends AbstractRestWebServiceConnectorTest {
 	}
 	
 	@Override
-	protected void deleteIdentityFromSource(Identity identity) {
+	protected void deleteIdentityFromSource(String identity) {
 		try {
 			// needed as post create cleanup delete op too fast for AWS to handle, it will throw exception
 			Thread.sleep(30 * 1000);

@@ -1,5 +1,6 @@
 package com.identity4j.connector.office365.services;
 
+import java.net.URI;
 import java.util.List;
 import java.util.concurrent.Callable;
 
@@ -52,14 +53,19 @@ public class GroupService extends AbstractRestAPIService {
 			if (response.status().getCode() == 404 || response.status().getCode() == 400) {
 				throw new PrincipalNotFoundException(objectId + " not found.", null, PrincipalType.role);
 			}
-			if (response.status().getCode() != 200) {
-				throw new ConnectorException(String.format("Unexpected status. %d. %s", response.status().getCode(),
-						response.status().getError()));
-			}
+			else
+				checkResponse(response, 204);
 			group = JsonMapperService.getInstance().getObject(Group.class, response.contentString());
 			return group;
 		} finally {
 			response.release();
+		}
+	}
+
+	protected void checkResponse(HttpResponse response, int code) {
+		if (response.status().getCode() != code) {
+			throw new ConnectorException(String.format("Unexpected status %d, expected %d. %s", response.status().getCode(), code,
+					response.status().getError()));
 		}
 	}
 
@@ -75,18 +81,19 @@ public class GroupService extends AbstractRestAPIService {
 		HttpResponse response = retryIfTokenFails(new Callable<HttpResponse>() {
 			@Override
 			public HttpResponse call() throws Exception {
+				URI uri = constructURI("/groups", String.format("$filter=displayName eq '%s'&$top=1&$count=true", name));
 				return httpRequestHandler.handleRequestGet(
-						constructURI("/groups", String.format("$filter=displayName eq '%s'", name)),
-						getHeaders().toArray(new HttpPair[0]));
+						uri,
+						getHeaders().toArray(new HttpPair[] {
+								new HttpPair("ConsistencyLevel", "eventual")
+						}));
 			}
 		});
 
 		try {
-			if (response.status().getCode() != 200) {
-				throw new ConnectorException(String.format("Unexpected status. %d. %s", response.status().getCode(),
-						response.status().getError()));
-			}
-			Groups g = JsonMapperService.getInstance().getObject(Groups.class, response.contentString());
+			checkResponse(response, 200);
+			String contentString = response.contentString();
+			Groups g = JsonMapperService.getInstance().getObject(Groups.class, contentString);
 			final List<Group> groups = g.getGroups();
 			if (groups.isEmpty())
 				throw new PrincipalNotFoundException(name + " not found.", null, PrincipalType.role);
@@ -151,6 +158,7 @@ public class GroupService extends AbstractRestAPIService {
 
 		try {
 			String string = response.contentString();
+			checkResponse(response, 200);
 			return JsonMapperService.getInstance().getObject(Groups.class, string);
 		} finally {
 			response.release();
@@ -180,6 +188,7 @@ public class GroupService extends AbstractRestAPIService {
 		});
 
 		try {
+			checkResponse(response, 200);
 			String string = response.contentString();
 			return JsonMapperService.getInstance().getObject(GroupMembers.class, string);
 		} finally {
@@ -234,15 +243,13 @@ public class GroupService extends AbstractRestAPIService {
 			AppErrorMessage errorMessage = JsonMapperService.getInstance().getObject(AppErrorMessage.class,
 					response.contentString().replaceAll("odata.error", "error"));
 			if ("A conflicting object with one or more of the specified property values is present in the directory."
-					.equals(errorMessage.getError().getMessage().getValue())) {
+					.equals(errorMessage.getError().getMessage())) {
 				throw new PrincipalAlreadyExistsException(
 						"Principal contains conflicting properties which already exists, " + group.getDisplayName());
 			}
 		}
-		if (response.status().getCode() != 201) {
-			throw new ConnectorException(String.format("Unexpected status. %d. %s", response.status().getCode(),
-					response.status().getError()));
-		}
+		else
+			checkResponse(response, 201);
 		return JsonMapperService.getInstance().getObject(Group.class, response.contentString());
 	}
 
@@ -269,11 +276,8 @@ public class GroupService extends AbstractRestAPIService {
 		if (response.status().getCode() == 404) {
 			throw new PrincipalNotFoundException(group.getObjectId() + " not found.", null, PrincipalType.role);
 		}
-
-		if (response.status().getCode() != 204) {
-			throw new ConnectorException("Problem in updating group as status code is not 204 is "
-					+ response.status().getCode() + " : " + response.contentString());
-		}
+		else
+			checkResponse(response, 204);
 	}
 
 	/**
@@ -296,11 +300,8 @@ public class GroupService extends AbstractRestAPIService {
 		if (response.status().getCode() == 404) {
 			throw new PrincipalNotFoundException(objectId + " not found.", null, PrincipalType.role);
 		}
-
-		if (response.status().getCode() != 204) {
-			throw new ConnectorException("Problem in deleting group as status code is not 204 is "
-					+ response.status().getCode() + " : " + response.contentString());
-		}
+		else
+			checkResponse(response, 204);
 	}
 
 	/**
@@ -313,7 +314,7 @@ public class GroupService extends AbstractRestAPIService {
 	 * @throws ConnectorException         for service related exception.
 	 */
 	public void addUserToGroup(String userOjectId, final String groupObjectId) {
-		String dataTemplate = "{ \"url\":\"%s\" }";
+		String dataTemplate = "{ \"@odata.id\":\"%s\" }";
 		String url = constructURI(String.format("/directoryObjects/%s", userOjectId), null).toString();
 		final String data = String.format(dataTemplate, url);
 
@@ -321,7 +322,7 @@ public class GroupService extends AbstractRestAPIService {
 			@Override
 			public HttpResponse call() throws Exception {
 				return httpRequestHandler.handleRequestPost(
-						constructURI(String.format("/groups/%s/$links/members", groupObjectId), null), data,
+						constructURI(String.format("/groups/%s/members/$ref", groupObjectId), null), data,
 						getHeaders().toArray(new HttpPair[0]));
 			}
 		});
@@ -334,16 +335,13 @@ public class GroupService extends AbstractRestAPIService {
 		if (response.status().getCode() == 400) {
 			AppErrorMessage errorMessage = JsonMapperService.getInstance().getObject(AppErrorMessage.class,
 					response.contentString().replaceAll("odata.error", "error"));
-			if (errorMessage.getError().getMessage().getValue().contains("Invalid object identifier")) {
+			if (errorMessage.getError().getMessage().contains("Invalid object identifier")) {
 				throw new PrincipalNotFoundException(
 						"Principal '" + userOjectId + "' in  '" + groupObjectId + "' not found.", null,
 						PrincipalType.role);
 			}
 		}
-		if (response.status().getCode() != 204) {
-			throw new ConnectorException("Problem in adding user to group as status code is not 204 is "
-					+ response.status().getCode() + " : " + response.contentString());
-		}
+		checkResponse(response, 204);
 	}
 
 	/**
@@ -360,7 +358,7 @@ public class GroupService extends AbstractRestAPIService {
 			@Override
 			public HttpResponse call() throws Exception {
 				return httpRequestHandler.handleRequestDelete(
-						constructURI(String.format("/groups/%s/$links/members/%s", groupObjectId, userObjectId), null),
+						constructURI(String.format("/groups/%s/members/%s/$ref", groupObjectId, userObjectId), null),
 						getHeaders().toArray(new HttpPair[0]));
 			}
 		});

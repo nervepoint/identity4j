@@ -1,5 +1,8 @@
 package com.identity4j.connector.office365.entity;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+
 /*
  * #%L
  * Identity4J OFFICE 365
@@ -79,6 +82,39 @@ public class User extends Principal {
 	 */
 	public User() {
 		passwordProfile = new PasswordProfile();
+	}
+	
+	public User(User from) {
+		super(from);
+
+		this.objectReference = from.objectReference;
+		this.objectType = from.objectType;
+		this.accountEnabled = from.accountEnabled;
+		this.city = from.city;
+		this.country = from.country;
+		this.department = from.department;
+		this.givenName = from.givenName;
+		this.jobTitle = from.jobTitle;
+		this.passwordPolicies = from.passwordPolicies;
+		this.physicalDeliveryOfficeName = from.physicalDeliveryOfficeName;
+		this.postalCode = from.postalCode;
+		this.preferredLanguage = from.preferredLanguage;
+		this.state = from.state;
+		this.streetAddress = from.streetAddress;
+		this.surname = from.surname;
+		this.usageLocation = from.usageLocation;
+		this.userPrincipalName = from.userPrincipalName;
+		this.passwordProfile = from.passwordProfile == null ? null : new PasswordProfile(from.passwordProfile);
+		this.onPremisesSyncEnabled = from.onPremisesSyncEnabled;
+		this.faxNumber = from.faxNumber;
+		this.onPremisesImmutableId = from.onPremisesImmutableId;
+		this.onPremisesLastSyncDateTime = from.onPremisesLastSyncDateTime;
+		this.mobilePhone = from.mobilePhone;
+		this.signinSessionsValidFromDateTime = from.signinSessionsValidFromDateTime;
+		this.businessPhones = from.businessPhones == null ? null : new ArrayList<>(Arrays.asList(from.businessPhones)).toArray(new String[0]);
+		this.lastPasswordChangeDateTime = from.lastPasswordChangeDateTime;
+		this.memberOf = from.memberOf == null ? null : new ArrayList<Group>(from.memberOf);
+		this.roles = from.roles == null ? null : new ArrayList<Role>(from.roles);
 	}
 
 	/**
@@ -467,7 +503,17 @@ public class User extends Principal {
 
 	public static class PasswordProfile {
 		private String password;
-		private Boolean forceChangePasswordNextLogin;
+		private boolean forceChangePasswordNextSignIn;
+		private boolean forceChangePasswordNextSignInWithMfa;
+		
+		public PasswordProfile() {
+			
+		}
+		public PasswordProfile(PasswordProfile from) {
+			this.password = from.password;
+			this.forceChangePasswordNextSignIn = from.forceChangePasswordNextSignIn;
+			this.forceChangePasswordNextSignInWithMfa = from.forceChangePasswordNextSignInWithMfa;
+		}
 
 		public String getPassword() {
 			return password;
@@ -477,12 +523,20 @@ public class User extends Principal {
 			this.password = password;
 		}
 
-		public Boolean getForceChangePasswordNextLogin() {
-			return forceChangePasswordNextLogin;
+		public boolean getForceChangePasswordNextSignIn() {
+			return forceChangePasswordNextSignIn;
 		}
 
-		public void setForceChangePasswordNextLogin(Boolean forceChangePasswordNextLogin) {
-			this.forceChangePasswordNextLogin = forceChangePasswordNextLogin;
+		public void setForceChangePasswordNextSignIn(boolean forceChangePasswordNextSignIn) {
+			this.forceChangePasswordNextSignIn = forceChangePasswordNextSignIn;
+		}
+
+		public boolean isForceChangePasswordNextSignInWithMfa() {
+			return forceChangePasswordNextSignInWithMfa;
+		}
+
+		public void setForceChangePasswordNextSignInWithMfa(boolean forceChangePasswordNextSignInWithMfa) {
+			this.forceChangePasswordNextSignInWithMfa = forceChangePasswordNextSignInWithMfa;
 		}
 
 	}

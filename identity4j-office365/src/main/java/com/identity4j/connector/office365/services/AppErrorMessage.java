@@ -36,10 +36,10 @@ public class AppErrorMessage {
 
 	public static class Error {
 		private String code;
-		private Message message;
+		private String message;
 		@JsonIgnore
 		private String[] values;
-		
+		private InnerError innerError;
 		
 		public String getCode() {
 			return code;
@@ -47,10 +47,10 @@ public class AppErrorMessage {
 		public void setCode(String code) {
 			this.code = code;
 		}
-		public Message getMessage() {
+		public String getMessage() {
 			return message;
 		}
-		public void setMessage(Message message) {
+		public void setMessage(String message) {
 			this.message = message;
 		}
 		public String[] getValues() {
@@ -59,7 +59,40 @@ public class AppErrorMessage {
 		public void setValues(String[] values) {
 			this.values = values;
 		}
+		public InnerError getInnerError() {
+			return innerError;
+		}
+		public void setInnerError(InnerError innerError) {
+			this.innerError = innerError;
+		}
 	}
+	
+	public static class InnerError {
+		private String data;
+		private String requestId;
+		private String clientRequestId;
+		public String getData() {
+			return data;
+		}
+		public void setData(String data) {
+			this.data = data;
+		}
+		public String getRequestId() {
+			return requestId;
+		}
+		public void setRequestId(String requestId) {
+			this.requestId = requestId;
+		}
+		public String getClientRequestId() {
+			return clientRequestId;
+		}
+		public void setClientRequestId(String clientRequestId) {
+			this.clientRequestId = clientRequestId;
+		}
+		
+		
+	}
+	
 	public static class Message {
 		private String lang;
 		private String value;

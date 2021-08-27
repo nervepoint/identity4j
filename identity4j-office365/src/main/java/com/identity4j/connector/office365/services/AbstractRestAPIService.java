@@ -129,6 +129,6 @@ public abstract class AbstractRestAPIService {
 	 */
 	protected void throwAppException(HttpResponse httpResponse) {
 		AppErrorMessage appErrorMessage = JsonMapperService.getInstance().getObject(AppErrorMessage.class, httpResponse.contentString().replaceAll("odata.error", "error"));
-		throw new ConnectorException(appErrorMessage.getError().getCode() + ":" + appErrorMessage.getError().getMessage().getValue());
+		throw new ConnectorException(appErrorMessage.getError().getCode() + ":" + appErrorMessage.getError().getMessage());
 	}
 }

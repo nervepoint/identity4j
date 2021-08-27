@@ -11,6 +11,18 @@ public class Principal {
 	private String displayName;
 	private String mail;
 	private String mailNickname;
+	
+	protected Principal() {
+	}
+	
+	protected Principal(Principal from) {
+		id = from.id;
+		objectId = from.objectId;
+		dirSyncEnabled = from.dirSyncEnabled;
+		displayName = from.displayName;
+		mail = from.mail;
+		mailNickname = from.mailNickname;
+	}
 
 	public String getId() {
 		return id;

@@ -683,10 +683,11 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 
 	protected Identity mapIdentity(SearchResult result) throws NamingException {
 		Attributes attributes = result.getAttributes();
-		String guid = StringUtil
-				.nonNull(attributes.get(getConfiguration().getIdentityGuidAttribute()).get().toString());
-		String identityName = StringUtil
-				.nonNull(attributes.get(getConfiguration().getIdentityNameAttribute()).get().toString());
+		Attribute guidAttr = attributes.get(getConfiguration().getIdentityGuidAttribute());
+		String guid = guidAttr == null ? "" : StringUtil
+				.nonNull(guidAttr.get().toString());
+		Attribute nameAttr = attributes.get(getConfiguration().getIdentityNameAttribute());
+		String identityName = nameAttr == null ? "" : StringUtil.nonNull(nameAttr.get().toString());
 		LdapName dn = new LdapName(result.getName().toString());
 		Name base = getConfiguration().getBaseDn();
 		for (int i = base.size() - 1; i >= 0; i--) {
@@ -715,9 +716,12 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 		if (!StringUtil.isNullOrEmpty(idRoleAttr)) {
 			String roleObjectClass = getConfiguration().getRoleObjectClass();
 			String roleNameAttribute = getConfiguration().getRoleGuidAttribute();
-			Filter filter = ldapService.buildObjectClassFilter(roleObjectClass, roleNameAttribute,
-					attributes.get(idRoleAttr).get().toString());
-			role = getPrincipal(filter.encode(), getRoles(filter, true));
+			Attribute roleAttr = attributes.get(idRoleAttr);
+			if(roleAttr != null) {
+				Filter filter = ldapService.buildObjectClassFilter(roleObjectClass, roleNameAttribute,
+						roleAttr.get().toString());
+				role = getPrincipal(filter.encode(), getRoles(filter, true));
+			}
 		} else {
 			idRoleAttr = getConfiguration().getIdentityRoleNameAttribute();
 			if (!StringUtil.isNullOrEmpty(idRoleAttr)) {
@@ -822,8 +826,9 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 
 	protected Role mapRole(SearchResult result) throws NamingException {
 		Attributes attributes = result.getAttributes();
-		String guid = StringUtil
-				.nonNull(attributes.get(getConfiguration().getRoleGuidAttribute()).get().toString());
+		Attribute guidAttr = attributes.get(getConfiguration().getRoleGuidAttribute());
+		String guid = guidAttr == null ? "" : StringUtil
+				.nonNull(guidAttr.get().toString());
 		String identityName = StringUtil
 				.nonNull(attributes.get(getConfiguration().getRoleNameAttribute()).get().toString());
 		LdapName dn = new LdapName(result.getName().toString());
@@ -934,6 +939,8 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 		}
 		DirectoryExceptionParser dep = new DirectoryExceptionParser(nme);
 		if (dep.getCode() == 49)
+			throw new InvalidLoginCredentialsException();
+		else if (dep.getCode() == 53)
 			throw new InvalidLoginCredentialsException();
 		String message = dep.getMessage();
 		throw new ConnectorException(message, nme);

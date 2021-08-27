@@ -398,7 +398,7 @@ public class Office365Connector extends AbstractConnector<Office365Configuration
 
 	private Directory directory;
 	private static final Log log = LogFactory.getLog(Office365Connector.class);
-	private boolean isDeletePrivilege;
+	private boolean isDeletePrivilege = true;
 
 	static Set<ConnectorCapability> capabilities = new HashSet<ConnectorCapability>(Arrays
 			.asList(new ConnectorCapability[] { ConnectorCapability.passwordChange, ConnectorCapability.passwordSet,
@@ -691,7 +691,7 @@ public class Office365Connector extends AbstractConnector<Office365Configuration
 			user.setDisplayName(user.getUserPrincipalName());
 		List<Group> groups = user.getMemberOf();
 		user.setMemberOf(null);// as groups will be saved independent from User
-		user.getPasswordProfile().setForceChangePasswordNextLogin(false);
+		user.getPasswordProfile().setForceChangePasswordNextSignIn(true);
 		user.getPasswordProfile().setPassword(new String(password));
 		Identity identitySaved = Office365ModelConvertor
 				.convertOffice365UserToOfficeIdentity(directory.users().save(user));
@@ -782,7 +782,7 @@ public class Office365Connector extends AbstractConnector<Office365Configuration
 			PasswordResetType type) throws ConnectorException {
 		User user = new User();
 		user.getPasswordProfile().setPassword(new String(password));
-		user.getPasswordProfile().setForceChangePasswordNextLogin(forcePasswordChangeAtLogon);
+		user.getPasswordProfile().setForceChangePasswordNextSignIn(forcePasswordChangeAtLogon);
 		user.setObjectId(identity.getGuid());
 		directory.users().update(user);
 	}
@@ -802,6 +802,7 @@ public class Office365Connector extends AbstractConnector<Office365Configuration
 		User user = new User();
 		user.setAccountEnabled(!suspension);
 		user.setObjectId(identity.getGuid());
+		user.setPasswordProfile(null);
 		directory.users().update(user);
 	}
 
