@@ -189,8 +189,7 @@ public class GroupService extends AbstractRestAPIService {
 
 		try {
 			checkResponse(response, 200);
-			String string = response.contentString();
-			return JsonMapperService.getInstance().getObject(GroupMembers.class, string);
+			return JsonMapperService.getInstance().getObject(GroupMembers.class, response.contentString());
 		} finally {
 			response.release();
 		}
@@ -212,11 +211,11 @@ public class GroupService extends AbstractRestAPIService {
 	public static class GroupMember {
 		private String id;
 
-		public String getObjectId() {
+		public String getId() {
 			return id;
 		}
 
-		public void setObjectId(String id) {
+		public void setId(String id) {
 			this.id = id;
 		}
 	}
