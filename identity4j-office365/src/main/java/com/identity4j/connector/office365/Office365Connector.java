@@ -292,6 +292,7 @@ public class Office365Connector extends AbstractConnector<Office365Configuration
 					roleMap = new HashMap<String, List<Role>>();
 					log.info("Pre-loading groups users");
 					int userRelationships = 0;
+					int groups = 0;
 					for(Iterator<Role> roleIt = allRoles(); roleIt.hasNext(); ) {
 						Role role = roleIt.next();
 						log.info(String.format("Pre-loading groups users for %s (%s)", role.getGuid(), role.getPrincipalName()));
@@ -308,8 +309,9 @@ public class Office365Connector extends AbstractConnector<Office365Configuration
 							}
 							log.info(String.format("    Group %s (%s) has %d members", role.getGuid(), role.getPrincipalName(), members.getValue().size()));
 						}
+						groups++;
 					}
-					log.info(String.format("Pre-loaded %d user relationships in %d groups", userRelationships, roleMap.size()));
+					log.info(String.format("Pre-loaded %d users, %d user relationships in %d groups", roleMap.size(), userRelationships, groups));
 				}
 				List<Role> roles = roleMap.get(current.getObjectId());
 				if(roles != null)
