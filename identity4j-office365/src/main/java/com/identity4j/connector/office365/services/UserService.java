@@ -8,11 +8,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.identity4j.connector.PrincipalType;
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.exception.PrincipalAlreadyExistsException;
 import com.identity4j.connector.exception.PrincipalNotFoundException;
 import com.identity4j.connector.office365.Office365Configuration;
+import com.identity4j.connector.office365.Office365Connector;
 import com.identity4j.connector.office365.entity.Group;
 import com.identity4j.connector.office365.entity.Role;
 import com.identity4j.connector.office365.entity.User;
@@ -31,6 +35,7 @@ import com.identity4j.util.json.JsonMapperService;
  *
  */
 public class UserService extends AbstractRestAPIService {
+	private static final Log log = LogFactory.getLog(UserService.class);
 
 	public UserService(ADToken token, HttpRequestHandler httpRequestHandler,
 			Office365Configuration office365Configuration) {
@@ -68,6 +73,7 @@ public class UserService extends AbstractRestAPIService {
 			user = JsonMapperService.getInstance().getObject(User.class, json);
 
 			probeGroupsAndRoles(user);
+			log.info(String.format("User %s (%s) has %d roles", user.getUserPrincipalName(), objectId, user.getRoles().size()));
 			return user;
 		} finally {
 			response.release();
