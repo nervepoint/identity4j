@@ -73,7 +73,7 @@ public class UserService extends AbstractRestAPIService {
 			user = JsonMapperService.getInstance().getObject(User.class, json);
 
 			probeGroupsAndRoles(user);
-			log.info(String.format("User %s (%s) has %d roles", user.getUserPrincipalName(), objectId, user.getRoles().size()));
+			log.info(String.format("User %s (%s) has %d roles, membmer of %d", user.getUserPrincipalName(), objectId, user.getRoles().size(), user.getMemberOf().size()));
 			return user;
 		} finally {
 			response.release();

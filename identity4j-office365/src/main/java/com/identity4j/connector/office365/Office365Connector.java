@@ -354,8 +354,10 @@ public class Office365Connector extends AbstractConnector<Office365Configuration
 
 		@Override
 		protected void postIterate(User current) {
-			if (!getConfiguration().isPreloadGroupsUsers())
+			if (!getConfiguration().isPreloadGroupsUsers()) {
 				directory.users().probeGroupsAndRoles(current);
+				log.info(String.format("User %s (%s) has %d roles, is member of %d", current.getUserPrincipalName(), current.getObjectId(), current.getRoles().size(), current.getMemberOf().size()));
+			}
 		}
 	}
 
