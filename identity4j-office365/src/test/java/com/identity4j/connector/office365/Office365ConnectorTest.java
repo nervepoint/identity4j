@@ -95,6 +95,19 @@ public class Office365ConnectorTest extends AbstractRestWebServiceConnectorTest 
 		allIdentities.next();
 	}
 
+	@Test
+	public void itShouldIterateMoreThanOnePageOfIdentities() {
+		Assume.assumeTrue(connector.getCapabilities().contains(ConnectorCapability.identities));
+		Iterator<Identity> allIdentities = connector.allIdentities();
+		int total = 0;
+		while (allIdentities.hasNext()) {
+			allIdentities.next();
+			total++;			
+		}
+		int limit = configurationParameters.getIntegerOrDefault(Office365Configuration.OFFICE365_REQUEST_SIZE_LIMIT, Office365Configuration.DEFAULT_REQUEST_SIZE_LIMIT);
+		assertTrue("Iteration of identities must return more than one page (either create more users or lower request size limit from " + limit + ", if still fails you have a paging bug).", total > limit);
+	}
+
 	@Test(expected = NoSuchElementException.class)
 	public final void itShouldReadAllRoles() {
 		Assume.assumeTrue(connector.getCapabilities().contains(ConnectorCapability.roles));
@@ -104,6 +117,19 @@ public class Office365ConnectorTest extends AbstractRestWebServiceConnectorTest 
 			System.out.println(allRoles.next());
 		}
 		allRoles.next();
+	}
+
+	@Test
+	public void itShouldIterateMoreThanOnePageOfRoles() {
+		Assume.assumeTrue(connector.getCapabilities().contains(ConnectorCapability.roles));
+		Iterator<Role> allRoles = connector.allRoles();
+		int total = 0;
+		while (allRoles.hasNext()) {
+			allRoles.next();
+			total++;			
+		}
+		int limit = configurationParameters.getIntegerOrDefault(Office365Configuration.OFFICE365_REQUEST_SIZE_LIMIT, Office365Configuration.DEFAULT_REQUEST_SIZE_LIMIT);
+		assertTrue("Iteration of roles must return more than one page (either create more groups or lower request size limit from " + limit + ", if still fails you have a paging bug).", total > limit);
 	}
 
 	@After
