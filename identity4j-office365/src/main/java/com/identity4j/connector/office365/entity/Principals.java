@@ -7,7 +7,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public abstract class Principals<P extends Principal> {
 
-	@JsonProperty("odata.nextLink")
+	@JsonProperty("@odata.nextLink")
 	private String nextLink;
 	
 	public String getNextLink() {
