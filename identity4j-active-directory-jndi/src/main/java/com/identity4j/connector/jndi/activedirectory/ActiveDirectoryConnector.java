@@ -153,6 +153,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 	public static final String OU_ATTRIBUTE = "ou";
 	public static final String PASSWORD_POLICY_APPLIES = "msDS-ResultantPSO";
 	public static final String PASSWORD_EXPIRY_COMPUTED = "msDS-UserPasswordExpiryTimeComputed";
+	public static final String PRINCIPAL_NAME_ATTR = "msDS-PrincipalName";
 	public static final String PROXY_ADDRESSES = "proxyAddresses";
 	public static final String COUNTRY_CODE = "c";
 	public static final String COUNTRY = "co";
@@ -204,7 +205,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 	 */
 	private static Collection<String> ATTRIBUTES_TO_EXCLUDE_FROM_UPDATE = Arrays
 			.asList(new String[] { USER_ACCOUNT_CONTROL_ATTRIBUTE, LAST_LOGON_ATTRIBUTE, LAST_LOGON_TIMESTAMP_ATTRIBUTE,
-					PWD_LAST_SET_ATTRIBUTE, OU_ATTRIBUTE, COMMON_NAME_ATTRIBUTE, IMMUTABLE_ID_ATTR });
+					PWD_LAST_SET_ATTRIBUTE, OU_ATTRIBUTE, COMMON_NAME_ATTRIBUTE, IMMUTABLE_ID_ATTR, PRINCIPAL_NAME_ATTR });
 
 	/**
 	 * These are attributes we need for operation and want to store as attributes as
@@ -221,7 +222,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 			SCRIPT_PATH_ATTRIBUTE, HOME_DIR_ATTRIBUTE, HOME_DRIVE_ATTRIBUTE, HOME_PHONE_ATTRIBUTE, PAGER_ATTRIBUTE,
 			FAX_ATTRIBUTE, IPPHONE_ATTRIBUTE, INFO_ATTRIBUTE, TITLE_ATTRIBUTE, DEPARTMENT_ATTRIBUTE, COMPANY_ATTRIBUTE,
 			MANAGER_ATTRIBUTE, DISPLAY_NAME_ATTRIBUTE, PASSWORD_POLICY_APPLIES, PROXY_ADDRESSES, COUNTRY, COUNTRY_CODE,
-			CITY, STATE, STREET_ADRESS, POST_OFFICE_BOX, POSTAL_CODE
+			CITY, STATE, STREET_ADRESS, POST_OFFICE_BOX, POSTAL_CODE, PRINCIPAL_NAME_ATTR
 
 	});
 
@@ -558,6 +559,12 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 //			Attribute attribute = new BasicAttribute(MOBILE_PHONE_NUMBER_ATTRIBUTE, contactDetail);
 //			modificationItems.add(new ModificationItem(DirContext.REPLACE_ATTRIBUTE, attribute));
 //		}
+		
+		String contactDetail = newState.getAddress(com.identity4j.connector.Media.email);
+		if (!StringUtil.isNullOrEmpty(contactDetail)) {
+			Attribute attribute = new BasicAttribute(getEmailAttribute(), contactDetail);
+			modificationItems.add(new ModificationItem(DirContext.REPLACE_ATTRIBUTE, attribute));
+		}
 	}
 
 	@Override

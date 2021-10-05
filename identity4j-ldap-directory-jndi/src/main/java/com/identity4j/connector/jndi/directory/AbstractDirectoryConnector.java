@@ -414,7 +414,9 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 	public boolean checkCredentialsOptimised(String username, String remoteIdentifier, char[] password)
 			throws ConnectorException {
 		try {
+			LOG.info("Check credentials (optimised)");
 			ldapService.authenticate(remoteIdentifier, new String(password));
+			LOG.info("Verified credentials (optimised)");
 			return true;
 		} catch (IOException e) {
 			return false;
