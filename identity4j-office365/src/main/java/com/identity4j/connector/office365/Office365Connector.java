@@ -36,6 +36,10 @@ import java.util.Set;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import com.azure.core.credential.TokenRequestContext;
+import com.azure.identity.implementation.IdentityClient;
+import com.azure.identity.implementation.IdentityClientBuilder;
+import com.azure.identity.implementation.MsalToken;
 import com.identity4j.connector.AbstractConnector;
 import com.identity4j.connector.ConnectorCapability;
 import com.identity4j.connector.WebAuthenticationAPI;
@@ -61,6 +65,8 @@ import com.identity4j.connector.principal.Role;
 import com.identity4j.util.CollectionUtil;
 import com.identity4j.util.StringUtil;
 import com.identity4j.util.passwords.PasswordCharacteristics;
+
+import reactor.core.publisher.Mono;
 
 /**
  * Office 365 connector makes use of Active Directory Graph REST API to perform
@@ -773,8 +779,22 @@ public class Office365Connector extends AbstractConnector<Office365Configuration
 
 	@Override
 	protected boolean areCredentialsValid(Identity identity, char[] password) throws ConnectorException {
-		throw new UnsupportedOperationException(
-				"Standard credential validation is not supported, web authentication must be used.");
+		try {
+			IdentityClientBuilder idcb = new IdentityClientBuilder();
+			idcb.clientId(getConfiguration().getAppPrincipalId());
+			idcb.tenantId(getConfiguration().getTenantDomainName());
+			IdentityClient idc = idcb.build();
+			Mono<MsalToken> tokenMono = idc
+					.authenticateWithUsernamePassword(
+							new TokenRequestContext().setTenantId(getConfiguration().getTenantDomainName())
+									.addScopes("https://graph.microsoft.com/.default"),
+							identity.getPrincipalName(), new String(password));
+			tokenMono.block();
+			return true;
+		} catch (Exception e) {
+			log.error("Problem fetching token.", e);
+			return false;
+		}
 	}
 
 	/**
