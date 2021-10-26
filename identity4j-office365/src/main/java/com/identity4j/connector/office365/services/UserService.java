@@ -16,7 +16,6 @@ import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.exception.PrincipalAlreadyExistsException;
 import com.identity4j.connector.exception.PrincipalNotFoundException;
 import com.identity4j.connector.office365.Office365Configuration;
-import com.identity4j.connector.office365.Office365Connector;
 import com.identity4j.connector.office365.entity.Group;
 import com.identity4j.connector.office365.entity.Role;
 import com.identity4j.connector.office365.entity.User;
@@ -58,7 +57,7 @@ public class UserService extends AbstractRestAPIService {
 		HttpResponse response = retryIfTokenFails(new Callable<HttpResponse>() {
 			@Override
 			public HttpResponse call() throws Exception {
-				URI uri = constructURI(String.format("/users/%s", objectId), selectList());
+				URI uri = constructURI(String.format("/users/%s", URLEncoder.encode(objectId, "UTF-8")), selectList());
 				return httpRequestHandler.handleRequestGet(
 						uri, getHeaders().toArray(new HttpPair[0]));
 			}
