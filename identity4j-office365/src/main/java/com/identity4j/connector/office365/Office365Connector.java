@@ -299,22 +299,25 @@ public class Office365Connector extends AbstractConnector<Office365Configuration
 					log.info("Pre-loading groups users");
 					int userRelationships = 0;
 					int groups = 0;
-					for(Iterator<Role> roleIt = allRoles(); roleIt.hasNext(); ) {
+					Iterator<Role> roleIt = new RoleIterator();
+					
+					while(roleIt.hasNext()) {
 						Role role = roleIt.next();
 						log.info(String.format("Pre-loading groups users for %s (%s)", role.getGuid(), role.getPrincipalName()));
-						GroupMembers members = directory.groups().members(role.getGuid());
-						if(members.getValue() != null) {
-							for(GroupMember member : members.getValue()) {
-								List<Role> r = roleMap.get(member.getId());
-								if(r == null) {
-									r = new ArrayList<Role>();
-									roleMap.put(member.getId(), r);
-								}
-								r.add(role);
-								userRelationships++;
+						int members = 0;
+						GroupMembersIterator membersIterator = new GroupMembersIterator(role.getGuid());
+						while(membersIterator.hasNext()) {
+							GroupMember member = membersIterator.next();
+							List<Role> r = roleMap.get(member.getId());
+							if(r == null) {
+								r = new ArrayList<Role>();
+								roleMap.put(member.getId(), r);
 							}
-							log.info(String.format("    Group %s (%s) has %d members", role.getGuid(), role.getPrincipalName(), members.getValue().size()));
+							r.add(role);
+							members++;
+							userRelationships++;
 						}
+						log.info(String.format("Group %s (%s) has %d members", role.getGuid(), role.getPrincipalName(), members));
 						groups++;
 					}
 					log.info(String.format("Pre-loaded %d users, %d user relationships in %d groups", roleMap.size(), userRelationships, groups));
@@ -408,6 +411,83 @@ public class Office365Connector extends AbstractConnector<Office365Configuration
 		protected void postIterate(Group current) {
 		}
 	}
+	
+	
+	private final class GroupMembersIterator implements Iterator<GroupMember> {
+		
+		private GroupMembers list;
+		private String nextLink;
+		private Iterator<GroupMember> inner;
+		private GroupMember current;
+		private boolean eof;
+		private String guid; // group guid whose members to fetch
+		
+		public GroupMembersIterator(String guid) {
+			this.guid = guid;
+		}
+
+		@Override
+		public final boolean hasNext() {
+			checkNext();
+			return current != null;
+		}
+
+		@Override
+		public final void remove() {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public final GroupMember next() {
+			checkNext();
+			if (current == null)
+				throw new NoSuchElementException();
+			try {
+				return current;
+			} finally {
+				current = null;
+			}
+		}
+
+		private void checkNext() {
+			if (current != null)
+				// Already have an unconsumed user
+				return;
+
+			while (!eof && current == null) {
+				while (!eof && current == null) {
+					if (list == null) {
+						// Get the next batch
+						list = directory.groups().members(nextLink, guid);
+						nextLink = list.getNextLink();
+						inner = list.getValue() == null ? null : list.getValue().iterator();
+					}
+
+					if (inner != null && inner.hasNext()) {
+						break;
+					}
+
+					// Finished inner iterator,
+					list = null;
+					inner = null;
+
+					if (nextLink == null) {
+						eof = true;
+						// No more
+						break;
+					}
+				}
+
+				if (inner != null && inner.hasNext()) {
+					current = inner.next();
+				}
+
+			}
+
+		}
+
+	}
+
 
 	private Directory directory;
 	private static final Log log = LogFactory.getLog(Office365Connector.class);
