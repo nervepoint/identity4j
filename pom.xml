@@ -23,7 +23,7 @@
 		<mysqlArtifactId>mysql-connector-java</mysqlArtifactId>
 		<mysqlVersion>8.0.15</mysqlVersion>
 		
-		<jackson.version>2.9.10</jackson.version>
+		<jackson.version>2.10.5</jackson.version>
 	</properties>
 
 	<modelVersion>4.0.0</modelVersion>
