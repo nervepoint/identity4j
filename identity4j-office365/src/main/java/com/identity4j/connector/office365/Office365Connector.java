@@ -499,7 +499,7 @@ public class Office365Connector extends AbstractConnector<Office365Configuration
 					ConnectorCapability.hasFullName, ConnectorCapability.hasEmail, ConnectorCapability.roles,
 					ConnectorCapability.createRole, ConnectorCapability.deleteRole, ConnectorCapability.updateRole,
 					ConnectorCapability.webAuthentication, ConnectorCapability.identities,
-					ConnectorCapability.accountDisable, ConnectorCapability.identityAttributes }));
+					ConnectorCapability.accountDisable, ConnectorCapability.identityAttributes, ConnectorCapability.authentication }));
 
 	@Override
 	public Set<ConnectorCapability> getCapabilities() {
