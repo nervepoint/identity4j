@@ -38,7 +38,7 @@ import com.google.api.client.http.HttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.oauth2.Oauth2;
-import com.google.api.services.oauth2.model.Userinfoplus;
+import com.google.api.services.oauth2.model.Userinfo;
 import com.identity4j.connector.AbstractOAuth2;
 import com.identity4j.connector.exception.ConnectorException;
 
@@ -89,7 +89,7 @@ public class GoogleOAuth extends AbstractOAuth2 {
 
                 Oauth2 service = new Oauth2.Builder(netHttpTransport, jacksonFactory, credential).setApplicationName("Identity4J")
                                 .build();
-                Userinfoplus userInfo = service.userinfo().get().execute();
+                Userinfo userInfo = service.userinfo().get().execute();
                 username = userInfo.getEmail();
             } catch(TokenResponseException tre) {
                 if (tre.getMessage() != null && tre.getMessage().contains("401 Unauthorized")) {
