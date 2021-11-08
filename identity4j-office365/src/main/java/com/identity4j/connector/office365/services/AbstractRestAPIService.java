@@ -112,9 +112,12 @@ public abstract class AbstractRestAPIService {
 	 * @return
 	 */
 	protected URI constructURI(String path, String queryOption) {
-		queryOption = queryOption == null ? office365Configuration.getApiVersion() :  queryOption + "&" + office365Configuration.getApiVersion();
 		try {
-			return new URI(Office365Configuration.PROTOCOL_NAME,office365Configuration.getRestServiceHost(), "/"	+ office365Configuration.getTenantDomainName() + path,	queryOption, null);
+			return queryOption == null ? 
+					new URI(Office365Configuration.PROTOCOL_NAME,office365Configuration.getRestServiceHost(), "/" +  office365Configuration.getApiVersion()  
+			 + path,  null) :
+				 new URI(Office365Configuration.PROTOCOL_NAME,office365Configuration.getRestServiceHost(), "/" +  office365Configuration.getApiVersion()  
+				 + path, queryOption, null);
 		} catch (URISyntaxException e) {
 			throw new ConnectorException(e.getMessage(),e);
 		}
@@ -126,6 +129,6 @@ public abstract class AbstractRestAPIService {
 	 */
 	protected void throwAppException(HttpResponse httpResponse) {
 		AppErrorMessage appErrorMessage = JsonMapperService.getInstance().getObject(AppErrorMessage.class, httpResponse.contentString().replaceAll("odata.error", "error"));
-		throw new ConnectorException(appErrorMessage.getError().getCode() + ":" + appErrorMessage.getError().getMessage().getValue());
+		throw new ConnectorException(appErrorMessage.getError().getCode() + ":" + appErrorMessage.getError().getMessage());
 	}
 }

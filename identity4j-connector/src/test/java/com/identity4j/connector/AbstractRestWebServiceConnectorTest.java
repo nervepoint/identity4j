@@ -126,7 +126,7 @@ public abstract class AbstractRestWebServiceConnectorTest {
             Assert.assertEquals("Principal names should be same", identity.getPrincipalName(), identityFromSource
                             .getPrincipalName());
         } finally {
-            deleteIdentityFromSource(identity);
+            deleteIdentityByName(getTestIdentityName());
         }
     }
 
@@ -161,7 +161,7 @@ public abstract class AbstractRestWebServiceConnectorTest {
             Assert.assertEquals("Full name should be same as updated name", identity.getFullName(), identityFromSource
                             .getFullName());
         } finally {
-            deleteIdentityFromSource(identity);
+            deleteIdentityByName(getTestIdentityName());
         }
     }
 
@@ -192,7 +192,7 @@ public abstract class AbstractRestWebServiceConnectorTest {
         Identity identity = getIdentity(getTestIdentityName());
         identity.setFullName("Mock User");
 
-        identity = connector.createIdentity(identity, getTestIdentityPassword().toCharArray());
+       	identity = connector.createIdentity(identity, getTestIdentityPassword().toCharArray());
         // when identity is deleted
         connector.deleteIdentity(identity.getPrincipalName());
 
@@ -324,7 +324,7 @@ public abstract class AbstractRestWebServiceConnectorTest {
             Assert.assertTrue("Identity is disabled", identityFromSource.getAccountStatus().isDisabled());
 
         } finally {
-            deleteIdentityFromSource(identity);
+            deleteIdentityByName(getTestIdentityName());
         }
     }
 
@@ -352,8 +352,7 @@ public abstract class AbstractRestWebServiceConnectorTest {
             Assert.assertFalse("Identity is enabled", identityFromSource.getAccountStatus().isDisabled());
 
         } finally {
-            if (identityFromSource != null)
-                deleteIdentityFromSource(identityFromSource);
+            deleteIdentityByName(getTestIdentityName());
         }
     }
 
@@ -435,9 +434,7 @@ public abstract class AbstractRestWebServiceConnectorTest {
 	        fail();
         } catch (PrincipalNotFoundException e) {
         	// exception was thrown
-		} catch (Exception e) {
-			fail(e.getMessage());
-		}
+		} 
     }
 
     public void itShouldThrowPrincipalNotFoundExceptionWithInvalidPrincipalNameIdentityOnChangePassword() {
@@ -543,8 +540,12 @@ public abstract class AbstractRestWebServiceConnectorTest {
         return connector.getIdentityByName(identity.getPrincipalName());
     }
 
+    protected void deleteIdentityByName(String identity) {
+        connector.deleteIdentity(identity);
+    }
+
     protected void deleteIdentityFromSource(Identity identity) {
-        connector.deleteIdentity(identity.getPrincipalName());
+        deleteIdentityByName(identity.getPrincipalName());
     }
 
 	protected String getValidIdentityName() {

@@ -34,9 +34,11 @@ import java.util.LinkedHashSet;
 import java.util.NoSuchElementException;
 
 import org.apache.log4j.PropertyConfigurator;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.identity4j.connector.AbstractRestWebServiceConnectorTest;
@@ -104,6 +106,11 @@ public class Office365ConnectorTest extends AbstractRestWebServiceConnectorTest 
 		allRoles.next();
 	}
 
+	@After
+	public void after() {
+		
+	}
+
 	@Before
 	public void setup() {
 		setValidIdentityName(configurationParameters.getStringOrFail("connector.validIdentityName"));
@@ -159,7 +166,7 @@ public class Office365ConnectorTest extends AbstractRestWebServiceConnectorTest 
 		connector = (Office365Connector) connectorBuilder.buildConnector(parms);
 
 		// then it should be in read only mode
-		assertTrue("Coonector is in read only mode", connector.isReadOnly());
+		assertTrue("Connector is in read only mode", connector.isReadOnly());
 	}
 
 	@Test(expected = ConnectorException.class)
@@ -176,7 +183,7 @@ public class Office365ConnectorTest extends AbstractRestWebServiceConnectorTest 
 		Office365Configuration parms = connectorBuilder.buildConfiguration(configurationParameters);
 		connector = (Office365Connector) connectorBuilder.buildConnector(parms);
 
-		assertTrue("Coonector is in read only mode", connector.isReadOnly());
+		assertTrue("Connector is in read only mode", connector.isReadOnly());
 		// when delete operation is attempted
 		connector.deleteIdentity("dummy key");
 		// then it should throw ConnectorException
@@ -308,7 +315,7 @@ public class Office365ConnectorTest extends AbstractRestWebServiceConnectorTest 
 			Assert.assertEquals("Role name should be same", validRoleName,
 					officeIdentity.getRoles()[0].getPrincipalName());
 		} finally {
-			connector.deleteIdentity(officeIdentity.getPrincipalName());
+			connector.deleteIdentity(getTestIdentityName());
 		}
 	}
 
@@ -320,13 +327,11 @@ public class Office365ConnectorTest extends AbstractRestWebServiceConnectorTest 
 		Role role1 = buildRole(testRoleName, testRoleEmail, testRoleDescription);
 		Role role2 = buildRole(testRoleName + "2", testRoleEmail + "2", testRoleDescription + "2");
 		Role role3 = buildRole(testRoleName + "3", testRoleEmail + "3", testRoleDescription + "3");
-		Role fromDataSource1 = null;
-		Role fromDataSource2 = null;
-		Role fromDataSource3 = null;
 		try {
-			fromDataSource1 = connector.createRole(role1);
-			fromDataSource2 = connector.createRole(role2);
-			fromDataSource3 = connector.createRole(role3);
+			
+			connector.createRole(role1);
+			connector.createRole(role2);
+			connector.createRole(role3);
 
 			// TODO sort this out in 1.1. We have to build a new connector to try different
 			// configuration
@@ -351,28 +356,19 @@ public class Office365ConnectorTest extends AbstractRestWebServiceConnectorTest 
 				nconnector.close();
 			}
 
-		} catch (PrincipalAlreadyExistsException paee) {
-			/* This may be caused by an interrupted test, so cleanup this time */
-			try {
-				connector.deleteRole(testRoleName);
-			} catch (Exception e) {
-			}
-			try {
-				connector.deleteRole(testRoleName + "2");
-			} catch (Exception e) {
-			}
-			try {
-				connector.deleteRole(testRoleName + "3");
-			} catch (Exception e) {
-			}
-			throw paee;
 		} finally {
-			if (fromDataSource1 != null)
+			try {
 				connector.deleteRole(testRoleName);
-			if (fromDataSource2 != null)
+			} catch (Exception e) {
+			}
+			try {
 				connector.deleteRole(testRoleName + "2");
-			if (fromDataSource3 != null)
+			} catch (Exception e) {
+			}
+			try {
 				connector.deleteRole(testRoleName + "3");
+			} catch (Exception e) {
+			}
 		}
 	}
 
@@ -529,7 +525,7 @@ public class Office365ConnectorTest extends AbstractRestWebServiceConnectorTest 
 			// and PrincipalType should be role
 			Assert.assertEquals("", PrincipalType.role, e.getPrincipalType());
 		} finally {
-			connector.deleteIdentity(officeIdentity.getPrincipalName());
+			deleteIdentityByName(getTestIdentityName());
 		}
 	}
 
@@ -543,12 +539,12 @@ public class Office365ConnectorTest extends AbstractRestWebServiceConnectorTest 
 		// and a valid role
 		officeIdentity.addRole(connector.getRoleByName(validRoleName));
 		try {
-			connector.createRole(buildRole(dummy1RoleId, dummy1RoleId + "@something.com", dummy1RoleId));
 			try {
-				connector.createRole(buildRole(dummy2RoleId, dummy2RoleId + "@something.com", dummy2RoleId));
+				connector.createRole(buildRole(dummy1RoleId, dummy1RoleId + "@something.com", dummy1RoleId));
 				try {
-					officeIdentity = connector.createIdentity(officeIdentity, getTestIdentityPassword().toCharArray());
+					connector.createRole(buildRole(dummy2RoleId, dummy2RoleId + "@something.com", dummy2RoleId));
 					try {
+						officeIdentity = connector.createIdentity(officeIdentity, getTestIdentityPassword().toCharArray());
 						// when the changes are updated
 						officeIdentity.setFullName("Test JunitChanged");
 						officeIdentity.setRoles(new Role[] { connector.getRoleByName(dummy1RoleId),
@@ -565,7 +561,7 @@ public class Office365ConnectorTest extends AbstractRestWebServiceConnectorTest 
 						assertRoleIsPresent(officeIdentityFromSource.getRoles(), dummy1RoleId);
 						assertRoleIsPresent(officeIdentityFromSource.getRoles(), dummy2RoleId);
 					} finally {
-						connector.deleteIdentity(officeIdentity.getPrincipalName());
+						connector.deleteIdentity(getTestIdentityName());
 					}
 				} finally {
 					connector.deleteRole(dummy2RoleId);

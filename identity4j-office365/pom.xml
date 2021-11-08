@@ -1,4 +1,5 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<artifactId>identity4j-office365</artifactId>
@@ -6,14 +7,14 @@
 	<parent>
 		<groupId>com.nervepoint</groupId>
 		<artifactId>identity4j</artifactId>
-		<version>1.2.0</version>
+		<version>1.2.1</version>
 		<relativePath>..</relativePath>
 	</parent>
 	<dependencies>
 
 		<!-- the core, which includes Streaming API, shared low-level abstractions 
 			(but NOT data-binding) -->
-		
+
 		<dependency>
 			<groupId>com.nervepoint</groupId>
 			<artifactId>identity4j-connector</artifactId>
@@ -23,8 +24,39 @@
 			<groupId>com.nervepoint</groupId>
 			<artifactId>identity4j-http</artifactId>
 			<version>${project.version}</version>
-			<!-- <type>test-jar</type>
-			<scope>test</scope> -->
+			<!-- <type>test-jar</type> <scope>test</scope> -->
+		</dependency>
+		<dependency>
+			<groupId>com.microsoft.graph</groupId>
+			<artifactId>microsoft-graph</artifactId>
+			<version>[4.0,)</version>
+		</dependency>
+		<dependency>
+			<groupId>com.azure</groupId>
+			<artifactId>azure-identity</artifactId>
+			<version>[1.2,)</version>
+			<exclusions>
+				<exclusion>
+					<groupId>com.fasterxml.jackson.core</groupId>
+					<artifactId>jackson-annotations</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>com.fasterxml.jackson.core</groupId>
+					<artifactId>jackson-core</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>com.fasterxml.jackson.core</groupId>
+					<artifactId>jackson-databind</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>com.fasterxml.jackson.datatype</groupId>
+					<artifactId>jackson-datatype-jsr310</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>com.fasterxml.jackson.dataformat</groupId>
+					<artifactId>jackson-dataformat-xml</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>com.nervepoint</groupId>

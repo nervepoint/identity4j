@@ -28,7 +28,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.nervepoint</groupId>
 	<artifactId>identity4j</artifactId>
-	<version>1.2.0</version>
+	<version>1.2.1</version>
 	<name>Identity4J</name>
 	<description>A suite of Java Identity and Authentication Connectors.</description>
 	<url>http://www.nervepoint.com</url>
@@ -242,6 +242,27 @@
 				</plugins>
 			</build>
 		</profile>
+
+        <profile>
+            <activation>
+                <jdk>[9,)</jdk>
+            </activation>
+            <build>
+                <pluginManagement>
+                    <plugins>
+                        <plugin>
+                            <groupId>org.apache.maven.plugins</groupId>
+                            <artifactId>maven-javadoc-plugin</artifactId>
+                            <configuration>
+                                <!-- TODO: Why is this STILL broken! -->
+                                <javadocExecutable>${java.home}/bin/javadoc</javadocExecutable>
+                            </configuration>
+                        </plugin>
+                    </plugins>
+                </pluginManagement>
+            </build>
+        </profile>
+		
 	</profiles>
 
 	<build>

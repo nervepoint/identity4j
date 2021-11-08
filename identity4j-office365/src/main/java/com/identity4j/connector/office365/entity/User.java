@@ -1,5 +1,8 @@
 package com.identity4j.connector.office365.entity;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+
 /*
  * #%L
  * Identity4J OFFICE 365
@@ -38,12 +41,8 @@ public class User extends Principal {
 	private String city;
 	private String country;
 	private String department;
-	private String dirSyncEnabled;
-	private String facsimileTelephoneNumber;
 	private String givenName;
 	private String jobTitle;
-	private String lastDirSyncTime;
-	private String mobile;
 	private String passwordPolicies;
 	private String physicalDeliveryOfficeName;
 	private String postalCode;
@@ -51,10 +50,21 @@ public class User extends Principal {
 	private String state;
 	private String streetAddress;
 	private String surname;
-	private String telephoneNumber;
 	private String usageLocation;
 	private String userPrincipalName;
 	private PasswordProfile passwordProfile;
+	
+	/**
+	 * MS Graph  API
+	 */
+	private String onPremisesSyncEnabled;
+	private String faxNumber;
+	private String onPremisesImmutableId;
+	private String onPremisesLastSyncDateTime;
+	private String mobilePhone;
+	private String signinSessionsValidFromDateTime;
+	private String[] businessPhones;
+	private String lastPasswordChangeDateTime;
 
 	/**
 	 * The list groups holds a list of group entity this user belongs to.
@@ -72,6 +82,39 @@ public class User extends Principal {
 	 */
 	public User() {
 		passwordProfile = new PasswordProfile();
+	}
+	
+	public User(User from) {
+		super(from);
+
+		this.objectReference = from.objectReference;
+		this.objectType = from.objectType;
+		this.accountEnabled = from.accountEnabled;
+		this.city = from.city;
+		this.country = from.country;
+		this.department = from.department;
+		this.givenName = from.givenName;
+		this.jobTitle = from.jobTitle;
+		this.passwordPolicies = from.passwordPolicies;
+		this.physicalDeliveryOfficeName = from.physicalDeliveryOfficeName;
+		this.postalCode = from.postalCode;
+		this.preferredLanguage = from.preferredLanguage;
+		this.state = from.state;
+		this.streetAddress = from.streetAddress;
+		this.surname = from.surname;
+		this.usageLocation = from.usageLocation;
+		this.userPrincipalName = from.userPrincipalName;
+		this.passwordProfile = from.passwordProfile == null ? null : new PasswordProfile(from.passwordProfile);
+		this.onPremisesSyncEnabled = from.onPremisesSyncEnabled;
+		this.faxNumber = from.faxNumber;
+		this.onPremisesImmutableId = from.onPremisesImmutableId;
+		this.onPremisesLastSyncDateTime = from.onPremisesLastSyncDateTime;
+		this.mobilePhone = from.mobilePhone;
+		this.signinSessionsValidFromDateTime = from.signinSessionsValidFromDateTime;
+		this.businessPhones = from.businessPhones == null ? null : new ArrayList<>(Arrays.asList(from.businessPhones)).toArray(new String[0]);
+		this.lastPasswordChangeDateTime = from.lastPasswordChangeDateTime;
+		this.memberOf = from.memberOf == null ? null : new ArrayList<Group>(from.memberOf);
+		this.roles = from.roles == null ? null : new ArrayList<Role>(from.roles);
 	}
 
 	/**
@@ -159,34 +202,6 @@ public class User extends Principal {
 	}
 
 	/**
-	 * @return the dirSyncEnabled
-	 */
-	public String getDirSyncEnabled() {
-		return dirSyncEnabled;
-	}
-
-	/**
-	 * @param dirSyncEnabled the dirSyncEnabled to set
-	 */
-	public void setDirSyncEnabled(String dirSyncEnabled) {
-		this.dirSyncEnabled = dirSyncEnabled;
-	}
-
-	/**
-	 * @return the facsimileTelephoneNumber
-	 */
-	public String getFacsimileTelephoneNumber() {
-		return facsimileTelephoneNumber;
-	}
-
-	/**
-	 * @param facsimileTelephoneNumber the facsimileTelephoneNumber to set
-	 */
-	public void setFacsimileTelephoneNumber(String facsimileTelephoneNumber) {
-		this.facsimileTelephoneNumber = facsimileTelephoneNumber;
-	}
-
-	/**
 	 * @return the givenName
 	 */
 	public String getGivenName() {
@@ -212,34 +227,6 @@ public class User extends Principal {
 	 */
 	public void setJobTitle(String jobTitle) {
 		this.jobTitle = jobTitle;
-	}
-
-	/**
-	 * @return the lastDirSyncTime
-	 */
-	public String getLastDirSyncTime() {
-		return lastDirSyncTime;
-	}
-
-	/**
-	 * @param lastDirSyncTime the lastDirSyncTime to set
-	 */
-	public void setLastDirSyncTime(String lastDirSyncTime) {
-		this.lastDirSyncTime = lastDirSyncTime;
-	}
-
-	/**
-	 * @return the mobile
-	 */
-	public String getMobile() {
-		return mobile;
-	}
-
-	/**
-	 * @param mobile the mobile to set
-	 */
-	public void setMobile(String mobile) {
-		this.mobile = mobile;
 	}
 
 	/**
@@ -338,20 +325,6 @@ public class User extends Principal {
 	 */
 	public void setSurname(String surname) {
 		this.surname = surname;
-	}
-
-	/**
-	 * @return the telephoneNumber
-	 */
-	public String getTelephoneNumber() {
-		return telephoneNumber;
-	}
-
-	/**
-	 * @param telephoneNumber the telephoneNumber to set
-	 */
-	public void setTelephoneNumber(String telephoneNumber) {
-		this.telephoneNumber = telephoneNumber;
 	}
 
 	/**
@@ -461,10 +434,86 @@ public class User extends Principal {
 	public void setPasswordProfile(PasswordProfile passwordProfile) {
 		this.passwordProfile = passwordProfile;
 	}
+	
+	public String getOnPremisesSyncEnabled() {
+		return onPremisesSyncEnabled;
+	}
+
+	public void setOnPremisesSyncEnabled(String onPremisesSyncEnabled) {
+		this.onPremisesSyncEnabled = onPremisesSyncEnabled;
+	}
+
+	public String getFaxNumber() {
+		return faxNumber;
+	}
+
+	public void setFaxNumber(String faxNumber) {
+		this.faxNumber = faxNumber;
+	}
+
+	public String getOnPremisesImmutableId() {
+		return onPremisesImmutableId;
+	}
+
+	public void setOnPremisesImmutableId(String onPremisesImmutableId) {
+		this.onPremisesImmutableId = onPremisesImmutableId;
+	}
+
+	public String getOnPremisesLastSyncDateTime() {
+		return onPremisesLastSyncDateTime;
+	}
+
+	public void setOnPremisesLastSyncDateTime(String onPremisesLastSyncDateTime) {
+		this.onPremisesLastSyncDateTime = onPremisesLastSyncDateTime;
+	}
+
+	public String getMobilePhone() {
+		return mobilePhone;
+	}
+
+	public void setMobilePhone(String mobilePhone) {
+		this.mobilePhone = mobilePhone;
+	}
+
+	public String getSigninSessionsValidFromDateTime() {
+		return signinSessionsValidFromDateTime;
+	}
+
+	public void setSigninSessionsValidFromDateTime(String signinSessionsValidFromDateTime) {
+		this.signinSessionsValidFromDateTime = signinSessionsValidFromDateTime;
+	}
+
+	public String[] getBusinessPhones() {
+		return businessPhones;
+	}
+
+	public void setBusinessPhones(String[] businessPhones) {
+		this.businessPhones = businessPhones;
+	}
+
+	public String getLastPasswordChangeDateTime() {
+		return lastPasswordChangeDateTime;
+	}
+
+	public void setLastPasswordChangeDateTime(String lastPasswordChangeDateTime) {
+		this.lastPasswordChangeDateTime = lastPasswordChangeDateTime;
+	}
+
+
 
 	public static class PasswordProfile {
 		private String password;
-		private Boolean forceChangePasswordNextLogin;
+		private boolean forceChangePasswordNextSignIn;
+		private boolean forceChangePasswordNextSignInWithMfa;
+		
+		public PasswordProfile() {
+			
+		}
+		public PasswordProfile(PasswordProfile from) {
+			this.password = from.password;
+			this.forceChangePasswordNextSignIn = from.forceChangePasswordNextSignIn;
+			this.forceChangePasswordNextSignInWithMfa = from.forceChangePasswordNextSignInWithMfa;
+		}
 
 		public String getPassword() {
 			return password;
@@ -474,12 +523,20 @@ public class User extends Principal {
 			this.password = password;
 		}
 
-		public Boolean getForceChangePasswordNextLogin() {
-			return forceChangePasswordNextLogin;
+		public boolean getForceChangePasswordNextSignIn() {
+			return forceChangePasswordNextSignIn;
 		}
 
-		public void setForceChangePasswordNextLogin(Boolean forceChangePasswordNextLogin) {
-			this.forceChangePasswordNextLogin = forceChangePasswordNextLogin;
+		public void setForceChangePasswordNextSignIn(boolean forceChangePasswordNextSignIn) {
+			this.forceChangePasswordNextSignIn = forceChangePasswordNextSignIn;
+		}
+
+		public boolean isForceChangePasswordNextSignInWithMfa() {
+			return forceChangePasswordNextSignInWithMfa;
+		}
+
+		public void setForceChangePasswordNextSignInWithMfa(boolean forceChangePasswordNextSignInWithMfa) {
+			this.forceChangePasswordNextSignInWithMfa = forceChangePasswordNextSignInWithMfa;
 		}
 
 	}

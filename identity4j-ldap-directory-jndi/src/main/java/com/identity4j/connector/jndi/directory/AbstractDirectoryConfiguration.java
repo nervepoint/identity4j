@@ -600,8 +600,6 @@ public abstract class AbstractDirectoryConfiguration extends AbstractConnectorCo
 					}
 					break;
 				default:
-					if (LOG.isWarnEnabled())
-						LOG.warn("Unexpected LDAP port in controller host " + controllerHost);
 					filteredControllerHosts.add(controllerHost);
 				}
 			}
@@ -649,6 +647,7 @@ public abstract class AbstractDirectoryConfiguration extends AbstractConnectorCo
 			int idx;
 			if ((idx = controllerHost.indexOf(':')) > -1) {
 				int port = Integer.parseInt(controllerHost.substring(idx + 1));
+				controllerHost = controllerHost.substring(0, idx);
 				switch (port) {
 				case 389:
 				case 3268:
@@ -659,7 +658,6 @@ public abstract class AbstractDirectoryConfiguration extends AbstractConnectorCo
 					builder.append(LDAPS_PROTOCOL).append(controllerHost).append(":").append(port);
 					break;
 				default:
-					LOG.warn("Unexpected LDAP port in controller host " + controllerHost);
 					builder.append(ssl ? LDAPS_PROTOCOL : LDAP_PROTOCOL).append(controllerHost).append(":")
 							.append(port);
 				}

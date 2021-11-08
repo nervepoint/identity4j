@@ -36,7 +36,7 @@ import com.identity4j.util.MultiMap;
  * @author gaurav
  *
  */
-public class Office365Configuration extends AbstractConnectorConfiguration{
+public class Office365Configuration extends AbstractConnectorConfiguration {
 	
 	/**
 	 * Active Directory related properties
@@ -98,6 +98,16 @@ public class Office365Configuration extends AbstractConnectorConfiguration{
 	 * Configuration property key for preload groups users
 	 */
 	public static final String OFFICE365_PRELOAD_GROUPS_USERS = "office365PreloadGroupsUser";
+	
+	/**
+	 * During authentication authority required, a URI with tenant name
+	 */
+	public static final String MICROSOFT_GRAPH_API_AUTHORITY_URI = "microsoftGraphApiAuthorityUri";
+	
+	/**
+	 * Default scope required while acquiring token
+	 */
+	public static final String MICROSOFT_GRAPH_API_DEFAULT_SCOPE = "microsoftGraphApiDefaultScope";
 	
 	public Office365Configuration(MultiMap configurationParameters) {
 		super(configurationParameters);
@@ -176,7 +186,7 @@ public class Office365Configuration extends AbstractConnectorConfiguration{
 	 * @return the restServiceHost
 	 */
 	public  String getRestServiceHost() {
-		return configurationParameters.getStringOrDefault(OFFICE365_REST_SERVICE_HOST, "graph.windows.net");
+		return configurationParameters.getStringOrDefault(OFFICE365_REST_SERVICE_HOST, "graph.microsoft.com");
 	}
 	
 	/**
@@ -197,21 +207,21 @@ public class Office365Configuration extends AbstractConnectorConfiguration{
 	 * @return the stsUrl
 	 */
 	public  String getStsUrl() {
-		return configurationParameters.getStringOrDefault(OFFICE365_STS_URL, "https://login.windows.net/%s/oauth2/token");
+		return configurationParameters.getStringOrDefault(OFFICE365_STS_URL, "https://login.microsoftonline.com/%s/oauth2/v2.0/token");
 	}
 	
 	/**
 	 * @return the apiVersion
 	 */
 	public  String getApiVersion() {
-		return configurationParameters.getStringOrDefault(OFFICE365_API_VERSION, "api-version=1.6");
+		return configurationParameters.getStringOrDefault(OFFICE365_API_VERSION, "v1.0");
 	}
 	
 	/**
 	 * @return the graphPrincipalId
 	 */
 	public String getGraphPrincipalId(){
-		return configurationParameters.getStringOrDefault(OFFICE365_GRAPH_PRINCIPAL_ID, "https://graph.windows.net");
+		return configurationParameters.getStringOrDefault(OFFICE365_GRAPH_PRINCIPAL_ID, "https://graph.microsoft.com");
 	}
 	
 	/**
@@ -234,6 +244,17 @@ public class Office365Configuration extends AbstractConnectorConfiguration{
 	 */
 	public String getAppDeletePrincipalRole(){
 		return configurationParameters.getStringOrDefault(OFFICE365_APP_DELETE_PRINCIPAL_ROLE, "User Account Administrator");
+	}
+	/**
+	 * 
+	 * @return the graphApiAuthorityURI
+	 */
+	public String getGraphAPIAuthorityURI() {
+		return configurationParameters.getStringOrDefault(MICROSOFT_GRAPH_API_AUTHORITY_URI, "https://login.microsoftonline.com/%s");
+	}
+	
+	public String getGraphAPIDefaultScope() {
+		return configurationParameters.getStringOrDefault(MICROSOFT_GRAPH_API_DEFAULT_SCOPE, "https://graph.microsoft.com/.default");
 	}
 	
 	@Override

@@ -5,11 +5,33 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Principal {
 
+	private String id;
 	private String objectId;
 	private String dirSyncEnabled;
 	private String displayName;
 	private String mail;
 	private String mailNickname;
+	
+	protected Principal() {
+	}
+	
+	protected Principal(Principal from) {
+		id = from.id;
+		objectId = from.objectId;
+		dirSyncEnabled = from.dirSyncEnabled;
+		displayName = from.displayName;
+		mail = from.mail;
+		mailNickname = from.mailNickname;
+	}
+
+	public String getId() {
+		return id;
+	}
+
+	public void setId(String id) {
+		this.id = id;
+		setObjectId(id);
+	}
 
 	/**
 	 * @return the mail
@@ -37,6 +59,7 @@ public class Principal {
 	 */
 	public void setObjectId(String objectId) {
 		this.objectId = objectId;
+		this.id = this.objectId;
 	}
 
 	/**

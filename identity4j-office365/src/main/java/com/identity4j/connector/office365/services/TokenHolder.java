@@ -40,9 +40,10 @@ public class TokenHolder{
 		ADToken aadjwtToken = DirectoryDataServiceAuthorizationHelper.
 		getOAuthAccessTokenFromACS(configuration.getTenantDomainName(),
 				configuration.getGraphPrincipalId(), 
-				configuration.getStsUrl(), 
+				configuration.getGraphAPIAuthorityURI(), 
 				configuration.getAppPrincipalId(),
-				configuration.getSymmetricKey());
+				configuration.getSymmetricKey(),
+				new String[] {configuration.getGraphAPIDefaultScope()});
 		if(token == null) {
 			return aadjwtToken;
 		}
