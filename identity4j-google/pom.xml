@@ -6,7 +6,7 @@
 	<parent>
 		<groupId>com.nervepoint</groupId>
 		<artifactId>identity4j</artifactId>
-		<version>1.2.1</version>
+		<version>1.2.2</version>
 		<relativePath>..</relativePath>
 	</parent>
 
@@ -14,15 +14,11 @@
 		<dependency>
 			<groupId>com.google.apis</groupId>
 			<artifactId>google-api-services-admin-directory</artifactId>
-			<version>directory_v1-rev101-1.23.0</version>
+    		<version>directory_v1-rev118-1.25.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.apache.httpcomponents</groupId>
 					<artifactId>httpclient</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>com.fasterxml.jackson.core</groupId>
-					<artifactId>jackson-core</artifactId>
 				</exclusion>
 			</exclusions>
 		</dependency>
@@ -30,7 +26,7 @@
 		<dependency>
 			<groupId>com.google.apis</groupId>
 			<artifactId>google-api-services-oauth2</artifactId>
-			<version>v2-rev139-1.23.0</version>
+    		<version>v2-rev157-1.25.0</version>
 		</dependency>
 
 		<dependency>
@@ -57,12 +53,6 @@
 			<version>${project.version}</version>
 			<type>test-jar</type>
 			<scope>test</scope>
-			<exclusions>
-				<exclusion>
-					<groupId>com.fasterxml.jackson.core</groupId>
-					<artifactId>jackson-core</artifactId>
-				</exclusion>
-			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>com.nervepoint</groupId>
@@ -81,12 +71,6 @@
 			<groupId>org.apache.httpcomponents</groupId>
 			<artifactId>httpclient</artifactId>
 			<version>4.5.13</version>
-		</dependency>
-		
-		<dependency>
-			<artifactId>jackson-databind</artifactId>
-			<groupId>com.fasterxml.jackson.core</groupId>
-		    <version>2.8.7</version>
 		</dependency>
 	</dependencies>
 

@@ -38,6 +38,7 @@ import com.identity4j.util.MultiMap;
  */
 public class Office365Configuration extends AbstractConnectorConfiguration {
 	
+	public static final int DEFAULT_REQUEST_SIZE_LIMIT = 500;
 	/**
 	 * Active Directory related properties
 	 */
@@ -295,7 +296,7 @@ public class Office365Configuration extends AbstractConnectorConfiguration {
 	 * @return the symmetricKey
 	 */
 	public  int getRequestSizeLimit() {
-		return configurationParameters.getIntegerOrDefault(OFFICE365_REQUEST_SIZE_LIMIT, 500);
+		return configurationParameters.getIntegerOrDefault(OFFICE365_REQUEST_SIZE_LIMIT, DEFAULT_REQUEST_SIZE_LIMIT);
 	}	
 	
 	/**

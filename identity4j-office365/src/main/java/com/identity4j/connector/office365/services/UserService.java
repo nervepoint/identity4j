@@ -8,6 +8,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.identity4j.connector.PrincipalType;
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.exception.PrincipalAlreadyExistsException;
@@ -31,6 +34,7 @@ import com.identity4j.util.json.JsonMapperService;
  *
  */
 public class UserService extends AbstractRestAPIService {
+	private static final Log log = LogFactory.getLog(UserService.class);
 
 	public UserService(ADToken token, HttpRequestHandler httpRequestHandler,
 			Office365Configuration office365Configuration) {
@@ -53,7 +57,7 @@ public class UserService extends AbstractRestAPIService {
 		HttpResponse response = retryIfTokenFails(new Callable<HttpResponse>() {
 			@Override
 			public HttpResponse call() throws Exception {
-				URI uri = constructURI(String.format("/users/%s", objectId), selectList());
+				URI uri = constructURI(String.format("/users/%s", URLEncoder.encode(objectId, "UTF-8")), selectList());
 				return httpRequestHandler.handleRequestGet(
 						uri, getHeaders().toArray(new HttpPair[0]));
 			}
@@ -68,6 +72,7 @@ public class UserService extends AbstractRestAPIService {
 			user = JsonMapperService.getInstance().getObject(User.class, json);
 
 			probeGroupsAndRoles(user);
+			log.info(String.format("User %s (%s) has %d roles, membmer of %d", user.getUserPrincipalName(), objectId, user.getRoles().size(), user.getMemberOf().size()));
 			return user;
 		} finally {
 			response.release();

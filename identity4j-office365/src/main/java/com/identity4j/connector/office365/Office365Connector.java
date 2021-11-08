@@ -36,6 +36,10 @@ import java.util.Set;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import com.azure.core.credential.TokenRequestContext;
+import com.azure.identity.implementation.IdentityClient;
+import com.azure.identity.implementation.IdentityClientBuilder;
+import com.azure.identity.implementation.MsalToken;
 import com.identity4j.connector.AbstractConnector;
 import com.identity4j.connector.ConnectorCapability;
 import com.identity4j.connector.WebAuthenticationAPI;
@@ -61,6 +65,8 @@ import com.identity4j.connector.principal.Role;
 import com.identity4j.util.CollectionUtil;
 import com.identity4j.util.StringUtil;
 import com.identity4j.util.passwords.PasswordCharacteristics;
+
+import reactor.core.publisher.Mono;
 
 /**
  * Office 365 connector makes use of Active Directory Graph REST API to perform
@@ -291,22 +297,30 @@ public class Office365Connector extends AbstractConnector<Office365Configuration
 				if(roleMap == null) {
 					roleMap = new HashMap<String, List<Role>>();
 					log.info("Pre-loading groups users");
-					for(Iterator<Role> roleIt = allRoles(); roleIt.hasNext(); ) {
+					int userRelationships = 0;
+					int groups = 0;
+					Iterator<Role> roleIt = new RoleIterator();
+					
+					while(roleIt.hasNext()) {
 						Role role = roleIt.next();
 						log.info(String.format("Pre-loading groups users for %s (%s)", role.getGuid(), role.getPrincipalName()));
-						GroupMembers members = directory.groups().members(role.getGuid());
-						if(members.getValue() != null) {
-							for(GroupMember member : members.getValue()) {
-								List<Role> r = roleMap.get(member.getId());
-								if(r == null) {
-									r = new ArrayList<Role>();
-									roleMap.put(member.getId(), r);
-								}
-								r.add(role);
+						int members = 0;
+						GroupMembersIterator membersIterator = new GroupMembersIterator(role.getGuid());
+						while(membersIterator.hasNext()) {
+							GroupMember member = membersIterator.next();
+							List<Role> r = roleMap.get(member.getId());
+							if(r == null) {
+								r = new ArrayList<Role>();
+								roleMap.put(member.getId(), r);
 							}
-							
+							r.add(role);
+							members++;
+							userRelationships++;
 						}
+						log.info(String.format("Group %s (%s) has %d members", role.getGuid(), role.getPrincipalName(), members));
+						groups++;
 					}
+					log.info(String.format("Pre-loaded %d users, %d user relationships in %d groups", roleMap.size(), userRelationships, groups));
 				}
 				List<Role> roles = roleMap.get(current.getObjectId());
 				if(roles != null)
@@ -351,8 +365,10 @@ public class Office365Connector extends AbstractConnector<Office365Configuration
 
 		@Override
 		protected void postIterate(User current) {
-			if (!getConfiguration().isPreloadGroupsUsers())
+			if (!getConfiguration().isPreloadGroupsUsers()) {
 				directory.users().probeGroupsAndRoles(current);
+				log.info(String.format("User %s (%s) has %d roles, is member of %d", current.getUserPrincipalName(), current.getObjectId(), current.getRoles().size(), current.getMemberOf().size()));
+			}
 		}
 	}
 
@@ -395,6 +411,83 @@ public class Office365Connector extends AbstractConnector<Office365Configuration
 		protected void postIterate(Group current) {
 		}
 	}
+	
+	
+	private final class GroupMembersIterator implements Iterator<GroupMember> {
+		
+		private GroupMembers list;
+		private String nextLink;
+		private Iterator<GroupMember> inner;
+		private GroupMember current;
+		private boolean eof;
+		private String guid; // group guid whose members to fetch
+		
+		public GroupMembersIterator(String guid) {
+			this.guid = guid;
+		}
+
+		@Override
+		public final boolean hasNext() {
+			checkNext();
+			return current != null;
+		}
+
+		@Override
+		public final void remove() {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public final GroupMember next() {
+			checkNext();
+			if (current == null)
+				throw new NoSuchElementException();
+			try {
+				return current;
+			} finally {
+				current = null;
+			}
+		}
+
+		private void checkNext() {
+			if (current != null)
+				// Already have an unconsumed user
+				return;
+
+			while (!eof && current == null) {
+				while (!eof && current == null) {
+					if (list == null) {
+						// Get the next batch
+						list = directory.groups().members(nextLink, guid);
+						nextLink = list.getNextLink();
+						inner = list.getValue() == null ? null : list.getValue().iterator();
+					}
+
+					if (inner != null && inner.hasNext()) {
+						break;
+					}
+
+					// Finished inner iterator,
+					list = null;
+					inner = null;
+
+					if (nextLink == null) {
+						eof = true;
+						// No more
+						break;
+					}
+				}
+
+				if (inner != null && inner.hasNext()) {
+					current = inner.next();
+				}
+
+			}
+
+		}
+
+	}
+
 
 	private Directory directory;
 	private static final Log log = LogFactory.getLog(Office365Connector.class);
@@ -406,7 +499,7 @@ public class Office365Connector extends AbstractConnector<Office365Configuration
 					ConnectorCapability.hasFullName, ConnectorCapability.hasEmail, ConnectorCapability.roles,
 					ConnectorCapability.createRole, ConnectorCapability.deleteRole, ConnectorCapability.updateRole,
 					ConnectorCapability.webAuthentication, ConnectorCapability.identities,
-					ConnectorCapability.accountDisable, ConnectorCapability.identityAttributes }));
+					ConnectorCapability.accountDisable, ConnectorCapability.identityAttributes, ConnectorCapability.authentication }));
 
 	@Override
 	public Set<ConnectorCapability> getCapabilities() {
@@ -766,8 +859,22 @@ public class Office365Connector extends AbstractConnector<Office365Configuration
 
 	@Override
 	protected boolean areCredentialsValid(Identity identity, char[] password) throws ConnectorException {
-		throw new UnsupportedOperationException(
-				"Standard credential validation is not supported, web authentication must be used.");
+		try {
+			IdentityClientBuilder idcb = new IdentityClientBuilder();
+			idcb.clientId(getConfiguration().getAppPrincipalId());
+			idcb.tenantId(getConfiguration().getTenantDomainName());
+			IdentityClient idc = idcb.build();
+			Mono<MsalToken> tokenMono = idc
+					.authenticateWithUsernamePassword(
+							new TokenRequestContext().setTenantId(getConfiguration().getTenantDomainName())
+									.addScopes("https://graph.microsoft.com/.default"),
+							identity.getPrincipalName(), new String(password));
+			tokenMono.block();
+			return true;
+		} catch (Exception e) {
+			log.error("Problem fetching token.", e);
+			return false;
+		}
 	}
 
 	/**

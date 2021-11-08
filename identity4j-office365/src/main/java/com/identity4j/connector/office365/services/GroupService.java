@@ -4,6 +4,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.concurrent.Callable;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.identity4j.connector.PrincipalType;
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.exception.PrincipalAlreadyExistsException;
@@ -194,10 +195,14 @@ public class GroupService extends AbstractRestAPIService {
 			response.release();
 		}
 	}
-
+	
+	
 	public static class GroupMembers {
 		private List<GroupMember> value;
-
+		
+		@JsonProperty("@odata.nextLink")
+		private String nextLink;
+		
 		public List<GroupMember> getValue() {
 			return value;
 		}
@@ -205,6 +210,11 @@ public class GroupService extends AbstractRestAPIService {
 		public void setValue(List<GroupMember> value) {
 			this.value = value;
 		}
+		
+		public String getNextLink() {
+			return nextLink;
+		}
+
 
 	}
 

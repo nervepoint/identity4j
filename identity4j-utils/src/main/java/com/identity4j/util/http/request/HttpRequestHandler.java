@@ -103,7 +103,10 @@ public class HttpRequestHandler {
 	}
 	
 	protected String getPathAndQuerry(URI uri) {
-		return uri.getRawPath() + "?" + uri.getRawQuery();
+		if(uri.getRawQuery() == null)
+			return uri.getRawPath();
+		else
+			return uri.getRawPath() + "?" + uri.getRawQuery();
 	}
 
 	protected HttpProviderClient getClient(URI uri) {

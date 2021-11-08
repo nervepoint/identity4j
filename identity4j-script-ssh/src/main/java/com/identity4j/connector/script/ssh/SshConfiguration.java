@@ -41,6 +41,8 @@ public class SshConfiguration extends AbstractScriptConfiguration {
 
 	public static final String SSH_PROXY_SERVER = "ssh.proxyServer";
 	public static final String SSH_OS = "ssh.os";
+	public static final String SSH_MIN_UID = "ssh.minUid";
+	public static final String SSH_MAX_UID = "ssh.maxUid";
 	public static final String SSH_CONNECT_TIMEOUT = "ssh.connectTimeout";
 	public static final String SSH_PORT = "ssh.port";
 	public static final String SSH_SERVICE_ACCOUNT_PASSWORD = "ssh.serviceAccountPassword";

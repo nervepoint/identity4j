@@ -4,7 +4,6 @@
 
 	<properties>
 		<maven.checkstyle.plugin>2.17</maven.checkstyle.plugin>
-		<maven.cobertura.plugin>2.7</maven.cobertura.plugin>
 		<maven.doxia.module.markdown.version>1.7</maven.doxia.module.markdown.version>
 		<maven.javadoc.plugin>2.10.4</maven.javadoc.plugin>
 		<maven.jxr.plugin>2.5</maven.jxr.plugin>
@@ -23,12 +22,14 @@
 		<mysqlGroupId>mysql</mysqlGroupId>
 		<mysqlArtifactId>mysql-connector-java</mysqlArtifactId>
 		<mysqlVersion>8.0.15</mysqlVersion>
+		
+		<jackson.version>2.10.5</jackson.version>
 	</properties>
 
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.nervepoint</groupId>
 	<artifactId>identity4j</artifactId>
-	<version>1.2.1</version>
+	<version>1.2.2</version>
 	<name>Identity4J</name>
 	<description>A suite of Java Identity and Authentication Connectors.</description>
 	<url>http://www.nervepoint.com</url>
@@ -154,15 +155,6 @@
 				<version>${maven.jxr.plugin}</version>
 				<configuration>
 					<aggregate>true</aggregate>
-				</configuration>
-			</plugin>
-			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>cobertura-maven-plugin</artifactId>
-				<version>${maven.cobertura.plugin}</version>
-				<configuration>
-					<aggregate>true</aggregate>
-					<outputDirectory>%{project.reporting.outputDirectory}/cobertura</outputDirectory>
 				</configuration>
 			</plugin>
 			<plugin>

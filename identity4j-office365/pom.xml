@@ -7,7 +7,7 @@
 	<parent>
 		<groupId>com.nervepoint</groupId>
 		<artifactId>identity4j</artifactId>
-		<version>1.2.1</version>
+		<version>1.2.2</version>
 		<relativePath>..</relativePath>
 	</parent>
 	<dependencies>
@@ -57,6 +57,31 @@
 					<artifactId>jackson-dataformat-xml</artifactId>
 				</exclusion>
 			</exclusions>
+		</dependency>
+		<dependency>
+			<artifactId>jackson-databind</artifactId>
+			<groupId>com.fasterxml.jackson.core</groupId>
+		    <version>${jackson.version}</version>
+		</dependency>
+		<dependency>
+			<artifactId>jackson-core</artifactId>
+			<groupId>com.fasterxml.jackson.core</groupId>
+		    <version>${jackson.version}</version>
+		</dependency>
+		<dependency>
+			<artifactId>jackson-annotations</artifactId>
+			<groupId>com.fasterxml.jackson.core</groupId>
+		    <version>${jackson.version}</version>
+		</dependency>
+		<dependency>
+			<artifactId>jackson-datatype-jsr310</artifactId>
+			<groupId>com.fasterxml.jackson.datatype</groupId>
+		    <version>${jackson.version}</version>
+		</dependency>
+		<dependency>
+			<artifactId>jackson-dataformat-xml</artifactId>
+			<groupId>com.fasterxml.jackson.dataformat</groupId>
+		    <version>${jackson.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>com.nervepoint</groupId>
