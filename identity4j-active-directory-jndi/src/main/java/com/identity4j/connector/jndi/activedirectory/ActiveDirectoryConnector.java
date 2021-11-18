@@ -245,18 +245,24 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 	final byte[] controlData = { 48, (byte) 132, 0, 0, 0, 3, 2, 1, 1 };
 	final String LDAP_SERVER_POLICY_HINTS_OID = "1.2.840.113556.1.4.2066";
 
+	private PasswordCharacteristics passwordCharacteristics = null;
+	
 	@Override
 	public PasswordCharacteristics getPasswordCharacteristics() {
-		boolean complex = false;
-		String value = getAttributeValue(getRootDn(), PWD_PROPERTIES_ATTRIBUTE);
-		if (!StringUtil.isNullOrEmpty(value)) {
-			int val = Integer.parseInt(value);
-			complex = (val & DOMAIN_PASSWORD_COMPLEX) != 0;
+		
+		if(passwordCharacteristics==null) {
+			boolean complex = false;
+			String value = getAttributeValue(getRootDn(), PWD_PROPERTIES_ATTRIBUTE);
+			if (!StringUtil.isNullOrEmpty(value)) {
+				int val = Integer.parseInt(value);
+				complex = (val & DOMAIN_PASSWORD_COMPLEX) != 0;
+			}
+			String minPwdLengthField = getAttributeValue(getRootDn(), "minPwdLength");
+			passwordCharacteristics = new ADPasswordCharacteristics(complex,
+					minPwdLengthField == null ? 6 : Integer.parseInt(minPwdLengthField), getPasswordHistoryLength(),
+					getMaximumPasswordAge(), getMinimumPasswordAge(), 0, "Default Group Policy", null);
 		}
-		String minPwdLengthField = getAttributeValue(getRootDn(), "minPwdLength");
-		return new ADPasswordCharacteristics(complex,
-				minPwdLengthField == null ? 6 : Integer.parseInt(minPwdLengthField), getPasswordHistoryLength(),
-				getMaximumPasswordAge(), getMinimumPasswordAge(), 0, "Default Group Policy", null);
+		return passwordCharacteristics;
 	}
 
 	@Override
@@ -271,8 +277,17 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 			}
 		}
 
-		getSchemaVersion();
-		getPasswordCharacteristics();
+		/**
+		 * LDP - I believe these add lag to every connection
+		 * 
+		 * As getSchemeVersion is caching it should not matter where its called. So avoid
+		 * calling it now because not every connection will require it.
+		 * 
+		 * getPasswordCharacteristics is not caching and used a lot in reconciles. Perhaps 
+		 * this should cache?
+		 */
+		//getSchemaVersion();
+		//getPasswordCharacteristics();
 	}
 
 	protected boolean areCredentialsValid(Identity identity, char[] password) throws ConnectorException {
