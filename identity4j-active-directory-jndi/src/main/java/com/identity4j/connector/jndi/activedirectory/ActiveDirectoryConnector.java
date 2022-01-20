@@ -165,6 +165,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 	public static final String GROUP_TYPE_ATTRIBUTE = "groupType";
 	public static final String USN_CHANGED = "uSNChanged";
 	public static final String HIGHEST_COMMITTED_USN = "highestCommittedUSN";
+	public static final String THUMBNAIL_PHOTO = "thumbnailPhoto";
 
 	/**
 	 * This is a special attribute we add to mimic the Office365 ImmutableID
@@ -189,6 +190,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 		thisCaps.add(ConnectorCapability.deleteRole);
 		thisCaps.add(ConnectorCapability.forcePasswordChange);
 		thisCaps.add(ConnectorCapability.tag);
+		thisCaps.add(ConnectorCapability.thumbnailPhoto);
 		return thisCaps;
 	}
 
@@ -222,7 +224,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 			SCRIPT_PATH_ATTRIBUTE, HOME_DIR_ATTRIBUTE, HOME_DRIVE_ATTRIBUTE, HOME_PHONE_ATTRIBUTE, PAGER_ATTRIBUTE,
 			FAX_ATTRIBUTE, IPPHONE_ATTRIBUTE, INFO_ATTRIBUTE, TITLE_ATTRIBUTE, DEPARTMENT_ATTRIBUTE, COMPANY_ATTRIBUTE,
 			MANAGER_ATTRIBUTE, DISPLAY_NAME_ATTRIBUTE, PASSWORD_POLICY_APPLIES, PROXY_ADDRESSES, COUNTRY, COUNTRY_CODE,
-			CITY, STATE, STREET_ADRESS, POST_OFFICE_BOX, POSTAL_CODE, PRINCIPAL_NAME_ATTR
+			CITY, STATE, STREET_ADRESS, POST_OFFICE_BOX, POSTAL_CODE, PRINCIPAL_NAME_ATTR, THUMBNAIL_PHOTO
 
 	});
 
