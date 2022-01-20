@@ -410,7 +410,7 @@ public abstract class AbstractRestWebServiceConnectorTest {
             // given a valid identity with new password
             // when password change is attempted
             connector.changePassword(getValidIdentityName(), getValidIdentityId(), getValidIdentityPassword().toCharArray(), getNewPassword()
-                            .toCharArray());
+                            .toCharArray(), true);
             // then check with new password should return true flag
             // check with old password should return false
             assertPasswordChange(getValidIdentityName(), getValidIdentityPassword(), getNewPassword());
@@ -429,7 +429,7 @@ public abstract class AbstractRestWebServiceConnectorTest {
 	        // given an identity with invalid guid
 	        final String invalidGuid = getValidIdentityId() + getValidIdentityId();
 	        // when change password is attempted
-	        connector.changePassword(getValidIdentityName(), invalidGuid, getValidIdentityPassword().toCharArray(), getNewPassword().toCharArray());
+	        connector.changePassword(getValidIdentityName(), invalidGuid, getValidIdentityPassword().toCharArray(), getNewPassword().toCharArray(), true);
 	        // then PrincipalNotFoundException should be thrown
 	        fail();
         } catch (PrincipalNotFoundException e) {
@@ -444,7 +444,7 @@ public abstract class AbstractRestWebServiceConnectorTest {
         // when change password is attempted
         try {
             connector.changePassword(TestUtils.randomValue(), getValidIdentityId(), getValidIdentityPassword().toCharArray(), getNewPassword()
-                            .toCharArray());
+                            .toCharArray(), true);
         } catch (PrincipalNotFoundException pnfe) {
             return;
         }
@@ -459,7 +459,7 @@ public abstract class AbstractRestWebServiceConnectorTest {
         // when change password is attempted
         try {
             connector.changePassword(getValidIdentityName(), getValidIdentityId(), TestUtils.randomValue().toCharArray(), getNewPassword()
-                            .toCharArray());
+                            .toCharArray(), true);
         } catch (InvalidLoginCredentialsException ilce) {
             return;
         }

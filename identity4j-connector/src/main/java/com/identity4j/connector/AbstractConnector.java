@@ -195,12 +195,14 @@ public abstract class AbstractConnector<P extends ConnectorConfigurationParamete
 		throw new UnsupportedOperationException("Are credentials valid is not supported");
 	}
 
-	public final void changePassword(String username, String guid, char[] oldPassword, char[] password)
+	public final void changePassword(String username, String guid, char[] oldPassword, char[] password, boolean checkCurrent)
 			throws InvalidLoginCredentialsException, ConnectorException {
 		Identity identity = getIdentityByName(username);
 		assertGuid(identity, guid);
 		try {
-			assertValidCredentials(identity, oldPassword);
+			if (checkCurrent) {
+				assertValidCredentials(identity, oldPassword);
+			}
 			assertPasswordChangeIsAllowed(identity, oldPassword, password);
 		}
 		catch(PasswordChangeRequiredException pcre) {
