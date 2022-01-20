@@ -133,17 +133,16 @@ public interface Connector<P extends ConnectorConfigurationParameters> extends C
 
 	/**
 	 * Change your password. This method is used by an identity to change their
-	 * own password. The boolean property checkCurrent if true old password will be verified.
+	 * own password.
 	 * 
 	 * @param guid
 	 * @param oldPassword
 	 * @param password
-	 * @param checkCurrent
 	 * @throws InvalidLoginCredentialsException
 	 * @throws PrincipalNotFoundException
 	 * @throws ConnectorException
 	 */
-	void changePassword(String username, String guid, char[] oldPassword, char[] password, boolean checkCurrent) throws InvalidLoginCredentialsException,
+	void changePassword(String username, String guid, char[] oldPassword, char[] password) throws InvalidLoginCredentialsException,
 			PrincipalNotFoundException, ConnectorException;
 
 	/**

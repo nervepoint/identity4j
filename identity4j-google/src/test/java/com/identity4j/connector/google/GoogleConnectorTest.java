@@ -152,7 +152,7 @@ public class GoogleConnectorTest extends AbstractRestWebServiceConnectorTest {
         // given an identity with bad password policy of length less than 8
         // when change password is attempted
         try {
-            connector.changePassword(getValidIdentityName(), getValidIdentityId(), getValidIdentityPassword().toCharArray(), "bad".toCharArray(), true);
+            connector.changePassword(getValidIdentityName(), getValidIdentityId(), getValidIdentityPassword().toCharArray(), "bad".toCharArray());
         } catch (ConnectorException ce) {
             return;
         }

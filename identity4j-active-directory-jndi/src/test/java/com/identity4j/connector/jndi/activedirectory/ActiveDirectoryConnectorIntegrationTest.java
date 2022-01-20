@@ -62,7 +62,7 @@ public class ActiveDirectoryConnectorIntegrationTest extends AbstractConnectorTe
 		try {
 			String password = "aA" + TestUtils.randomValue() + "1$12123123######121221212";
 			connector.changePassword(identityName, identityGuid, identityPassword.toCharArray(),
-					password.toCharArray(), true);
+					password.toCharArray());
 			assertPasswordChange(identityName, identityPassword, password);
 		} finally {
 			// reset to original password
