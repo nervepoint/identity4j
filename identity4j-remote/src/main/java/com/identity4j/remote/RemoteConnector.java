@@ -78,7 +78,7 @@ public class RemoteConnector implements Connector<RemoteConnectorConfiguration> 
 	}
 
 	@Override
-	public void changePassword(String username, String guid, char[] oldPassword, char[] password)
+	public void changePassword(String username, String guid, char[] oldPassword, char[] password, boolean checkCurrent)
 			throws InvalidLoginCredentialsException, PrincipalNotFoundException, ConnectorException {
 		// TODO Auto-generated method stub
 

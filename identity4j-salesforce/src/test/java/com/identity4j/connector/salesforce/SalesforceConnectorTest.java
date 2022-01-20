@@ -88,7 +88,7 @@ public class SalesforceConnectorTest extends AbstractRestWebServiceConnectorTest
 		//when password change is attempted
 		connector.changePassword(identityCreated.getPrincipalName(), identityCreated.getGuid(),
 				getTestIdentityPassword().toCharArray(), 
-				getNewPassword().toCharArray());
+				getNewPassword().toCharArray(), true);
 		//then check with new password should return true flag
 		//check with old password should return false
 		assertPasswordChange(identityCreated.getPrincipalName(), getTestIdentityPassword(), getNewPassword());
