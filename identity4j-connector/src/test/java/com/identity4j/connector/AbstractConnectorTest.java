@@ -350,7 +350,7 @@ public abstract class AbstractConnectorTest<C extends ConnectorConfigurationPara
 
 		try {
 			connector.changePassword(identityName, identityGuid, identityPassword.toCharArray(),
-					actualNewPassword.toCharArray(), true);
+					actualNewPassword.toCharArray());
 			assertPasswordChange(identityName, identityPassword, actualNewPassword);
 		} finally {
 			endResetPasswordOrRecreateUser();
@@ -383,21 +383,21 @@ public abstract class AbstractConnectorTest<C extends ConnectorConfigurationPara
 
 		final String invalidGuid = identityGuid + identityGuid;
 		connector.changePassword(identityName, invalidGuid, identityPassword.toCharArray(),
-				getActualNewPassword().toCharArray(), true);
+				getActualNewPassword().toCharArray());
 	}
 
 	@Test(expected = PrincipalNotFoundException.class)
 	public void changePasswordWithInvalidPrincipalName() {
 		Assume.assumeTrue(connector.getCapabilities().contains(ConnectorCapability.passwordChange));
 		connector.changePassword(getTestPrincipalName(), identityGuid, identityPassword.toCharArray(),
-				getActualNewPassword().toCharArray(), true);
+				getActualNewPassword().toCharArray());
 	}
 
 	@Test(expected = InvalidLoginCredentialsException.class)
 	public final void changePasswordWithInvalidPassword() {
 		Assume.assumeTrue(connector.getCapabilities().contains(ConnectorCapability.passwordChange));
 		connector.changePassword(identityName, identityGuid, TestUtils.randomValue().toCharArray(),
-				getActualNewPassword().toCharArray(), true);
+				getActualNewPassword().toCharArray());
 	}
 
 	@Test(expected = ConnectorException.class)
