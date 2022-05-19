@@ -106,6 +106,9 @@ public abstract class AbstractDirectoryConfiguration extends AbstractConnectorCo
 
 	public static final String DIRECTORY_EXCLUDE_ROLES_DN = "directory.excludeRolesDN";
 
+	public static final String ADDITIONAL_USER_ATTRIBUTES = "directory.additionalUserattributes";
+	
+
 	/**
 	 * Follow referrals?
 	 */
@@ -189,6 +192,7 @@ public abstract class AbstractDirectoryConfiguration extends AbstractConnectorCo
 			if (includes.isEmpty()) {
 				includes.add(baseDn);
 			}
+			setIdentityAttributesToRetrieve(Arrays.asList(configurationParameters.getStringArrayOrDefault(ADDITIONAL_USER_ATTRIBUTES)));
 		} catch (NamingException ne) {
 			throw new Error(ne);
 		}

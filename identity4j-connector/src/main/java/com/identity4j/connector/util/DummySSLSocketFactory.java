@@ -173,9 +173,9 @@ public class DummySSLSocketFactory extends SSLSocketFactory {
 
 	private Socket configureSocket(SSLSocket socket) {
 		if (enableSSLv2ClientHello) {
-			socket.setEnabledProtocols(new String[] { "SSLv2Hello", "SSLv3", "TLSv1" });
+			socket.setEnabledProtocols(new String[] { "SSLv2Hello", "SSLv3", "TLSv1", "TLSv1.2", "TLSv1.3" });
 		} else {
-			socket.setEnabledProtocols(new String[] { "SSLv3", "TLSv1" });
+			socket.setEnabledProtocols(new String[] { "SSLv3", "TLSv1", "TLSv1.2", "TLSv1.3" });
 		}
 		socket.setEnabledCipherSuites(getSupportedCipherSuites());
 		return socket;
