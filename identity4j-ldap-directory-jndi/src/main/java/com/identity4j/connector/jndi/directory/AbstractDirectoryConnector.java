@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -666,9 +667,11 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 	public Iterator<Identity> getIdentities(Filter filter) {
 		try {
 			return ldapService.search(filter, new ResultMapper<Identity>() {
+				
+				private Map<String, Role> roleCache = new HashMap<>();
 
 				public Identity apply(SearchResult result) throws NamingException {
-					return mapIdentity(result);
+					return mapIdentity(roleCache, result);
 				}
 
 				public boolean isApplyFilters() {
@@ -683,7 +686,7 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 		}
 	}
 
-	protected Identity mapIdentity(SearchResult result) throws NamingException {
+	protected Identity mapIdentity(Map<String, Role> roleCache, SearchResult result) throws NamingException {
 		Attributes attributes = result.getAttributes();
 		Attribute guidAttr = attributes.get(getConfiguration().getIdentityGuidAttribute());
 		String guid = guidAttr == null ? "" : StringUtil
@@ -720,14 +723,25 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 			String roleNameAttribute = getConfiguration().getRoleGuidAttribute();
 			Attribute roleAttr = attributes.get(idRoleAttr);
 			if(roleAttr != null) {
+				String roleName = roleAttr.get().toString();
 				Filter filter = ldapService.buildObjectClassFilter(roleObjectClass, roleNameAttribute,
-						roleAttr.get().toString());
-				role = getPrincipal(filter.encode(), getRoles(filter, true));
+						roleName);
+				if(roleCache.containsKey(roleName))
+					role = roleCache.get(roleName);
+				else {
+					role = getPrincipal(filter.encode(), getRoles(filter, true));
+					roleCache.put(roleName, role);
+				}
 			}
 		} else {
 			idRoleAttr = getConfiguration().getIdentityRoleNameAttribute();
 			if (!StringUtil.isNullOrEmpty(idRoleAttr)) {
-				role = getRoleByName(idRoleAttr);
+				if(roleCache.containsKey(idRoleAttr))
+					role = roleCache.get(idRoleAttr);
+				else {
+					role = getRoleByName(idRoleAttr);
+					roleCache.put(idRoleAttr, role);
+				}
 			}
 		}
 		
