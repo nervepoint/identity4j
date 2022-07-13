@@ -32,7 +32,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -41,6 +40,8 @@ import org.apache.commons.vfs2.Capability;
 import org.apache.commons.vfs2.FileObject;
 
 import com.identity4j.connector.ConnectorCapability;
+import com.identity4j.connector.OperationContext;
+import com.identity4j.connector.ResultIterator;
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.exception.PrincipalNotFoundException;
 import com.identity4j.connector.principal.Identity;
@@ -96,9 +97,10 @@ public class AbstractFlatFileConnector<P extends AbstractFlatFileConfiguration> 
 		return flatFile;
 	}
 
-	public Iterator<Identity> allIdentities() throws ConnectorException {
+	@Override
+	public ResultIterator<Identity> allIdentities(OperationContext opContext) throws ConnectorException {
 		checkLoaded();
-		return new FlatFileConnectorIdentityIterator(flatFile, getConfiguration().getKeyFieldIndex(), this);
+		return new FlatFileConnectorIdentityIterator(flatFile, getConfiguration().getKeyFieldIndex(), this, opContext.getTag());
 	}
 
 	public EncoderManager getEncoderManager() {
@@ -185,8 +187,9 @@ public class AbstractFlatFileConnector<P extends AbstractFlatFileConfiguration> 
 		return null;
 	}
 
-	public Iterator<Role> allRoles() throws ConnectorException {
-		return new ArrayList<Role>().iterator();
+	@Override
+	public ResultIterator<Role> allRoles(OperationContext opContext) throws ConnectorException {
+		return ResultIterator.createDefault(opContext.getTag());
 	}
 
 	@Override

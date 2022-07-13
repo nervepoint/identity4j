@@ -27,7 +27,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -36,6 +35,8 @@ import org.apache.commons.logging.LogFactory;
 
 import com.identity4j.connector.AbstractConnector;
 import com.identity4j.connector.ConnectorCapability;
+import com.identity4j.connector.OperationContext;
+import com.identity4j.connector.ResultIterator;
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.exception.PrincipalAlreadyExistsException;
 import com.identity4j.connector.exception.PrincipalNotFoundException;
@@ -132,7 +133,7 @@ public class ZendeskConnector extends AbstractConnector<ZendeskConfiguration> {
 	 * @throws ConnectorException for api, connection related errors.
 	 */
 	@Override
-	public Iterator<Role> allRoles() throws ConnectorException {
+	public ResultIterator<Role> allRoles(OperationContext opContext) throws ConnectorException {
 		Groups groups = directory.groups().all();
 		List<Group> groupList = groups.getGroups();
 		List<Role> roles = new ArrayList<Role>();
@@ -142,7 +143,7 @@ public class ZendeskConnector extends AbstractConnector<ZendeskConfiguration> {
 				roles.add(ZendeskModelConvertor.getInstance().groupToRole(group));
 			}
 		}
-		return roles.iterator();
+		return ResultIterator.createDefault(roles.iterator(), opContext.getTag());
 	}
 
 	/**
@@ -334,7 +335,7 @@ public class ZendeskConnector extends AbstractConnector<ZendeskConfiguration> {
 	 * @return iterator with all identities.
 	 */
 	@Override
-	public Iterator<Identity> allIdentities() throws ConnectorException {
+	public ResultIterator<Identity> allIdentities(OperationContext opContext) throws ConnectorException {
 		Users users = directory.users().all();
 		List<Identity> identities = new ArrayList<Identity>();
 		
@@ -346,7 +347,7 @@ public class ZendeskConnector extends AbstractConnector<ZendeskConfiguration> {
 			}
 		}
 		
-		return identities.iterator();
+		return ResultIterator.createDefault(identities.iterator(), opContext.getTag());
 	}
 	
 	/**

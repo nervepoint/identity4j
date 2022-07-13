@@ -66,6 +66,7 @@ import org.apache.commons.logging.LogFactory;
 import com.identity4j.connector.ConnectorCapability;
 import com.identity4j.connector.Count;
 import com.identity4j.connector.Media;
+import com.identity4j.connector.OperationContext;
 import com.identity4j.connector.ResultIterator;
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.exception.InvalidLoginCredentialsException;
@@ -333,9 +334,9 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 	}
 
 	@Override
-	public Count<Long> countIdentities(String tag) throws ConnectorException {
+	public Count<Long> countIdentities(OperationContext opContext) throws ConnectorException {
 		try {
-			USNWrapperIterator<Identity> it = new USNWrapperIterator<Identity>(getIdentities(createTagFilter(buildIdentityFilter(WILDCARD_SEARCH), tag)));
+			USNWrapperIterator<Identity> it = new USNWrapperIterator<Identity>(getIdentities(createTagFilter(buildIdentityFilter(WILDCARD_SEARCH), opContext.getTag()), opContext));
 			return new Count<Long>(count(it), it.tag());
 		} catch (NamingException e) {
 			throw new ConnectorException(processNamingException(e), e);
@@ -346,9 +347,9 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 	}
 
 	@Override
-	public Count<Long> countRoles(String tag) throws ConnectorException {
+	public Count<Long> countRoles(OperationContext opContext) throws ConnectorException {
 		try {
-			USNWrapperIterator<Role> it = new USNWrapperIterator<Role>(getRoles(createTagFilter(buildRoleFilter(WILDCARD_SEARCH, true), tag), true));
+			USNWrapperIterator<Role> it = new USNWrapperIterator<Role>(getRoles(createTagFilter(buildRoleFilter(WILDCARD_SEARCH, true), opContext.getTag()), true, opContext));
 			return new Count<Long>(count(it), it.tag());
 		} catch (NamingException e) {
 			throw new ConnectorException(processNamingException(e), e);
@@ -373,9 +374,9 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 	}
 
 	@Override
-	public ResultIterator<Identity> allIdentities(String tag) throws ConnectorException {
+	public ResultIterator<Identity> allIdentities(OperationContext opContext) throws ConnectorException {
 		try {
-			return new USNWrapperIterator<Identity>(getIdentities(createTagFilter(buildIdentityFilter(WILDCARD_SEARCH), tag)));
+			return new USNWrapperIterator<Identity>(getIdentities(createTagFilter(buildIdentityFilter(WILDCARD_SEARCH), opContext.getTag()), opContext));
 		} catch (NamingException e) {
 			throw new ConnectorException(processNamingException(e), e);
 		} catch (IOException e) {
@@ -384,9 +385,9 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 	}
 
 	@Override
-	public final ResultIterator<Role> allRoles(String tag) throws ConnectorException {
+	public final ResultIterator<Role> allRoles(OperationContext opContext) throws ConnectorException {
 		try {
-			return new USNWrapperIterator<Role>(getRoles(createTagFilter(buildRoleFilter(WILDCARD_SEARCH, true), tag), true));
+			return new USNWrapperIterator<Role>(getRoles(createTagFilter(buildRoleFilter(WILDCARD_SEARCH, true), opContext.getTag()), true, opContext));
 		} catch (NamingException e) {
 			throw new ConnectorException(processNamingException(e), e);
 		} catch (IOException e) {
@@ -884,19 +885,19 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 	}
 
 	@Override
-	protected Iterator<Role> getRoles(Filter filter, boolean applyFilters) {
+	protected ResultIterator<Role> getRoles(Filter filter, boolean applyFilters, OperationContext opContext) {
 		try {
 			return ldapService.search(filter, new ResultMapper<Role>() {
 
 				@Override
 				public Role apply(SearchResult result) throws NamingException {
-					return mapRole(result);
+					return mapRole(result, opContext);
 				}
 
 				public boolean isApplyFilters() {
 					return applyFilters;
 				}
-			}, configureRoleSearchControls(ldapService.getSearchControls()));
+			}, configureRoleSearchControls(ldapService.getSearchControls()), opContext);
 		} catch (NamingException e) {
 			processNamingException(e);
 			throw new IllegalStateException("Unreachable code");
@@ -922,7 +923,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 						public boolean isApplyFilters() {
 							return false;
 						}
-					}, ldapService.getSearchControls());
+					}, ldapService.getSearchControls(), OperationContext.createDefault());
 		} catch (NamingException e) {
 			processNamingException(e);
 			throw new IllegalStateException("Unreachable code");
@@ -1223,7 +1224,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 	}
 
 	@Override
-	public Iterator<Identity> getIdentities(Filter filter) {
+	public ResultIterator<Identity> getIdentities(Filter filter, OperationContext opContext) {
 
 		final ActiveDirectoryConfiguration config = (ActiveDirectoryConfiguration) getConfiguration();
 		
@@ -1233,7 +1234,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 		final Map<String, List<String>> userGroups = new HashMap<String, List<String>>();
 
 		if (config.isEnableRoles()) {
-			Iterator<Role> it = getRoles(buildRoleFilter(WILDCARD_SEARCH, true), config.isCacheFilteredGroups());
+			Iterator<Role> it = getRoles(buildRoleFilter(WILDCARD_SEARCH, true), config.isCacheFilteredGroups(), opContext);
 			LOG.info(String.format("Pre-caching roles (%s)", config.isCacheFilteredGroups() ? "using filtered groups for cache" : "using unfiltered groups for cache"));
 			while (it.hasNext()) {
 				ActiveDirectoryGroup group = (ActiveDirectoryGroup) it.next();
@@ -1572,7 +1573,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 				public boolean isApplyFilters() {
 					return true;
 				}
-			}, configureSearchControls(ldapService.getSearchControls()));
+			}, configureSearchControls(ldapService.getSearchControls()), opContext);
 		} catch (NamingException e) {
 			processNamingException(e);
 			throw new IllegalStateException("Unreachable code");
@@ -1933,23 +1934,6 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 		return STRING_ITERATOR;
 	}
 
-	private Iterator<String> getGroupsForUser(SearchResult result) throws NamingException, IOException {
-		Filter filter = ldapService.buildObjectClassFilter("group", "member", result.getNameInNamespace());
-
-		return ldapService.search(filter, new ResultMapper<String>() {
-
-			@Override
-			public String apply(SearchResult result) throws NamingException {
-				return result.getNameInNamespace();
-			}
-
-			public boolean isApplyFilters() {
-				return true;
-			}
-		}, configureRoleSearchControls(ldapService.getSearchControls()));
-
-	}
-
 	@Override
 	protected void assertPasswordChangeIsAllowed(Identity identity, char[] oldPassword, char[] password)
 			throws ConnectorException {
@@ -1966,12 +1950,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 	}
 
 	@Override
-	protected ActiveDirectoryGroup mapRole(SearchResult result) throws NamingException {
-		Attributes attributes = result.getAttributes();
-		return mapRole(result.getNameInNamespace(), attributes, new LdapName(result.getNameInNamespace()));
-	}
-
-	protected ActiveDirectoryGroup mapRole(String dn, Attributes attributes, LdapName nameInNamespace)
+	protected ActiveDirectoryGroup mapRole(String dn, Attributes attributes, LdapName nameInNamespace, OperationContext opContext)
 			throws NamingException, InvalidNameException {
 		String commonName = selectGroupName(attributes, nameInNamespace);
 		if (commonName.length() != 0) {
@@ -2010,45 +1989,8 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 		return null;
 	}
 
-	private Iterator<String> getGroups(Attributes attributes) throws NamingException {
-		String[] memberOfAttribute = getStringAttributes(attributes, MEMBER_OF_ATTRIBUTE);
-		if (memberOfAttribute == null) {
-			return Collections.<String>emptyList().iterator();
-		}
-		return Arrays.asList(memberOfAttribute).iterator();
-	}
-
 	private ActiveDirectoryConfiguration getActiveDirectoryConfiguration() {
 		return (ActiveDirectoryConfiguration) getConfiguration();
-	}
-
-	private Object getAttribute(Attribute attribute) throws NamingException {
-		return attribute != null ? attribute.get() : null;
-	}
-
-	protected Object getAttributeValue(Attributes attrs, String attrName) throws NamingException {
-		Attribute attr = attrs.get(attrName);
-		if (attr == null) {
-			return null;
-		}
-		return attr.get();
-	}
-
-	protected String getStringAttribute(Attributes attrs, String attrName) throws NamingException {
-		return (String) getAttributeValue(attrs, attrName);
-	}
-
-	protected String[] getStringAttributes(Attributes attrs, String attrName) throws NamingException {
-		Attribute attr = attrs.get(attrName);
-		if (attr == null) {
-			return null;
-		}
-		List<String> a = new ArrayList<>();
-		for(NamingEnumeration<?> en = attr.getAll(); en.hasMoreElements(); ) {
-			Object o = en.next();
-			a.add(o == null ? null : String.valueOf(o));
-		}
-		return a.toArray(new String[0]);
 	}
 
 	protected ADPasswordCharacteristics loadCharacteristics(SearchResult pso) throws NamingException, IOException {

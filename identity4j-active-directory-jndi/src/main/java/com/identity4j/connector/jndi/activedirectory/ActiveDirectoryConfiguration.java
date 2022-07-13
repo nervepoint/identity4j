@@ -95,6 +95,8 @@ public class ActiveDirectoryConfiguration extends AbstractDirectoryConfiguration
 				.set("directory.roleGuidAttribute", "objectGUID");
 		configurationParameters.set("direcctory.identityCreationObjectClasses", "user");
 		configurationParameters.set("directory.distinguishedNameAttribute", "distinguishedName");
+		configurationParameters.set("directory.memberOfAttribute", "memberOf");
+		configurationParameters.set("directory.uniqueMemberAttribute", "uniqueMember");
 		return configurationParameters;
 	}
 	

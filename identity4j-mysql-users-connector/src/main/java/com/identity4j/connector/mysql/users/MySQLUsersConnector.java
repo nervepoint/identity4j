@@ -38,6 +38,8 @@ import java.util.List;
 import java.util.Set;
 
 import com.identity4j.connector.ConnectorCapability;
+import com.identity4j.connector.OperationContext;
+import com.identity4j.connector.ResultIterator;
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.exception.PrincipalNotFoundException;
 import com.identity4j.connector.jdbc.JDBCConnector;
@@ -119,7 +121,7 @@ public class MySQLUsersConnector extends JDBCConnector<MySQLUsersConfiguration> 
 	 * with it.
 	 */
 	@Override
-	public Iterator<Identity> allIdentities() throws ConnectorException {
+	public ResultIterator<Identity> allIdentities(OperationContext opContext) throws ConnectorException {
 		final List<Identity> identities = new ArrayList<Identity>();
 
 		jdbcAction(getMySQLUserConfiguration().getSelectIdentitiesSQL(), new String[0], new JDBCResultsetBlock<Void>() {
@@ -135,7 +137,8 @@ public class MySQLUsersConnector extends JDBCConnector<MySQLUsersConfiguration> 
 			}
 		});
 
-		return identities.iterator();
+		Iterator<Identity> it = identities.iterator();
+		return ResultIterator.createDefault(it, opContext.getTag());
 	}
 
 	/**

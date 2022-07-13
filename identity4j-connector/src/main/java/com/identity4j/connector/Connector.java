@@ -176,16 +176,26 @@ public interface Connector<P extends ConnectorConfigurationParameters> extends C
 	 * @return {@link Identity}s
 	 * @throws ConnectorException
 	 */
-	Iterator<Identity> allIdentities() throws ConnectorException;
+	default Iterator<Identity> allIdentities() throws ConnectorException {
+		return allIdentities(OperationContext.createDefault());
+	}
 	
 	/**
-	 * @param tag tag, used to retrieve results changed since last known tag. The
-	 * returned specialisation of {@link Iterator} will supply the new tag.
-	 * 
+	 * @param opContext operation context
 	 * @return {@link Identity}s
 	 * @throws ConnectorException
 	 */
-	ResultIterator<Identity> allIdentities(String tag) throws ConnectorException;
+	ResultIterator<Identity> allIdentities(OperationContext opContext) throws ConnectorException;
+	
+	/**
+	 * @param tag tag
+	 * @return {@link Identity}s
+	 * @throws ConnectorException
+	 */
+	@Deprecated
+	default ResultIterator<Identity> allIdentities(String tag) throws ConnectorException {
+		return allIdentities(OperationContext.createDefault());
+	}
 
 	/**
 	 * Count identities.
@@ -193,17 +203,29 @@ public interface Connector<P extends ConnectorConfigurationParameters> extends C
 	 * @return
 	 * @throws ConnectorException
 	 */
-	long countIdentities() throws ConnectorException;
+	default long countIdentities() throws ConnectorException {
+		return countIdentities(OperationContext.createDefault()).amount().longValue();
+	}
 
 	/**
 	 * Count identities.
+	 * @param opContext operation context
 	 * 
-	 * @param tag tag, used to retrieve results changed since last known tag. The
-	 * returned {@link Count} will supply the new tag.
-	 * @return
+	 * @return count
 	 * @throws ConnectorException
 	 */
-	Count<Long> countIdentities(String tag) throws ConnectorException;
+	Count<Long> countIdentities(OperationContext opContext) throws ConnectorException;
+
+	/**
+	 * Count identities.
+	 * @param tag tag
+	 * @return count
+	 * @throws ConnectorException
+	 */
+	@Deprecated
+	default Count<Long> countIdentities(String tag) throws ConnectorException {
+		return countIdentities(OperationContext.createDefault(tag));
+	}
 
 	/**
 	 * Does the {@link Identity} name already belong to another {@link Identity}
@@ -241,33 +263,55 @@ public interface Connector<P extends ConnectorConfigurationParameters> extends C
 	 * @return Roles
 	 * @throws ConnectorException
 	 */
-	Iterator<Role> allRoles() throws ConnectorException;
+	default Iterator<Role> allRoles() throws ConnectorException {
+		return allRoles(OperationContext.createDefault());
+	}
 
 	/**
-	 * @param tag tag, used to retrieve results changed since last known tag. The
-	 * returned specialisation of {@link Iterator} will supply the new tag.
+	 * @param opContext operation context
 	 * @return Roles
 	 * @throws ConnectorException
 	 */
-	ResultIterator<Role> allRoles(String tag) throws ConnectorException;
+	ResultIterator<Role> allRoles(OperationContext opContext) throws ConnectorException;
 
 	/**
-	 * Count identities.
+	 * @param tag tag
+	 * @return Roles
+	 * @throws ConnectorException
+	 */
+	@Deprecated
+	default ResultIterator<Role> allRoles(String tag) throws ConnectorException {
+		return allRoles(OperationContext.createDefault(tag));
+	}
+
+	/**
+	 * Count roles.
 	 * 
 	 * @return
 	 * @throws ConnectorException
 	 */
-	long countRoles() throws ConnectorException;
+	default long countRoles() throws ConnectorException {
+		return countRoles(OperationContext.createDefault()).amount().longValue();
+	}
 	
 	/**
-	 * Count identities.
-	 * 
-	 * @param tag tag, used to retrieve results changed since last known tag. The
-	 * returned {@link Count} will supply the new tag.
-	 * @return
+	 * Count roles.
+	 * @param opContext operation context
+	 * @return count
 	 * @throws ConnectorException
 	 */
-	Count<Long> countRoles(String tag) throws ConnectorException;
+	Count<Long> countRoles(OperationContext opContext) throws ConnectorException;
+	
+	/**
+	 * Count roles.
+	 * @param tag tag
+	 * @return count
+	 * @throws ConnectorException
+	 */
+	@Deprecated
+	default Count<Long> countRoles(String tag) throws ConnectorException {
+		return countRoles(OperationContext.createDefault());
+	}
 	
 	/**
 	 * Does the role name already belong to another role?

@@ -27,7 +27,6 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.Hashtable;
-import java.util.Iterator;
 
 import javax.naming.Context;
 import javax.naming.Name;
@@ -50,6 +49,8 @@ import javax.net.SocketFactory;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import com.identity4j.connector.OperationContext;
+import com.identity4j.connector.ResultIterator;
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.jndi.directory.filter.And;
 import com.identity4j.connector.jndi.directory.filter.Eq;
@@ -217,17 +218,17 @@ public class LdapService {
 		});
 	}
 
-	public <T> Iterator<T> search(Filter filter, ResultMapper<T> resultMapper, SearchControls searchControls)
+	public <T> ResultIterator<T> search(Filter filter, ResultMapper<T> resultMapper, SearchControls searchControls, OperationContext opContext)
 			throws NamingException, IOException {
-		return search(configuration.getBaseDn(), filter, resultMapper, searchControls);
+		return search(configuration.getBaseDn(), filter, resultMapper, searchControls, opContext);
 	}
 
-	public <T> Iterator<T> search(final Name baseDN, final Filter filter, final ResultMapper<T> resultMapper,
-			final SearchControls searchControls) throws NamingException, IOException {
-		return processBlockNoClose(new Block<Iterator<T>>() {
+	public <T> ResultIterator<T> search(final Name baseDN, final Filter filter, final ResultMapper<T> resultMapper,
+			final SearchControls searchControls, OperationContext opContext) throws NamingException, IOException {
+		return processBlockNoClose(new Block<ResultIterator<T>>() {
 
-			public Iterator<T> apply(LdapContext context) throws IOException, NamingException {
-				return new SearchResultsIterator<T>(Arrays.asList(baseDN), filter, searchControls, configuration, resultMapper, context);
+			public ResultIterator<T> apply(LdapContext context) throws IOException, NamingException {
+				return new SearchResultsIterator<T>(Arrays.asList(baseDN), filter, searchControls, configuration, resultMapper, context, opContext);
 			}
 		});
 	}

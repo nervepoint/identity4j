@@ -48,52 +48,6 @@ public abstract class AbstractConnector<P extends ConnectorConfigurationParamete
 	public PasswordCharacteristics getPasswordCharacteristics() {
 		throw new UnsupportedOperationException();
 	}
-	
-	@Override
-	public ResultIterator<Identity> allIdentities(String tag) throws ConnectorException {
-		Iterator<Identity> it = allIdentities();
-		return new ResultIterator<Identity>() {
-
-			@Override
-			public boolean hasNext() {
-				return it.hasNext();
-			}
-
-			@Override
-			public Identity next() {
-				return it.next();
-			}
-
-			@Override
-			public String tag() {
-				/* Tag not support, return null */
-				return null;
-			}
-		};
-	}
-
-	@Override
-	public ResultIterator<Role> allRoles(String tag) throws ConnectorException {
-		Iterator<Role> it = allRoles();
-		return new ResultIterator<Role>() {
-
-			@Override
-			public boolean hasNext() {
-				return it.hasNext();
-			}
-
-			@Override
-			public Role next() {
-				return it.next();
-			}
-
-			@Override
-			public String tag() {
-				/* Tag not support, return null */
-				return null;
-			}
-		};
-	}
 
 	@Override
 	public void setSocketFactory(SocketFactory socketFactory) {
@@ -110,25 +64,14 @@ public abstract class AbstractConnector<P extends ConnectorConfigurationParamete
 	}
 
 	@Override
-	public long countIdentities() throws ConnectorException {
-		return count(allIdentities());
+	public Count<Long> countIdentities(OperationContext opContext) throws ConnectorException {
+		return new Count<Long>(count(allIdentities(opContext)), opContext.getTag());
 	}
 
 	@Override
-	public Count<Long> countIdentities(String tag) throws ConnectorException {
+	public Count<Long> countRoles(OperationContext opContext) throws ConnectorException {
 		/* No tags supported by default so return null */ 
-		return new Count<>(countIdentities(), null);
-	}
-
-	@Override
-	public long countRoles() throws ConnectorException {
-		return count(allRoles());
-	}
-
-	@Override
-	public Count<Long> countRoles(String tag) throws ConnectorException {
-		/* No tags supported by default so return null */ 
-		return new Count<>(countRoles(), null);
+		return new Count<>(count(allRoles(opContext)), opContext.getTag());
 	}
 
 	protected long count(Iterator<? extends Principal> it) {
@@ -287,7 +230,7 @@ public abstract class AbstractConnector<P extends ConnectorConfigurationParamete
 	 * @throws {@link ConnectorException}
 	 */
 	public Identity getIdentityByName(String name) throws PrincipalNotFoundException, ConnectorException {
-		for (Iterator<Identity> identityIterator = allIdentities(); identityIterator.hasNext();) {
+		for (Iterator<Identity> identityIterator = allIdentities(OperationContext.createDefault()); identityIterator.hasNext();) {
 			Identity identity = identityIterator.next();
 			System.out.println(">> " + identity.getPrincipalName() + "/" + identity.getGuid() + " against " + name);
 			if (identity.getPrincipalName().equals(name)) {
@@ -302,7 +245,7 @@ public abstract class AbstractConnector<P extends ConnectorConfigurationParamete
 	 */
 	@Override
 	public Identity getIdentityByGuid(String guid) throws PrincipalNotFoundException, ConnectorException {
-		for (Iterator<Identity> identityIterator = allIdentities(); identityIterator.hasNext();) {
+		for (Iterator<Identity> identityIterator = allIdentities(OperationContext.createDefault()); identityIterator.hasNext();) {
 			Identity identity = identityIterator.next();
 			System.out.println(">> " + identity.getPrincipalName() + "/" + identity.getGuid() + " against " + guid);
 			if (identity.getGuid().equals(guid)) {
@@ -323,7 +266,7 @@ public abstract class AbstractConnector<P extends ConnectorConfigurationParamete
 	 * @throws {@link ConnectorException}
 	 */
 	public Role getRoleByName(String name) throws PrincipalNotFoundException, ConnectorException {
-		for (Iterator<Role> roleIterator = allRoles(); roleIterator.hasNext();) {
+		for (Iterator<Role> roleIterator = allRoles(OperationContext.createDefault()); roleIterator.hasNext();) {
 			Role role = roleIterator.next();
 			if (role.getPrincipalName().equals(name)) {
 				return role;

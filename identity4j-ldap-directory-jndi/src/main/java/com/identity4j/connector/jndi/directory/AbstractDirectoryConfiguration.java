@@ -569,6 +569,25 @@ public abstract class AbstractDirectoryConfiguration extends AbstractConnectorCo
 		return configurationParameters.getStringOrFail("directory.roleGuidAttribute");
 	}
 
+	/**
+	 * The attribute name which is used to indicate which group(s) the user or grup
+	 * is a part of.
+	 * 
+	 * @return member of attribute
+	 */
+	public final String getMemberOfAttribute() {
+		return configurationParameters.getStringOrFail("directory.memberOfAttribute");
+	}
+
+	/**
+	 * The attribute name which is used to indicate which users or groups in are a group.
+	 * 
+	 * @return member of attribute
+	 */
+	public final String getUniqueMemberAttribute() {
+		return configurationParameters.getStringOrFail("directory.uniqueMemberAttribute");
+	}
+
 	public final Map<String, String> getConnectorConfigurationParameters() {
 		Map<String, String> variables = new HashMap<String, String>();
 		variables.put(Context.INITIAL_CONTEXT_FACTORY, getInitialContextFactory());

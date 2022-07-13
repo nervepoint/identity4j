@@ -14,7 +14,9 @@ import org.apache.commons.logging.LogFactory;
 
 import com.identity4j.connector.AbstractConnector;
 import com.identity4j.connector.ConnectorCapability;
+import com.identity4j.connector.OperationContext;
 import com.identity4j.connector.PrincipalType;
+import com.identity4j.connector.ResultIterator;
 import com.identity4j.connector.aws.command.CommandFactory;
 import com.identity4j.connector.aws.command.CommandResult;
 import com.identity4j.connector.aws.command.RequestResultIterator;
@@ -84,11 +86,11 @@ public class AwsConnector extends AbstractConnector<AwsConfiguration> {
 	}
 
 	@Override
-	public Iterator<Identity> allIdentities() throws ConnectorException {
+	public ResultIterator<Identity> allIdentities(OperationContext opContext) throws ConnectorException {
 		
 		log.info("Listing all identities.");
 
-		return new Iterator<Identity>() {
+		return new ResultIterator<Identity>() {
 
 			Iterator<User> iterator = new RequestResultIterator<>(ListUsersRequestCommand.class, client);
 
@@ -122,15 +124,20 @@ public class AwsConnector extends AbstractConnector<AwsConfiguration> {
 				
 				return identity;
 			}
+
+			@Override
+			public String tag() {
+				return opContext.getTag();
+			}
 		};
 	}
 
 	@Override
-	public Iterator<Role> allRoles() throws ConnectorException {
+	public ResultIterator<Role> allRoles(OperationContext opContext) throws ConnectorException {
 		
 		log.info("Listing all roles.");
 		
-		return new Iterator<Role>() {
+		return new ResultIterator<Role>() {
 
 			Iterator<Group> iterator = new RequestResultIterator<>(ListGroupsRequestCommand.class, client);
 
@@ -152,6 +159,11 @@ public class AwsConnector extends AbstractConnector<AwsConfiguration> {
 				setPolicyInfo(awsGroup, policyIterator);
 				
 				return awsGroup;
+			}
+
+			@Override
+			public String tag() {
+				return opContext.getTag();
 			}
 		};
 	}

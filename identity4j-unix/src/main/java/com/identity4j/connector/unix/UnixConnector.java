@@ -42,6 +42,8 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.commons.vfs2.Capability;
 import org.apache.commons.vfs2.FileObject;
 
+import com.identity4j.connector.OperationContext;
+import com.identity4j.connector.ResultIterator;
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.exception.PrincipalNotFoundException;
 import com.identity4j.connector.flatfile.AbstractFlatFile;
@@ -132,9 +134,9 @@ public class UnixConnector extends AbstractFlatFileConnector<UnixConfiguration> 
 	}
 
 	@Override
-	public Iterator<Role> allRoles() throws ConnectorException {
+	public ResultIterator<Role> allRoles(OperationContext opContext) throws ConnectorException {
 		checkLoaded();
-		return new RoleIterator();
+		return ResultIterator.createDefault(new RoleIterator(), opContext.getTag());
 	}
 
 	@Override
@@ -540,7 +542,7 @@ public class UnixConnector extends AbstractFlatFileConnector<UnixConfiguration> 
 
 			// TODO starting at 1000 is a bit arbitrary, make configurable?
 			int uid = 1000;
-			for (Iterator<Identity> identityIterator = allIdentities(); identityIterator.hasNext();) {
+			for (Iterator<Identity> identityIterator = allIdentities(OperationContext.createDefault()); identityIterator.hasNext();) {
 				Identity exitingIdentity = identityIterator.next();
 				uid = Math.max(uid, Integer.parseInt(exitingIdentity.getGuid()));
 			}
@@ -623,7 +625,7 @@ public class UnixConnector extends AbstractFlatFileConnector<UnixConfiguration> 
 			// Find the next highest GID
 			// TODO starting at 100 is a bit arbitrary, make configurable?
 			int gid = 100;
-			for (Iterator<Role> roleIterator = allRoles(); roleIterator.hasNext();) {
+			for (Iterator<Role> roleIterator = allRoles(OperationContext.createDefault()); roleIterator.hasNext();) {
 				Role existingrole = roleIterator.next();
 				gid = Math.max(gid, Integer.parseInt(existingrole.getGuid()));
 			}

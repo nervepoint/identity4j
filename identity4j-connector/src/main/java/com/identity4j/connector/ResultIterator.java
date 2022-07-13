@@ -10,4 +10,44 @@ import java.util.Iterator;
  * @see {@link TagResult}
  */
 public interface ResultIterator<E> extends Iterator<E>, TagResult {
+	static <E> ResultIterator<E> createDefault(Iterator<E> it, String tag) {
+		return new ResultIterator<E>() {
+
+			@Override
+			public boolean hasNext() {
+				return it.hasNext();
+			}
+
+			@Override
+			public E next() {
+				return it.next();
+			}
+
+			@Override
+			public String tag() {
+				return tag;
+			}
+		};
+	}
+	
+	
+	static <E> ResultIterator<E> createDefault(String tag) {
+		return new ResultIterator<E>() {
+
+			@Override
+			public boolean hasNext() {
+				return false;
+			}
+
+			@Override
+			public E next() {
+				throw new IllegalStateException();
+			}
+
+			@Override
+			public String tag() {
+				return tag;
+			}
+		};
+	}
 }

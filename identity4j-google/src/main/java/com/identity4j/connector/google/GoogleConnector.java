@@ -75,7 +75,9 @@ import com.google.api.services.admin.directory.model.User;
 import com.google.api.services.admin.directory.model.Users;
 import com.identity4j.connector.AbstractConnector;
 import com.identity4j.connector.ConnectorCapability;
+import com.identity4j.connector.OperationContext;
 import com.identity4j.connector.PrincipalType;
+import com.identity4j.connector.ResultIterator;
 import com.identity4j.connector.WebAuthenticationAPI;
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.exception.PrincipalAlreadyExistsException;
@@ -398,11 +400,11 @@ public class GoogleConnector extends AbstractConnector<GoogleConfiguration> {
 	 * @return iterator with all identities.
 	 */
 	@Override
-	public Iterator<Identity> allIdentities() throws ConnectorException {
+	public ResultIterator<Identity> allIdentities(OperationContext opContext) throws ConnectorException {
 		if (log.isWarnEnabled()) {
 			log.warn("Listing all google identities");
 		}
-		return new Iterator<Identity>() {
+		return new ResultIterator<Identity>() {
 
 			Iterator<Identity> currentIterator;
 			String pageToken = null;
@@ -502,7 +504,11 @@ public class GoogleConnector extends AbstractConnector<GoogleConfiguration> {
 
 			@Override
 			public void remove() {
+			}
 
+			@Override
+			public String tag() {
+				return opContext.getTag();
 			}
 		};
 
@@ -600,11 +606,11 @@ public class GoogleConnector extends AbstractConnector<GoogleConfiguration> {
 	 *             for api, connection related errors.
 	 */
 	@Override
-	public Iterator<Role> allRoles() throws ConnectorException {
+	public ResultIterator<Role> allRoles(OperationContext opContext) throws ConnectorException {
 		if (log.isWarnEnabled()) {
 			log.warn("Listing all google groups");
 		}
-		return new Iterator<Role>() {
+		return new ResultIterator<Role>() {
 
 			Iterator<Role> currentIterator;
 			String pageToken = null;
@@ -675,7 +681,11 @@ public class GoogleConnector extends AbstractConnector<GoogleConfiguration> {
 
 			@Override
 			public void remove() {
+			}
 
+			@Override
+			public String tag() {
+				return opContext.getTag();
 			}
 		};
 
