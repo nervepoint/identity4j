@@ -873,7 +873,7 @@ function loadExpiry(identity) {
     var process = sshClient.sudoCommand('passwd -S "' + identity.getPrincipalName() + '"');
     line = process.readLine();
     var locked = false;
-    if(line && line.split(" ")[1] == 'L') {
+    if(line && (line.split(" ")[1] == 'L' || line.split(" ")[1] == 'LK')) {
         identity.getAccountStatus().setLocked(new java.util.Date(0));
         locked = true;
     }   

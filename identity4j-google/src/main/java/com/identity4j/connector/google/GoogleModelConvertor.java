@@ -89,6 +89,9 @@ class GoogleModelConvertor {
 		
 		googleIdentity.setAttribute("customerId", user.getCustomerId()); 
 		googleIdentity.setAttribute("etag", user.getEtag()); 
+		googleIdentity.setAttribute("surname", user.getName().getFamilyName());  
+		googleIdentity.setAttribute("givenName", user.getName().getGivenName());
+		googleIdentity.setAttribute("orgUnitPath", user.getOrgUnitPath());  
 		
 		
 		// This should always be false
