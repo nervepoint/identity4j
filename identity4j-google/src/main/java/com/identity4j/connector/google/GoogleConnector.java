@@ -645,9 +645,11 @@ public class GoogleConnector extends AbstractConnector<GoogleConfiguration> {
 					}
 
 					List<Role> roles = new ArrayList<Role>();
-
-					for (Group group : groups.getGroups()) {
-						roles.add(GoogleModelConvertor.groupToRole(group));
+					List<Group> groupList = groups.getGroups();
+					if(groupList != null) {
+						for (Group group : groupList) {
+							roles.add(GoogleModelConvertor.groupToRole(group));
+						}
 					}
 
 					currentIterator = roles.iterator();
