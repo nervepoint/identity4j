@@ -487,7 +487,37 @@ public abstract class AbstractDirectoryConfiguration extends AbstractConnectorCo
 	public final String getIdentityNameAttribute() {
 		return configurationParameters.getStringOrFail("directory.identityNameAttribute");
 	}
+	
+	/**
+	 * The attribute name which is used to match against the identity description.
+	 * 
+	 * @return identity name attribute
+	 */
+	public final String getIdentityDescriptionAttribute() {
+		return configurationParameters.getString("directory.identityDescriptionAttribute");
+	}
 
+	
+	/**
+	 * The attribute name which is used to match against the identity description.
+	 * 
+	 * @return identity name attribute
+	 */
+	public final String getIdentityEmailAttribute() {
+		return configurationParameters.getString("directory.identityEmailAttribute");
+	}
+	
+	
+	/**
+	 * The attribute name which is used to match against the identity description.
+	 * 
+	 * @return identity name attribute
+	 */
+	public final String getIdentityPhoneAttribute() {
+		return configurationParameters.getString("directory.identityMobileAttribute");
+	}
+	
+	
 	/**
 	 * The attribute name which is used to match against the identity guid.
 	 * 

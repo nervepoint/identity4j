@@ -32,6 +32,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
 import java.util.StringTokenizer;
@@ -740,6 +741,30 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 				}
 			}
 		}
+		
+		String descriptionAttr = getConfiguration().getIdentityDescriptionAttribute();
+		if (StringUtils.isNotBlank(descriptionAttr)) {
+			String description = getStringAttribute(attributes, descriptionAttr);
+			if(description != null) {
+				directoryIdentity.setFullName(description);
+			}
+		}
+		
+		String emailAttr = getConfiguration().getIdentityEmailAttribute();
+		if (StringUtils.isNotBlank(emailAttr)) {
+			String email = getStringAttribute(attributes, emailAttr);
+			if(email != null) {
+				directoryIdentity.setAddress(Media.email, email);
+			}
+		}
+		
+		String mobileAttr = getConfiguration().getIdentityPhoneAttribute();
+		if (StringUtils.isNotBlank(mobileAttr)) {
+			String mobile = getStringAttribute(attributes, mobileAttr);
+			if(mobile != null) {
+				directoryIdentity.setAddress(Media.mobile, mobile);
+			}
+		}
 
 		Collection<Role> rolesForUser = opContext.getRelationshipCache().getRolesForUser(dn.toString(), (d) -> {
 			switch (d.getType()) {
@@ -937,7 +962,11 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 	}
 
 	protected String getStringAttribute(Attributes attrs, String attrName) throws NamingException {
-		return (String) getAttributeValue(attrs, attrName);
+		try {
+			return (String) getAttributeValue(attrs, attrName);
+		} catch(NoSuchElementException e) {
+			return null;
+		}
 	}
 
 	protected String[] getStringAttributes(Attributes attrs, String attrName) throws NamingException {
