@@ -78,25 +78,21 @@ public class ActiveDirectoryConfiguration extends AbstractDirectoryConfiguration
 		/**
 		 * LDP - I believe the  attribute directory.identityObjectClass is now obsolete?
 		 */
-		configurationParameters.set("directory.identityObjectClass", "user");
+		configurationParameters.set(DIRECTORY_IDENTITY_OBJECT_CLASS, "user");
 		
-		configurationParameters.set("directory.identityNameAttribute",
-				"samAccountName");
-		configurationParameters.set("directory.identityGuidAttribute",
-				"objectGUID");
-		configurationParameters.set("directory.identityPasswordAttribute",
-				"unicodePwd");
-		configurationParameters.set("directory.identityPasswordEncoding",
-				"unicode");
-		configurationParameters.set("directory.roleObjectClass", "group");
-		configurationParameters.set("directory.roleNameAttribute",
-				"cn");
-		configurationParameters
-				.set("directory.roleGuidAttribute", "objectGUID");
-		configurationParameters.set("direcctory.identityCreationObjectClasses", "user");
-		configurationParameters.set("directory.distinguishedNameAttribute", "distinguishedName");
-		configurationParameters.set("directory.memberOfAttribute", "memberOf");
-		configurationParameters.set("directory.uniqueMemberAttribute", "uniqueMember");
+		configurationParameters.set(DIRECTORY_IDENTITY_NAME_ATTRIBUTE, "samAccountName");
+		configurationParameters.set(DIRECTORY_IDENTITY_GUID_ATTRIBUTE, "objectGUID");
+		configurationParameters.set(DIRECTORY_IDENTITY_PASSWORD_ATTRIBUTE, "unicodePwd");
+		configurationParameters.set(DIRECTORY_IDENTITY_PASSWORD_ENCODING, "unicode");
+		configurationParameters.set(DIRECTORY_ROLE_OBJECT_CLASS, "group");
+		configurationParameters.set(DIRECTORY_ROLE_NAME_ATTRIBUTE, "cn");
+		configurationParameters.set(DIRECTORY_ROLE_GUID_ATTRIBUTE, "objectGUID");
+		configurationParameters.set(DIRECCTORY_IDENTITY_CREATION_OBJECT_CLASSES, "user");
+		configurationParameters.set(DIRECTORY_DISTINGUISHED_NAME_ATTRIBUTE, "distinguishedName");
+		configurationParameters.set(DIRECTORY_MEMBER_OF_ATTRIBUTE, "memberOf");
+		configurationParameters.set(DIRECTORY_UNIQUE_MEMBER_ATTRIBUTE, "uniqueMember");
+		configurationParameters.set(DIRECTORY_IDENTITY_EMAIL_ATTRIBUTE, "mail");
+		configurationParameters.set(DIRECTORY_IDENTITY_MOBILE_ATTRIBUTE, "mobile");
 		return configurationParameters;
 	}
 	

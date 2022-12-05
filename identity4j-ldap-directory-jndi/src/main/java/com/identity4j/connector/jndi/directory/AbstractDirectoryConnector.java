@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -290,7 +291,7 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 				if (getCoreIdentityAttributes().contains(entry.getKey())) {
 					continue;
 				}
-				if (entry.getKey().equals(getEmailAttribute()) || entry.getKey().equals(getMobileAttribute())) {
+				if (entry.getKey().equals(getConfiguration().getIdentityEmailAttribute()) || entry.getKey().equals(getConfiguration().getIdentityMobileAttribute())) {
 					continue;
 				}
 				String[] value = entry.getValue();
@@ -309,11 +310,11 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 			}
 
 			if (StringUtils.isNotBlank(identity.getAddress(Media.email))) {
-				attributes.add(new BasicAttribute(getEmailAttribute(), identity.getAddress(Media.email)));
+				attributes.add(new BasicAttribute(getConfiguration().getIdentityEmailAttribute(), identity.getAddress(Media.email)));
 			}
 
 			if (StringUtils.isNotBlank(identity.getAddress(Media.mobile))) {
-				attributes.add(new BasicAttribute(getMobileAttribute(), identity.getAddress(Media.mobile)));
+				attributes.add(new BasicAttribute(getConfiguration().getIdentityMobileAttribute(), identity.getAddress(Media.mobile)));
 			}
 
 			BasicAttribute objectClassAttributeValues = new BasicAttribute(OBJECT_CLASS_ATTRIBUTE);
@@ -322,7 +323,16 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 			}
 
 			attributes.add(objectClassAttributeValues);
-			attributes.add(new BasicAttribute(COMMON_NAME_ATTRIBUTE, identity.getFullName()));
+			
+			if(getConfiguration().getIdentityCNAttribute().equals("principalName")) {
+				attributes.add(new BasicAttribute(COMMON_NAME_ATTRIBUTE, identity.getPrincipalName()));
+			}
+			else if(getConfiguration().getIdentityCNAttribute().equals("fullName")) {
+				attributes.add(new BasicAttribute(COMMON_NAME_ATTRIBUTE, identity.getFullName()));
+			}
+			else {
+				attributes.add(new BasicAttribute(COMMON_NAME_ATTRIBUTE, identity.getAttributeOrDefault(getConfiguration().getIdentityCNAttribute(), identity.getPrincipalName())));;
+			}
 
 			String upn = finaliseCreate(identity, principalName, attributes);
 
@@ -390,14 +400,6 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 
 	protected Collection<String> getAttributesReservedForCreation() {
 		return RESERVED_ATTRIBUTES_FOR_CREATION;
-	}
-
-	protected String getEmailAttribute() {
-		return "mail";
-	}
-
-	protected String getMobileAttribute() {
-		return "mobile";
 	}
 
 	protected List<ModificationItem> getCreationPasswordModificationItems(char[] password,
@@ -504,8 +506,39 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 			// OU may have been provided
 			String identityOU = identity.getAttribute(config.getDistinguishedNameAttribute());
 			LdapName usersDn = new LdapName(identityOU);
-
-			processUserAttributes(modificationItems, oldIdentity, identity);
+			
+			Map<String, String[]> newAttributes = new HashMap<>(identity.getAttributes());
+			
+			// The first class "Addresses" take precedence over any attribute with the same name in the
+			// generic attributes. Ideally these should not in fact not be here at all.
+			String emailAttr = getConfiguration().getIdentityEmailAttribute();
+			if (StringUtils.isNotBlank(emailAttr)) {
+				if(identity.getAddress(Media.email) != null) {
+					if(newAttributes.containsKey(emailAttr)) {
+						LOG.warn(String.format("Identity contains both an email 'Address' and an attribute named %s. The address will be used in preference.", emailAttr));
+					}
+					newAttributes.put(emailAttr, new String[] { identity.getAddress(Media.email) });
+				}
+			}
+			String mobileAttr = getConfiguration().getIdentityMobileAttribute();
+			if (StringUtils.isNotBlank(mobileAttr)) {
+				if(identity.getAddress(Media.mobile) != null) {
+					if(newAttributes.containsKey(mobileAttr)) {
+						LOG.warn(String.format("Identity contains both a mobile 'Address' and an attribute named %s. The address will be used in preference.", mobileAttr));
+					}
+					newAttributes.put(mobileAttr, new String[] { identity.getAddress(Media.mobile) });
+				}
+			}
+			String fullNameAttr = getConfiguration().getIdentityFullNameAttribute();
+			if (StringUtils.isNotBlank(fullNameAttr) && StringUtils.isNotBlank(identity.getFullName()) && !fullNameAttr.equals(COMMON_NAME_ATTRIBUTE)) {
+				if(newAttributes.containsKey(fullNameAttr)) {
+					LOG.warn(String.format("Identity contains both a full name and an attribute named %s. The full name will be used in preference.", COMMON_NAME_ATTRIBUTE));
+				}
+				newAttributes.put(fullNameAttr, new String[] { identity.getFullName() });
+			}
+			newAttributes.remove(COMMON_NAME_ATTRIBUTE);
+			
+			processUserAttributes(modificationItems, oldIdentity, newAttributes, identity);
 
 			if (!modificationItems.isEmpty()) {
 				ldapService.update(usersDn, modificationItems.toArray(new ModificationItem[0]));
@@ -527,11 +560,19 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 				assignRole(usersDn, r);
 			}
 
-			if (Util.differs(oldIdentity.getFullName(), identity.getFullName())) {
-				LdapName newDN = new LdapName(usersDn.getSuffix(1).toString());
-				newDN.add(0, "CN=" + identity.getFullName());
+			String cnAttr = getConfiguration().getIdentityCNAttribute();
+			if (cnAttr.equals("fullName") && Util.differs(oldIdentity.getFullName(), identity.getFullName())) {
+				LdapName newDN = new LdapName(usersDn.toString());
+				newDN.remove(newDN.size() - 1);
+				newDN.add(newDN.size(), "CN=" + identity.getFullName());
 				ldapService.rename(usersDn, newDN);
-			} else if (Util.differs(oldIdentity.getAttribute(COMMON_NAME_ATTRIBUTE),
+			}
+			else if (cnAttr.equals("principalName") && Util.differs(oldIdentity.getPrincipalName(), identity.getPrincipalName())) {
+				LdapName newDN = new LdapName(usersDn.toString());
+				newDN.remove(newDN.size() - 1);
+				newDN.add(newDN.size(), "CN=" + identity.getPrincipalName());
+				ldapService.rename(usersDn, newDN);
+			} else if (cnAttr.equals(COMMON_NAME_ATTRIBUTE) && Util.differs(oldIdentity.getAttribute(cnAttr),
 					identity.getAttribute(COMMON_NAME_ATTRIBUTE))) {
 				LdapName newDN = new LdapName(usersDn.toString());
 				newDN.remove(newDN.size() - 1);
@@ -557,9 +598,9 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 	}
 
 	protected void processUserAttributes(List<ModificationItem> modificationItems, Identity previousState,
-			Identity newState) {
+			Map<String, String[]> newAttributes, Identity newState) {
 
-		for (Map.Entry<String, String[]> entry : newState.getAttributes().entrySet()) {
+		for (Map.Entry<String, String[]> entry : newAttributes.entrySet()) {
 			if (!isExcludeForUserUpdate(entry.getKey())) {
 				if (!previousState.getAttributes().containsKey(entry.getKey())) {
 					// New
@@ -576,7 +617,7 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 					}
 				} else {
 					String[] oldValue = previousState.getAttributes().get(entry.getKey());
-					String[] newValue = newState.getAttributes().get(entry.getKey());
+					String[] newValue = newAttributes.get(entry.getKey());
 					if (!Objects.deepEquals(oldValue, newValue)) {
 
 						String[] value = entry.getValue();
@@ -741,13 +782,13 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 				}
 			}
 		}
-		
-		String descriptionAttr = getConfiguration().getIdentityDescriptionAttribute();
-		if (StringUtils.isNotBlank(descriptionAttr)) {
-			String description = getStringAttribute(attributes, descriptionAttr);
-			if(description != null) {
-				directoryIdentity.setFullName(description);
-			}
+
+		String fullNameAttr = getConfiguration().getIdentityFullNameAttribute();
+		if (StringUtils.isNotBlank(memberOfAttr)) {
+			String fullName = getStringAttribute(attributes, fullNameAttr);
+			if(fullName != null) {
+				directoryIdentity.setFullName(fullName);
+			}	
 		}
 		
 		String emailAttr = getConfiguration().getIdentityEmailAttribute();
@@ -758,7 +799,7 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 			}
 		}
 		
-		String mobileAttr = getConfiguration().getIdentityPhoneAttribute();
+		String mobileAttr = getConfiguration().getIdentityMobileAttribute();
 		if (StringUtils.isNotBlank(mobileAttr)) {
 			String mobile = getStringAttribute(attributes, mobileAttr);
 			if(mobile != null) {
