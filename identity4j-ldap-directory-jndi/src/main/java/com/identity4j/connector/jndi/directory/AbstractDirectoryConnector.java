@@ -784,7 +784,7 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 		}
 
 		String fullNameAttr = getConfiguration().getIdentityFullNameAttribute();
-		if (StringUtils.isNotBlank(memberOfAttr)) {
+		if (StringUtils.isNotBlank(fullNameAttr)) {
 			String fullName = getStringAttribute(attributes, fullNameAttr);
 			if(fullName != null) {
 				directoryIdentity.setFullName(fullName);

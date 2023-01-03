@@ -522,7 +522,7 @@ public abstract class AbstractDirectoryConfiguration extends AbstractConnectorCo
 	 * @return identity CN attribute
 	 */
 	public final String getIdentityCNAttribute() {
-		return configurationParameters.getStringOrFail(DIRECTORY_IDENTITY_CN_ATTRIBUTE);
+		return configurationParameters.getStringOrDefault(DIRECTORY_IDENTITY_CN_ATTRIBUTE, "");
 	}
 
 	/**
@@ -532,7 +532,7 @@ public abstract class AbstractDirectoryConfiguration extends AbstractConnectorCo
 	 * @return identity full name attribute
 	 */
 	public final String getIdentityFullNameAttribute() {
-		return configurationParameters.getStringOrFail(DIRECTORY_IDENTITY_FULL_NAME_ATTRIBUTE);
+		return configurationParameters.getStringOrDefault(DIRECTORY_IDENTITY_FULL_NAME_ATTRIBUTE, "");
 	}
 
 	/**
