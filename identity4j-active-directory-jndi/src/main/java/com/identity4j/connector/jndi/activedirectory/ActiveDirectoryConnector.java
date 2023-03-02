@@ -975,7 +975,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 	protected ActiveDirectorySchemaVersion getSchemaVersion() {
 		
 		ActiveDirectorySchemaVersion cfgSchema = getConfiguration().getSchema();
-		if(cfgSchema != null) {
+		if(cfgSchema != null && cfgSchema != ActiveDirectorySchemaVersion.AUTOMATIC) {
 			return cfgSchema;
 		}
 
