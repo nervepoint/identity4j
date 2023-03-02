@@ -44,6 +44,7 @@ public class ActiveDirectoryConfiguration extends AbstractDirectoryConfiguration
 	private static final String USE_GLOBAL_CATALOG = "directory.isGlobalCatalog";
 	private static final String CHILD_DOMAIN_CONTROLLERS = "directory.childDomainControllers";
 
+	public static final String ACTIVE_DIRECTORY_SCHEMA_VERSION = "activeDirectory.schemaVersion";
 	public static final String ACTIVE_DIRECTORY_AUTHENTICATION = "activeDirectory.authenticationType";
 	public static final String ACTIVE_DIRECTORY_CACHE_FILTERED_GROUPS = "activeDirectory.cachedFilteredGroups";
 	public static final String ACTIVE_DIRECTORY_INCLUDE_DEFAULT_USERS = "activeDirectory.includeDefaultUsers";
@@ -190,6 +191,15 @@ public class ActiveDirectoryConfiguration extends AbstractDirectoryConfiguration
 	public final int getMinPasswordAgeDays() {
 		return configurationParameters.getIntegerOrDefault(
 				"activeDirectory.minPwdAge", 0);
+	}
+
+	public final ActiveDirectorySchemaVersion getSchema() {
+		try {
+			return ActiveDirectorySchemaVersion.valueOf(configurationParameters.getStringOrDefault(ACTIVE_DIRECTORY_SCHEMA_VERSION, ""));
+		}
+		catch(Exception e) {
+			return null;
+		}
 	}
 
 	public final int getPasswordHistoryLength() {

@@ -973,65 +973,92 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 	}
 
 	protected ActiveDirectorySchemaVersion getSchemaVersion() {
+		
+		ActiveDirectorySchemaVersion cfgSchema = getConfiguration().getSchema();
+		if(cfgSchema != null) {
+			return cfgSchema;
+		}
 
 		if (cachedVersion != null) {
 			return cachedVersion;
 		}
+		
+		Throwable firstException = null;
+		Name rootDn = getRootDn();
 
-		try {
-
-			/**
-			 * TODO we need to fix this for child domains
-			 */
-			LdapName schemaDn = new LdapName("CN=Schema,CN=Configuration," + getRootDn().toString());
-			String value = getAttributeValue(schemaDn, "objectVersion");
-
-			int version = Integer.parseInt(value);
-			switch (version) {
-			case 13:
-				cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2000;
-				break;
-			case 30:
-				cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2003;
-				break;
-			case 31:
-				cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2003_R2;
-				break;
-			case 44:
-				cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2008;
-				break;
-			case 47:
-				cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2008_R2;
-				break;
-			case 56:
-				cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2012;
-				break;
-			case 69:
-				cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2012_R2;
-				break;
-			case 87:
-				cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2016;
-				break;
-			case 88:
-				cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2019;
-				break;
-			default:
-				LOG.info("Could not determine Active Directory schema version from value " + value);
-				if (version < ActiveDirectorySchemaVersion.WINDOWS_2000.getVersion()) {
-					cachedVersion = ActiveDirectorySchemaVersion.PRE_WINDOWS_2000;
-				} else if (version > ActiveDirectorySchemaVersion.WINDOWS_2019.getVersion()) {
-					cachedVersion = ActiveDirectorySchemaVersion.POST_WINDOWS_2019;
-				} else {
-					cachedVersion = ActiveDirectorySchemaVersion.UNKNOWN;
+		while(true) {
+			try {
+	
+				/**
+				 * TODO we need to fix this for child domains
+				 */
+				LdapName schemaDn = new LdapName("CN=Schema,CN=Configuration," + rootDn.toString());
+				LOG.info("Attempting to get schema version from " + schemaDn);
+				String value = getAttributeValue(schemaDn, "objectVersion");
+	
+				int version = Integer.parseInt(value);
+				switch (version) {
+				case 13:
+					cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2000;
+					break;
+				case 30:
+					cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2003;
+					break;
+				case 31:
+					cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2003_R2;
+					break;
+				case 44:
+					cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2008;
+					break;
+				case 47:
+					cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2008_R2;
+					break;
+				case 56:
+					cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2012;
+					break;
+				case 69:
+					cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2012_R2;
+					break;
+				case 87:
+					cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2016;
+					break;
+				case 88:
+					cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2019;
+					break;
+				default:
+					LOG.info("Could not determine Active Directory schema version from value " + value);
+					if (version < ActiveDirectorySchemaVersion.WINDOWS_2000.getVersion()) {
+						cachedVersion = ActiveDirectorySchemaVersion.PRE_WINDOWS_2000;
+					} else if (version > ActiveDirectorySchemaVersion.WINDOWS_2019.getVersion()) {
+						cachedVersion = ActiveDirectorySchemaVersion.POST_WINDOWS_2019;
+					} else {
+						cachedVersion = ActiveDirectorySchemaVersion.UNKNOWN;
+					}
+					break;
 				}
+	
+			} catch (Throwable e) {
+				if(firstException == null)
+					firstException = e;
+			}
+			
+			if(cachedVersion == null) {
+				try {
+					rootDn = rootDn.getPrefix(rootDn.size() - 1);
+				}
+				catch(Exception e) {
+					break;
+				}
+			}
+			else {
 				break;
 			}
-
-		} catch (NumberFormatException e) {
-			LOG.info("Could not determine Active Directory schema version", e);
-			cachedVersion = ActiveDirectorySchemaVersion.UNKNOWN;
-		} catch (Throwable e) {
-			LOG.info("Could not determine Active Directory schema version", e);
+		}
+		
+		if(cachedVersion == null) {
+			if(firstException != null) {
+				LOG.info("Could not determine Active Directory schema version. Dumping first exception.", firstException);
+			}
 			cachedVersion = ActiveDirectorySchemaVersion.UNKNOWN;
 		}
 
