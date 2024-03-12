@@ -1122,7 +1122,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 		} else if (reason.equals("80090308") && "775".equals(dep.getData())) {
 			throw new ConnectorException("Your account is locked");
 		} else if (reason.equals("00000005") && "0".equals(dep.getData())) {
-			throw new ConnectorException("The administrator does not allow you to change your password.");
+			throw new ConnectorException("Password change not allowed for this account. Check 'User Cannot Change Password' in your Active Directory.");
 		}
 
 		/**
