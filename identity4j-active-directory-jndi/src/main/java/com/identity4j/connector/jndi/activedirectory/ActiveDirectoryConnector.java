@@ -60,6 +60,7 @@ import javax.naming.ldap.Rdn;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -807,6 +808,61 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 			directoryIdentity.getAccountStatus().setDisabled(false);
 			directoryIdentity.getAccountStatus().calculateType();
 
+		} catch (NamingException e) {
+			processNamingException(e);
+			throw new IllegalStateException("Unreachable code");
+		} catch (IOException e) {
+			throw new ConnectorException(e.getMessage(), e);
+		}
+
+	}
+	
+	public void removePassNotReqUserControlFlag(Identity identity) throws ConnectorException {
+		try {
+			
+			if (!(identity instanceof DirectoryIdentity)) {
+				throw new IllegalArgumentException("May only disable LDAP identities.");
+			}
+			
+			DirectoryIdentity directoryIdentity = (DirectoryIdentity) identity;
+			
+			Name userDn = directoryIdentity.getDn();
+			
+			Attributes attributes = ldapService.getAttributes(userDn);
+			
+			Attribute attribute = attributes.get(USER_ACCOUNT_CONTROL_ATTRIBUTE);
+			
+			if (attribute != null) {
+				
+				Object attributeValue = attribute.get();
+				
+				if (attributeValue == null || !NumberUtils.isDigits(attributeValue.toString())) {
+					LOG.info(String.format("The account with DN's '%s' userAccountControl flag is null or is not digits, cannot proceed.",
+							userDn));
+					return;
+				}
+				
+				Integer value = Integer.parseInt(attributeValue.toString());
+				
+				if (UserAccountControl.isValueSet(value, 
+						UserAccountControl.PASSWD_NOTREQD_FLAG)) {
+					
+					LOG.info(String.format("The account with DN %s has password not required flag set.", userDn));
+					
+					int valueWithoutPassNoReq = value & (UserAccountControl.PASSWD_NOTREQD_FLAG ^ Integer.MAX_VALUE);
+					
+					Collection<ModificationItem> items = new ArrayList<ModificationItem>();
+					items.add(new ModificationItem(DirContext.REPLACE_ATTRIBUTE, new BasicAttribute(
+							USER_ACCOUNT_CONTROL_ATTRIBUTE,
+							String.valueOf(valueWithoutPassNoReq))));
+
+					ldapService.update(((DirectoryIdentity) identity).getDn(),
+							items.toArray(new ModificationItem[items.size()]));
+					
+				}
+				
+			}
+			
 		} catch (NamingException e) {
 			processNamingException(e);
 			throw new IllegalStateException("Unreachable code");
