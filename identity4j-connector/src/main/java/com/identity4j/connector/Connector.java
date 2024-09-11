@@ -248,7 +248,7 @@ public interface Connector<P extends ConnectorConfigurationParameters> extends C
 	 * @throws ConnectorException on all other errors
 	 */
 	default Identity getIdentityByName(String identityName) throws PrincipalNotFoundException, ConnectorException {
-		return getIdentityByName(identityName);
+		return getIdentityByName(identityName, true);
 	}
 
 	/**
