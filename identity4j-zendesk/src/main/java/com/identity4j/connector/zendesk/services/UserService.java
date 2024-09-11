@@ -100,7 +100,6 @@ public class UserService extends AbstractRestAPIService{
 		
 	}
 	
-	
 	/**
 	 * This method retrieves an instance of User corresponding to provided user email.
 	 * If user is not found in data store it throws PrincipalNotFoundException
@@ -112,6 +111,20 @@ public class UserService extends AbstractRestAPIService{
 	 * @return
 	 */
 	public User getByName(String email){
+		return getByName(email, true);
+	}
+	
+	/**
+	 * This method retrieves an instance of User corresponding to provided user email.
+	 * If user is not found in data store it throws PrincipalNotFoundException
+	 * <br/>
+	 * This method makes use of <b>Zendesk Search API</b> for fetching User.
+	 * 
+	 * @param email
+	 * @throws PrincipalNotFoundException
+	 * @return
+	 */
+	public User getByName(String email, boolean withGroups){
 		HttpResponse response = httpRequestHandler.handleRequestGet(constructURI("search","query=type:user email:" + email), getHeaders().toArray(new HttpPair[0]));
 		try {
 			if(response.status().getCode() == 404){
@@ -127,8 +140,10 @@ public class UserService extends AbstractRestAPIService{
 			
 			User user = JsonMapperService.getInstance().convert(records.get(0), User.class);
 			
-			GroupMemberships groupMemberships = groupService.getGroupMembershipsForUser(user.getId());
-			user.setGroupMemberships(groupMemberships);
+			if(withGroups) {
+				GroupMemberships groupMemberships = groupService.getGroupMembershipsForUser(user.getId());
+				user.setGroupMemberships(groupMemberships);
+			}
 			return user;
 		}
 		finally {

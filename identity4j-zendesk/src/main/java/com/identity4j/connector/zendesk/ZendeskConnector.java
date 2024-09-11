@@ -230,9 +230,9 @@ public class ZendeskConnector extends AbstractConnector<ZendeskConfiguration> {
 	 * @return Identity instance found by the specified principal name.
 	 */
 	@Override
-	public Identity getIdentityByName(String name)
+	public Identity getIdentityByName(String name, boolean withGroups)
 			throws PrincipalNotFoundException, ConnectorException {
-		User user = directory.users().getByName(name);
+		User user = directory.users().getByName(name, withGroups);
 		return ZendeskModelConvertor.getInstance().convertZendeskUserToZendeskIdentity(user);
 	}
 	
