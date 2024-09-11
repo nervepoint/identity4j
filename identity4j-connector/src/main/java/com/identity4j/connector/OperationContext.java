@@ -13,7 +13,13 @@ public interface OperationContext {
 
 	UserGroupRelationshipCache getRelationshipCache();
 	
+	boolean isGroups();
+
 	static OperationContext createDefault(OperationContext delegate, String newTag) {
+		return createDefault(delegate, newTag, true);
+	}
+	
+	static OperationContext createDefault(OperationContext delegate, String newTag, boolean withGroups) {
 		return new OperationContext() {
 			
 			@Override
@@ -25,6 +31,11 @@ public interface OperationContext {
 			public UserGroupRelationshipCache getRelationshipCache() {
 				return delegate.getRelationshipCache();
 			}
+
+			@Override
+			public boolean isGroups() {
+				return withGroups;
+			}
 		};
 	}
 	
@@ -33,6 +44,10 @@ public interface OperationContext {
 	}
 
 	static OperationContext createDefault() {
+		return createDefault(true);
+	}
+
+	static OperationContext createDefault(boolean withGroups) {
 		return new OperationContext() {
 			private UserGroupRelationshipCache cache = new UserGroupRelationshipCache();
 
@@ -44,6 +59,11 @@ public interface OperationContext {
 			@Override
 			public UserGroupRelationshipCache getRelationshipCache() {
 				return cache;
+			}
+
+			@Override
+			public boolean isGroups() {
+				return withGroups;
 			}
 		};
 	}

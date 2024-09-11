@@ -321,7 +321,7 @@ public class AwsConnector extends AbstractConnector<AwsConfiguration> {
 	}
 	
 	@Override
-	public Identity getIdentityByName(String name) throws PrincipalNotFoundException, ConnectorException {
+	public Identity getIdentityByName(String name, boolean withGroups) throws PrincipalNotFoundException, ConnectorException {
 		
 		log.info(String.format("Fetch identity for principal name %s", name));
 		
@@ -340,14 +340,16 @@ public class AwsConnector extends AbstractConnector<AwsConfiguration> {
 			
 			Identity identity = AwsModelConverter.userToAwsIdentity(user);
 			
-			Map<String, String> optionsForUserGroups = new HashMap<>();
-			optionsForUserGroups.put("userName", name);
-			
-			Iterator<Group> iteratorGroup = new RequestResultIterator<>(ListGroupsForUserRequestCommand.class, client, optionsForUserGroups);
-			while(iteratorGroup.hasNext()) {
-				Group group = iteratorGroup.next();
-				Role role = AwsModelConverter.groupToRole(group);
-				identity.addRole(role);
+			if(withGroups) {
+				Map<String, String> optionsForUserGroups = new HashMap<>();
+				optionsForUserGroups.put("userName", name);
+				
+				Iterator<Group> iteratorGroup = new RequestResultIterator<>(ListGroupsForUserRequestCommand.class, client, optionsForUserGroups);
+				while(iteratorGroup.hasNext()) {
+					Group group = iteratorGroup.next();
+					Role role = AwsModelConverter.groupToRole(group);
+					identity.addRole(role);
+				}
 			}
 
 			Map<String, String> optionsForUserPolicies = new HashMap<>();

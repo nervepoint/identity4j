@@ -233,7 +233,7 @@ public class SalesforceConnector extends AbstractConnector<SalesforceConfigurati
 	 * @return Identity instance found by the specified principal name.
 	 */
 	@Override
-	public Identity getIdentityByName(String name)
+	public Identity getIdentityByName(String name, boolean withGruops)
 			throws PrincipalNotFoundException, ConnectorException {
 		User user = directory.users().getByName(name);
 		Identity identity = SalesforceModelConvertor.getInstance().convertSalesforceUserToSalesforceIdentity(user);

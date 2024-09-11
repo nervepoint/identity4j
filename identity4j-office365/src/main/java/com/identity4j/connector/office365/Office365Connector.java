@@ -745,8 +745,8 @@ public class Office365Connector extends AbstractConnector<Office365Configuration
 	 * @return Identity instance found by the specified email id/principal name.
 	 */
 	@Override
-	public Identity getIdentityByName(String name) throws PrincipalNotFoundException, ConnectorException {
-		User user = directory.users().get(name);
+	public Identity getIdentityByName(String name, boolean withGroups) throws PrincipalNotFoundException, ConnectorException {
+		User user = directory.users().get(name, withGroups);
 		return Office365ModelConvertor.convertOffice365UserToOfficeIdentity(user);
 	}
 

@@ -142,7 +142,7 @@ public class AbstractScriptConnector<P extends AbstractScriptConfiguration> exte
 	}
 
 	@Override
-	public Identity getIdentityByName(String name) throws PrincipalNotFoundException, ConnectorException {
+	public Identity getIdentityByName(String name, boolean withGroups) throws PrincipalNotFoundException, ConnectorException {
 		try {
 			Identity identity = (Identity) ((Invocable) engine).invokeFunction("getIdentityByName", name);
 			if (identity == null) {

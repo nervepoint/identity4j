@@ -219,10 +219,11 @@ public class As400Connector extends AbstractConnector<As400Configuration> {
 	 * 
 	 * @param principal
 	 *            name
+	 * @param withGroups with grups
 	 * @return identity
 	 */
 	@Override
-	public Identity getIdentityByName(final String principalName)
+	public Identity getIdentityByName(final String principalName, boolean withGroups)
 			throws PrincipalNotFoundException, ConnectorException {
 		if (principalName.length() > 10) {
 			throw new PrincipalNotFoundException(
@@ -235,7 +236,7 @@ public class As400Connector extends AbstractConnector<As400Configuration> {
 				if (!user.exists()) {
 					throw new PrincipalNotFoundException("Identity not found = '" + principalName + "'");
 				}
-				return mapUserToIdentity(user);
+				return mapUserToIdentity(user, withGroups);
 			}
 		}.execute();
 	}
@@ -257,7 +258,7 @@ public class As400Connector extends AbstractConnector<As400Configuration> {
 			@Override
 			public Identity next() {
 				User nextElement = users.nextElement();
-				return mapUserToIdentity(nextElement);
+				return mapUserToIdentity(nextElement, true);
 			}
 
 			@Override
@@ -276,9 +277,10 @@ public class As400Connector extends AbstractConnector<As400Configuration> {
 	 * Translate between system user to internal identity
 	 * 
 	 * @param user
+	 * @param withGroups with groups
 	 * @return identity
 	 */
-	private Identity mapUserToIdentity(final User user) {
+	private Identity mapUserToIdentity(final User user, boolean withGroups) {
 		return new As400Callback<Identity>() {
 			@Override
 			protected Identity executeInCallback() throws Exception {
@@ -315,23 +317,26 @@ public class As400Connector extends AbstractConnector<As400Configuration> {
 				accountStatus.setExpire(user.getUserExpirationDate());
 				accountStatus.setDisabled("*DISABLED".equals(user.getStatus()));
 				accountStatus.calculateType();
+				
+				if(withGroups) {
 
-				// group is represented as a profile just like user. To retrieve
-				// guid for group you need to interrogate it
-				String groupName = user.getGroupProfileName();
-
-				// as long as user has a group then retrieve its guid
-				if (!StringUtil.isNullOrEmpty(groupName) && !groupName.equals(User.NONE)) {
-					UserGroup nativeGroup = new UserGroup(as400, groupName);
-					String groupId = String.valueOf(nativeGroup.getUserID());
-					identity.addRole(new As400Role(nativeGroup, groupId, groupName));
-				}
-
-				// other groups
-				for (String g : user.getSupplementalGroups()) {
-					UserGroup nativeGroup = new UserGroup(as400, g);
-					String groupId = String.valueOf(nativeGroup.getUserID());
-					identity.addRole(new As400Role(nativeGroup, groupId, groupName));
+					// group is represented as a profile just like user. To retrieve
+					// guid for group you need to interrogate it
+					String groupName = user.getGroupProfileName();
+	
+					// as long as user has a group then retrieve its guid
+					if (!StringUtil.isNullOrEmpty(groupName) && !groupName.equals(User.NONE)) {
+						UserGroup nativeGroup = new UserGroup(as400, groupName);
+						String groupId = String.valueOf(nativeGroup.getUserID());
+						identity.addRole(new As400Role(nativeGroup, groupId, groupName));
+					}
+	
+					// other groups
+					for (String g : user.getSupplementalGroups()) {
+						UserGroup nativeGroup = new UserGroup(as400, g);
+						String groupId = String.valueOf(nativeGroup.getUserID());
+						identity.addRole(new As400Role(nativeGroup, groupId, groupName));
+					}
 				}
 
 				// add group to memberOf attribute

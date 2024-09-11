@@ -675,9 +675,9 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 	}
 
 	@Override
-	public final Identity getIdentityByName(String identityName) throws PrincipalNotFoundException, ConnectorException {
+	public final Identity getIdentityByName(String identityName, boolean withGroups) throws PrincipalNotFoundException, ConnectorException {
 		Filter identityFilter = buildIdentityFilter(identityName);
-		return getPrincipal(identityFilter.encode(), getIdentities(identityFilter, OperationContext.createDefault()));
+		return getPrincipal(identityFilter.encode(), getIdentities(identityFilter, OperationContext.createDefault(withGroups)));
 	}
 
 	@Override

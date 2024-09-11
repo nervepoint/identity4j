@@ -1296,7 +1296,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 		final Map<Long, ActiveDirectoryGroup> groupsByRID = new HashMap<Long, ActiveDirectoryGroup>();
 		final Map<String, List<String>> userGroups = new HashMap<String, List<String>>();
 
-		if (config.isEnableRoles()) {
+		if (opContext.isGroups() && config.isEnableRoles()) {
 			Iterator<Role> it = getRoles(buildRoleFilter(WILDCARD_SEARCH, true), config.isCacheFilteredGroups(), opContext);
 			LOG.info(String.format("Pre-caching roles (%s)", config.isCacheFilteredGroups() ? "using filtered groups for cache" : "using unfiltered groups for cache"));
 			while (it.hasNext()) {
@@ -1504,7 +1504,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 								trimDate(new Date(accountStatus.getLocked().getTime() - (lockoutDuration / 1000))));
 					}
 
-					if (config.isEnableRoles()) {
+					if (opContext.isGroups() && config.isEnableRoles()) {
 						ActiveDirectoryGroup primaryGroup = null;
 						try {
 							Long rid = Long

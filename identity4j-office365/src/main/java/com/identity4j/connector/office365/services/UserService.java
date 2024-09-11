@@ -51,6 +51,19 @@ public class UserService extends AbstractRestAPIService {
 	 * @return
 	 */
 	public User get(final String objectId) {
+		return get(objectId, true);
+	}
+
+	/**
+	 * This method retrieves an instance of User corresponding to provided
+	 * object id or user principal name. If user is not found in data store it
+	 * throws PrincipalNotFoundException
+	 * 
+	 * @param objectId/userPrincipalName
+	 * @throws PrincipalNotFoundException
+	 * @return
+	 */
+	public User get(final String objectId, boolean withGroups) {
 
 		User user = null;
 		
@@ -71,7 +84,8 @@ public class UserService extends AbstractRestAPIService {
 			String json = response.contentString();
 			user = JsonMapperService.getInstance().getObject(User.class, json);
 
-			probeGroupsAndRoles(user);
+			if(withGroups)
+				probeGroupsAndRoles(user);
 			log.info(String.format("User %s (%s) has %d roles, membmer of %d", user.getUserPrincipalName(), objectId, user.getRoles().size(), user.getMemberOf().size()));
 			return user;
 		} finally {

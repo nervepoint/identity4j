@@ -344,7 +344,7 @@ public class GoogleConnector extends AbstractConnector<GoogleConfiguration> {
 	 * @return Identity instance found by the specified email id/principal name.
 	 */
 	@Override
-	public Identity getIdentityByName(String name) throws PrincipalNotFoundException, ConnectorException {
+	public Identity getIdentityByName(String name, boolean withGroups) throws PrincipalNotFoundException, ConnectorException {
 		if (log.isInfoEnabled()) {
 			log.info("Get google identity " + name);
 		}
@@ -352,7 +352,7 @@ public class GoogleConnector extends AbstractConnector<GoogleConfiguration> {
 			checkRequestInterval();
 			User user = directory.users().get(name).execute();
 			GoogleIdentity identity = GoogleModelConvertor.googleUserToGoogleIdentity(user);
-			if (getConfiguration().getFetchRoles()) {
+			if (withGroups && getConfiguration().getFetchRoles()) {
 				List<Role> roles = findAllRolesForAUser(user.getPrimaryEmail());
 				identity.setRoles(roles);
 			}

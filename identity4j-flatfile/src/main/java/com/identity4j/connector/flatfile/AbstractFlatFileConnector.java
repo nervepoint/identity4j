@@ -198,7 +198,7 @@ public class AbstractFlatFileConnector<P extends AbstractFlatFileConfiguration> 
 	}
 
 	@Override
-	public Identity getIdentityByName(String keyFieldValue) {
+	public Identity getIdentityByName(String keyFieldValue, boolean withGroups) {
 		checkLoaded();
 		Identity identity = identityMap.get(keyFieldValue);
 		if (identity == null) {

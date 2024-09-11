@@ -120,6 +120,7 @@ public class UserService extends AbstractRestAPIService{
 			response.release();
 		}
 	}
+
 	
 	
 	/**
@@ -133,6 +134,21 @@ public class UserService extends AbstractRestAPIService{
 	 * @return
 	 */
 	public User getByName(String name){
+		return getByName(name, true);
+	}
+	
+	/**
+	 * This method retrieves an instance of User corresponding to provided user name.
+	 * If user is not found in data store it throws PrincipalNotFoundException
+	 * <br />
+	 * This method makes use of <b>Salesforce Object Query Language</b> for fetching group.
+	 * 
+	 * @param name
+	 * @param withGroups 
+	 * @throws PrincipalNotFoundException
+	 * @return
+	 */
+	public User getByName(String name, boolean withGroups){
 		HttpResponse response = httpRequestHandler.handleRequestGet(
 				constructSOQLURI(String.format(
 						serviceConfiguration.getGetByNameUserQuery(),
@@ -152,7 +168,8 @@ public class UserService extends AbstractRestAPIService{
 			
 			User user = JsonMapperService.getInstance().convert(records.get(0), User.class);
 			
-			probeGroupMembers(user);
+			if(withGroups)
+				probeGroupMembers(user);
 			
 			return user;
 		}

@@ -247,7 +247,21 @@ public interface Connector<P extends ConnectorConfigurationParameters> extends C
 	 * @throws PrincipalNotFoundException if the identity could not be found
 	 * @throws ConnectorException on all other errors
 	 */
-	Identity getIdentityByName(String identityName) throws PrincipalNotFoundException, ConnectorException;
+	default Identity getIdentityByName(String identityName) throws PrincipalNotFoundException, ConnectorException {
+		return getIdentityByName(identityName);
+	}
+
+	/**
+	 * Get the account details that belong to the given {@link Identity}
+	 * identity name.
+	 * 
+	 * @param identityName
+	 * @param withGroups 
+	 * @return identity
+	 * @throws PrincipalNotFoundException if the identity could not be found
+	 * @throws ConnectorException on all other errors
+	 */
+	Identity getIdentityByName(String identityName, boolean withGrups) throws PrincipalNotFoundException, ConnectorException;
 
 	/**
 	 * Get an account from its GUID.

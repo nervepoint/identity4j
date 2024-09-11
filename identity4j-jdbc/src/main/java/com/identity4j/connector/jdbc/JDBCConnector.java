@@ -142,7 +142,7 @@ public abstract class JDBCConnector<P extends ConnectorConfigurationParameters> 
 		return ResultIterator.createDefault(identities.iterator(), opContext.getTag());
 	}
 
-	public Identity getIdentityByName(String name) throws PrincipalNotFoundException, ConnectorException {
+	public Identity getIdentityByName(String name, boolean withGroups) throws PrincipalNotFoundException, ConnectorException {
 		String sql = configuration.getSelectIdentitySQL(name);
 		if (sql.equals("")) {
 			return super.getIdentityByName(name);
