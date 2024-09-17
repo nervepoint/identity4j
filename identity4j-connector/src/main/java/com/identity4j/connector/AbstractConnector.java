@@ -229,10 +229,9 @@ public abstract class AbstractConnector<P extends ConnectorConfigurationParamete
 	 * @throws PrincipalNotFoundException
 	 * @throws {@link ConnectorException}
 	 */
-	public Identity getIdentityByName(String name) throws PrincipalNotFoundException, ConnectorException {
+	public Identity getIdentityByName(String name, boolean withGroups) throws PrincipalNotFoundException, ConnectorException {
 		for (Iterator<Identity> identityIterator = allIdentities(OperationContext.createDefault()); identityIterator.hasNext();) {
 			Identity identity = identityIterator.next();
-			System.out.println(">> " + identity.getPrincipalName() + "/" + identity.getGuid() + " against " + name);
 			if (identity.getPrincipalName().equals(name)) {
 				return identity;
 			}
