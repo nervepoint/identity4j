@@ -84,9 +84,11 @@ public class UserService extends AbstractRestAPIService {
 			String json = response.contentString();
 			user = JsonMapperService.getInstance().getObject(User.class, json);
 
-			if(withGroups)
+			if(withGroups) {
 				probeGroupsAndRoles(user);
-			log.info(String.format("User %s (%s) has %d roles, membmer of %d", user.getUserPrincipalName(), objectId, user.getRoles().size(), user.getMemberOf().size()));
+				log.info(String.format("User %s (%s) has %d roles, membmer of %d", user.getUserPrincipalName(), objectId, user.getRoles().size(), user.getMemberOf().size()));
+			}
+			
 			return user;
 		} finally {
 			response.release();
@@ -267,6 +269,32 @@ public class UserService extends AbstractRestAPIService {
 		}
 		else
 			checkResponse(response, 204);
+
+	}
+	
+	/**
+	 * Logs off a user by revoking tokens associated with the user.
+	 * 
+	 * @param user
+	 * 
+	 * @throws ConnectorException
+	 *             for service related exception.
+	 */
+	public void logoff(final User user) {
+		
+		
+		HttpResponse response = retryIfTokenFails(new Callable<HttpResponse>() {
+			@Override
+			public HttpResponse call() throws Exception {
+				return httpRequestHandler.handleRequestPost(
+						constructURI(String.format("/users/%s/revokeSignInSessions", user.getId()), null),
+						null,
+						getHeaders().toArray(new HttpPair[0])
+					);
+			}
+		});
+		
+		checkResponse(response, 200);
 
 	}
 

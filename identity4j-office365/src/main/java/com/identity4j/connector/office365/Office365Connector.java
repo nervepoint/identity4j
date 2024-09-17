@@ -885,6 +885,12 @@ public class Office365Connector extends AbstractConnector<Office365Configuration
 	}
 
 	@Override
+	public void logoff(Identity identity) throws PrincipalNotFoundException, ConnectorException {
+		User user = Office365ModelConvertor.covertOfficeIdentityToOffice365User(identity);
+		directory.users().logoff(user);
+	}
+	
+	@Override
 	protected boolean areCredentialsValid(Identity identity, char[] password) throws ConnectorException {
 		try {
 			IdentityClientBuilder idcb = new IdentityClientBuilder();

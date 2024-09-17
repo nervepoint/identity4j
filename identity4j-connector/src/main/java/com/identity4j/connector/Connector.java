@@ -108,6 +108,15 @@ public interface Connector<P extends ConnectorConfigurationParameters> extends C
 	 */
 	Identity logon(String username, char[] password) throws PrincipalNotFoundException, InvalidLoginCredentialsException,
 			ConnectorException;
+	
+	/**
+	 * Revokes any session related data/cookies/tokens for the user.
+	 * 
+	 * @param identity
+	 * @throws PrincipalNotFoundException
+	 * @throws ConnectorException
+	 */
+	void logoff(Identity identity) throws PrincipalNotFoundException, ConnectorException;
 
 	/**
 	 * Start authenticating a user using an authentication API.

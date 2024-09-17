@@ -91,6 +91,14 @@ public abstract class AbstractConnector<P extends ConnectorConfigurationParamete
 		assertValidCredentials(identity, password);
 		return identity;
 	}
+	
+	/**
+	 * Default operation does nothing, for customisations add logic in implementing connector if it supports
+	 * logoff api.
+	 */
+	@Override
+	public void logoff(Identity identity) throws PrincipalNotFoundException, ConnectorException {
+	}
 
 	private void assertValidCredentials(Identity identity, char[] password) throws ConnectorException,
 			InvalidLoginCredentialsException {
