@@ -545,19 +545,21 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 			}
 
 			// Update roles
-			List<Role> toRemove = new ArrayList<Role>(Arrays.asList(oldIdentity.getRoles()));
-			List<Role> toAdd = new ArrayList<Role>(Arrays.asList(identity.getRoles()));
-			toRemove.removeAll(Arrays.asList(identity.getRoles()));
-			toAdd.removeAll(Arrays.asList(oldIdentity.getRoles()));
-
-			for (Role r : toRemove) {
-				if (isIncluded(r.getAttribute(getConfiguration().getDistinguishedNameAttribute()))) {
-					revokeRole(usersDn, r);
+			if(config.isEnableRoles()) {
+				List<Role> toRemove = new ArrayList<Role>(Arrays.asList(oldIdentity.getRoles()));
+				List<Role> toAdd = new ArrayList<Role>(Arrays.asList(identity.getRoles()));
+				toRemove.removeAll(Arrays.asList(identity.getRoles()));
+				toAdd.removeAll(Arrays.asList(oldIdentity.getRoles()));
+	
+				for (Role r : toRemove) {
+					if (isIncluded(r.getAttribute(getConfiguration().getDistinguishedNameAttribute()))) {
+						revokeRole(usersDn, r);
+					}
 				}
-			}
-
-			for (Role r : toAdd) {
-				assignRole(usersDn, r);
+	
+				for (Role r : toAdd) {
+					assignRole(usersDn, r);
+				}
 			}
 
 			String cnAttr = getConfiguration().getIdentityCNAttribute();
