@@ -388,7 +388,25 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 	@Override
 	public final ResultIterator<Role> allRoles(OperationContext opContext) throws ConnectorException {
 		try {
-			return new USNWrapperIterator<Role>(getRoles(createTagFilter(buildRoleFilter(WILDCARD_SEARCH, true), opContext.getTag()), true, opContext));
+			if(getConfiguration().isEnableRoles())
+				return new USNWrapperIterator<Role>(getRoles(createTagFilter(buildRoleFilter(WILDCARD_SEARCH, true), opContext.getTag()), true, opContext));
+			else
+				return new ResultIterator<Role>() {
+					@Override
+					public String tag() {
+						return opContext.getTag();
+					}
+					
+					@Override
+					public Role next() {
+						throw new IllegalStateException();
+					}
+					
+					@Override
+					public boolean hasNext() {
+						return false;
+					}
+				};
 		} catch (NamingException e) {
 			throw new ConnectorException(processNamingException(e), e);
 		} catch (IOException e) {
@@ -500,6 +518,10 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 	public void updateRole(final Role role) throws ConnectorException {
 
 		try {
+			if(!getConfiguration().isEnableRoles()) {
+				throw new UnsupportedOperationException("Roles are not enabled.");
+			}
+			
 			List<ModificationItem> modificationItems = new ArrayList<ModificationItem>();
 			Role oldRole = getRoleByName(role.getPrincipalName());
 
@@ -581,6 +603,9 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 
 		try {
 			final ActiveDirectoryConfiguration config = getActiveDirectoryConfiguration();
+			if(!config.isEnableRoles()) {
+				throw new UnsupportedOperationException("Roles are not enabled.");
+			}
 
 			// OU may have been provided
 			String roleOU = role.getAttribute(OU_ATTRIBUTE);
@@ -1668,7 +1693,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 					}
 				}
 				else {
-					LOG.info("Ignoring " + dnKey + " because it is not included in the main DN filter.");
+					LOG.debug("Ignoring " + dnKey + " because it is not included in the main DN filter.");
 				}
 			} catch (Exception ex) {
 				LOG.info("Ignoring " + dnKey + " because of " + ex.getMessage());

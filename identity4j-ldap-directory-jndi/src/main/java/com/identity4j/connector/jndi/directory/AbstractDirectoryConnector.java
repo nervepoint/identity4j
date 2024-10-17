@@ -144,6 +144,9 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 	@Override
 	public void deleteRole(String roleName) throws ConnectorException {
 		try {
+			if(!getConfiguration().isEnableRoles()) {
+				throw new UnsupportedOperationException("Roles are not enabled.");
+			}
 			Role role = getRoleByName(roleName);
 			String roleOU = role.getAttribute(getConfiguration().getDistinguishedNameAttribute());
 			ldapService.unbind(new LdapName(roleOU));
