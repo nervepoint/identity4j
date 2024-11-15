@@ -766,7 +766,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 		try {
 			Collection<ModificationItem> items = new ArrayList<ModificationItem>();
 			items.add(new ModificationItem(DirContext.REPLACE_ATTRIBUTE, new BasicAttribute(LOCKOUT_TIME_ATTRIBUTE,
-					String.valueOf(ActiveDirectoryDateUtil.javaDataToADTime(new Date())))));
+					String.valueOf(ActiveDirectoryDateUtil.javaDateToADTime(new Date())))));
 			ldapService.update(((DirectoryIdentity) identity).getDn(),
 					items.toArray(new ModificationItem[items.size()]));
 			identity.getAccountStatus().lock();
@@ -1755,7 +1755,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 		if (age == 0) {
 			return null;
 		} else {
-			Calendar cal = Calendar.getInstance();
+			Calendar cal = Util.getCalendarUTC();
 			if (date != null) {
 				cal.setTime(date);
 				cal.add(Calendar.DAY_OF_YEAR, age);
@@ -1880,7 +1880,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 		if (date == null) {
 			return null;
 		}
-		Calendar cal = Calendar.getInstance();
+		Calendar cal = Util.getCalendarUTC();
 		cal.setTime(date);
 		if (cal.get(Calendar.YEAR) > 3999) {
 			cal.setTimeInMillis(0);
