@@ -25,8 +25,8 @@
 		
 		<jackson.version>2.10.5</jackson.version>
 		
-        <build.projectProperties>${basedir}/hypersocket.build.properties</build.projectProperties>
-        <build.userProperties>${user.home}/.hypersocket.build.properties</build.userProperties>
+        <build.projectProperties>${basedir}/nervepoint.build.properties</build.projectProperties>
+        <build.userProperties>${user.home}/.nervepoint.build.properties</build.userProperties>
 	</properties>
 
 	<modelVersion>4.0.0</modelVersion>
