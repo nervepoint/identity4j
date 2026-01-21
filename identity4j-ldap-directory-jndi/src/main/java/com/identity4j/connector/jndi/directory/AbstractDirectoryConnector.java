@@ -28,10 +28,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
 import java.util.StringTokenizer;
@@ -61,7 +63,11 @@ import com.identity4j.connector.BrowseNode;
 import com.identity4j.connector.BrowseableConnector;
 import com.identity4j.connector.ConnectorCapability;
 import com.identity4j.connector.Media;
+import com.identity4j.connector.OperationContext;
 import com.identity4j.connector.PasswordCreationCallback;
+import com.identity4j.connector.ResultIterator;
+import com.identity4j.connector.UserGroupRelationshipCache.GroupKey;
+import com.identity4j.connector.UserGroupRelationshipCache.KeyType;
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.exception.InvalidLoginCredentialsException;
 import com.identity4j.connector.exception.PrincipalNotFoundException;
@@ -78,7 +84,8 @@ import com.identity4j.util.Util;
 import com.identity4j.util.crypt.EncoderException;
 import com.identity4j.util.crypt.impl.DefaultEncoderManager;
 
-public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration> extends AbstractConnector<P> implements BrowseableConnector<P> {
+public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration> extends AbstractConnector<P>
+		implements BrowseableConnector<P> {
 
 	protected static final Iterator<Identity> IDENTITY_ITERATOR = CollectionUtil.emptyIterator(Identity.class);
 	protected static final Iterator<Role> ROLE_ITERATOR = CollectionUtil.emptyIterator(Role.class);
@@ -137,6 +144,9 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 	@Override
 	public void deleteRole(String roleName) throws ConnectorException {
 		try {
+			if(!getConfiguration().isEnableRoles()) {
+				throw new UnsupportedOperationException("Roles are not enabled.");
+			}
 			Role role = getRoleByName(roleName);
 			String roleOU = role.getAttribute(getConfiguration().getDistinguishedNameAttribute());
 			ldapService.unbind(new LdapName(roleOU));
@@ -211,7 +221,7 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 			}
 
 			identity.setAttribute(OU_ATTRIBUTE, "");
-			
+
 			LdapName userDn = new LdapName(usersDn.toString());
 			String principalName = identity.getPrincipalName();
 
@@ -284,8 +294,7 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 				if (getCoreIdentityAttributes().contains(entry.getKey())) {
 					continue;
 				}
-				if(entry.getKey().equals(getEmailAttribute())
-						|| entry.getKey().equals(getMobileAttribute())) {
+				if (entry.getKey().equals(getConfiguration().getIdentityEmailAttribute()) || entry.getKey().equals(getConfiguration().getIdentityMobileAttribute())) {
 					continue;
 				}
 				String[] value = entry.getValue();
@@ -302,22 +311,31 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 					}
 				}
 			}
-			
-			if(StringUtils.isNotBlank(identity.getAddress(Media.email))) {
-				attributes.add(new BasicAttribute(getEmailAttribute(), identity.getAddress(Media.email)));
+
+			if (StringUtils.isNotBlank(identity.getAddress(Media.email))) {
+				attributes.add(new BasicAttribute(getConfiguration().getIdentityEmailAttribute(), identity.getAddress(Media.email)));
 			}
-			
-			if(StringUtils.isNotBlank(identity.getAddress(Media.mobile))) {
-				attributes.add(new BasicAttribute(getMobileAttribute(), identity.getAddress(Media.mobile)));
+
+			if (StringUtils.isNotBlank(identity.getAddress(Media.mobile))) {
+				attributes.add(new BasicAttribute(getConfiguration().getIdentityMobileAttribute(), identity.getAddress(Media.mobile)));
 			}
-			
+
 			BasicAttribute objectClassAttributeValues = new BasicAttribute(OBJECT_CLASS_ATTRIBUTE);
 			for (String objectClass : getIdentityCreationObjectClasses(identity)) {
 				objectClassAttributeValues.add(objectClass);
 			}
 
 			attributes.add(objectClassAttributeValues);
-			attributes.add(new BasicAttribute(COMMON_NAME_ATTRIBUTE, identity.getFullName()));
+			
+			if(getConfiguration().getIdentityCNAttribute().equals("principalName")) {
+				attributes.add(new BasicAttribute(COMMON_NAME_ATTRIBUTE, identity.getPrincipalName()));
+			}
+			else if(getConfiguration().getIdentityCNAttribute().equals("fullName")) {
+				attributes.add(new BasicAttribute(COMMON_NAME_ATTRIBUTE, identity.getFullName()));
+			}
+			else {
+				attributes.add(new BasicAttribute(COMMON_NAME_ATTRIBUTE, identity.getAttributeOrDefault(getConfiguration().getIdentityCNAttribute(), identity.getPrincipalName())));;
+			}
 
 			String upn = finaliseCreate(identity, principalName, attributes);
 
@@ -387,14 +405,6 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 		return RESERVED_ATTRIBUTES_FOR_CREATION;
 	}
 
-	protected String getEmailAttribute() {
-		return "mail";
-	}
-	
-	protected String getMobileAttribute() {
-		return "mobile";
-	}
-	
 	protected List<ModificationItem> getCreationPasswordModificationItems(char[] password,
 			final DirectoryConfiguration config) throws EncoderException {
 		List<ModificationItem> items = new ArrayList<ModificationItem>();
@@ -459,7 +469,7 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 	protected boolean isIncluded(String dn) throws InvalidNameException {
 		return isIncluded(new LdapName(dn));
 	}
-	
+
 	protected boolean isIncluded(Name dn) {
 		Name baseDn = getConfiguration().getBaseDn();
 		if (!dn.toString().toLowerCase().endsWith(baseDn.toString().toLowerCase())) {
@@ -486,7 +496,7 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 
 		return included;
 	}
-	
+
 	@Override
 	public void updateIdentity(final Identity identity) throws ConnectorException {
 
@@ -499,34 +509,75 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 			// OU may have been provided
 			String identityOU = identity.getAttribute(config.getDistinguishedNameAttribute());
 			LdapName usersDn = new LdapName(identityOU);
-
-			processUserAttributes(modificationItems, oldIdentity, identity);
+			
+			Map<String, String[]> newAttributes = new HashMap<>(identity.getAttributes());
+			
+			// The first class "Addresses" take precedence over any attribute with the same name in the
+			// generic attributes. Ideally these should not in fact not be here at all.
+			String emailAttr = getConfiguration().getIdentityEmailAttribute();
+			if (StringUtils.isNotBlank(emailAttr)) {
+				if(identity.getAddress(Media.email) != null) {
+					if(newAttributes.containsKey(emailAttr)) {
+						LOG.warn(String.format("Identity contains both an email 'Address' and an attribute named %s. The address will be used in preference.", emailAttr));
+					}
+					newAttributes.put(emailAttr, new String[] { identity.getAddress(Media.email) });
+				}
+			}
+			String mobileAttr = getConfiguration().getIdentityMobileAttribute();
+			if (StringUtils.isNotBlank(mobileAttr)) {
+				if(identity.getAddress(Media.mobile) != null) {
+					if(newAttributes.containsKey(mobileAttr)) {
+						LOG.warn(String.format("Identity contains both a mobile 'Address' and an attribute named %s. The address will be used in preference.", mobileAttr));
+					}
+					newAttributes.put(mobileAttr, new String[] { identity.getAddress(Media.mobile) });
+				}
+			}
+			String fullNameAttr = getConfiguration().getIdentityFullNameAttribute();
+			if (StringUtils.isNotBlank(fullNameAttr) && StringUtils.isNotBlank(identity.getFullName()) && !fullNameAttr.equals(COMMON_NAME_ATTRIBUTE)) {
+				if(newAttributes.containsKey(fullNameAttr)) {
+					LOG.warn(String.format("Identity contains both a full name and an attribute named %s. The full name will be used in preference.", COMMON_NAME_ATTRIBUTE));
+				}
+				newAttributes.put(fullNameAttr, new String[] { identity.getFullName() });
+			}
+			newAttributes.remove(COMMON_NAME_ATTRIBUTE);
+			
+			processUserAttributes(modificationItems, oldIdentity, newAttributes, identity);
 
 			if (!modificationItems.isEmpty()) {
 				ldapService.update(usersDn, modificationItems.toArray(new ModificationItem[0]));
 			}
 
 			// Update roles
-			List<Role> toRemove = new ArrayList<Role>(Arrays.asList(oldIdentity.getRoles()));
-			List<Role> toAdd = new ArrayList<Role>(Arrays.asList(identity.getRoles()));
-			toRemove.removeAll(Arrays.asList(identity.getRoles()));
-			toAdd.removeAll(Arrays.asList(oldIdentity.getRoles()));
-
-			for (Role r : toRemove) {
-				if(isIncluded(r.getAttribute(getConfiguration().getDistinguishedNameAttribute()))) {
-					revokeRole(usersDn, r);
+			if(config.isEnableRoles()) {
+				List<Role> toRemove = new ArrayList<Role>(Arrays.asList(oldIdentity.getRoles()));
+				List<Role> toAdd = new ArrayList<Role>(Arrays.asList(identity.getRoles()));
+				toRemove.removeAll(Arrays.asList(identity.getRoles()));
+				toAdd.removeAll(Arrays.asList(oldIdentity.getRoles()));
+	
+				for (Role r : toRemove) {
+					if (isIncluded(r.getAttribute(getConfiguration().getDistinguishedNameAttribute()))) {
+						revokeRole(usersDn, r);
+					}
+				}
+	
+				for (Role r : toAdd) {
+					assignRole(usersDn, r);
 				}
 			}
 
-			for (Role r : toAdd) {
-				assignRole(usersDn, r);
-			}
-
-			if (Util.differs(oldIdentity.getFullName(), identity.getFullName())) {
-				LdapName newDN = new LdapName(usersDn.getSuffix(1).toString());
-				newDN.add(0, "CN=" + identity.getFullName());
+			String cnAttr = getConfiguration().getIdentityCNAttribute();
+			if (cnAttr.equals("fullName") && Util.differs(oldIdentity.getFullName(), identity.getFullName())) {
+				LdapName newDN = new LdapName(usersDn.toString());
+				newDN.remove(newDN.size() - 1);
+				newDN.add(newDN.size(), "CN=" + identity.getFullName());
 				ldapService.rename(usersDn, newDN);
-			} else if (Util.differs(oldIdentity.getAttribute(COMMON_NAME_ATTRIBUTE),
+			}
+			else if (cnAttr.equals("principalName") && Util.differs(oldIdentity.getPrincipalName(), identity.getPrincipalName())) {
+				LdapName newDN = new LdapName(usersDn.toString());
+				newDN.remove(newDN.size() - 1);
+				newDN.add(newDN.size(), "CN=" + identity.getPrincipalName());
+				ldapService.rename(usersDn, newDN);
+			} else if (cnAttr.equals(COMMON_NAME_ATTRIBUTE) && Util.differs(oldIdentity.getAttribute(cnAttr),
 					identity.getAttribute(COMMON_NAME_ATTRIBUTE))) {
 				LdapName newDN = new LdapName(usersDn.toString());
 				newDN.remove(newDN.size() - 1);
@@ -537,7 +588,6 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 						+ identity.getAttribute(OU_ATTRIBUTE));
 				ldapService.rename(usersDn, newDN);
 			}
-			
 
 		} catch (NamingException e) {
 			processNamingException(e);
@@ -553,9 +603,9 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 	}
 
 	protected void processUserAttributes(List<ModificationItem> modificationItems, Identity previousState,
-			Identity newState) {
+			Map<String, String[]> newAttributes, Identity newState) {
 
-		for (Map.Entry<String, String[]> entry : newState.getAttributes().entrySet()) {
+		for (Map.Entry<String, String[]> entry : newAttributes.entrySet()) {
 			if (!isExcludeForUserUpdate(entry.getKey())) {
 				if (!previousState.getAttributes().containsKey(entry.getKey())) {
 					// New
@@ -572,7 +622,7 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 					}
 				} else {
 					String[] oldValue = previousState.getAttributes().get(entry.getKey());
-					String[] newValue = newState.getAttributes().get(entry.getKey());
+					String[] newValue = newAttributes.get(entry.getKey());
 					if (!Objects.deepEquals(oldValue, newValue)) {
 
 						String[] value = entry.getValue();
@@ -622,7 +672,7 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 						public boolean isApplyFilters() {
 							return true;
 						}
-					}, ldapService.getSearchControls());
+					}, ldapService.getSearchControls(), OperationContext.createDefault());
 		} catch (NamingException e) {
 			processNamingException(e);
 			throw new IllegalStateException(e.getMessage(), e);
@@ -630,19 +680,20 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 	}
 
 	@Override
-	public final Identity getIdentityByName(String identityName) throws PrincipalNotFoundException, ConnectorException {
+	public final Identity getIdentityByName(String identityName, boolean withGroups) throws PrincipalNotFoundException, ConnectorException {
 		Filter identityFilter = buildIdentityFilter(identityName);
-		return getPrincipal(identityFilter.encode(), getIdentities(identityFilter));
+		return getPrincipal(identityFilter.encode(), getIdentities(identityFilter, OperationContext.createDefault(withGroups)));
 	}
-	
+
 	@Override
 	public final Identity getIdentityByGuid(String identityGuid) throws PrincipalNotFoundException, ConnectorException {
 		Filter identityFilter = buildGuidFilter(identityGuid);
-		return getPrincipal(identityFilter.encode(), getIdentities(identityFilter));
+		return getPrincipal(identityFilter.encode(), getIdentities(identityFilter, OperationContext.createDefault()));
 	}
 
-	public final Iterator<Identity> allIdentities() throws ConnectorException {
-		return getIdentities(buildIdentityFilter(WILDCARD_SEARCH));
+	@Override
+	public ResultIterator<Identity> allIdentities(OperationContext opContext) throws ConnectorException {
+		return getIdentities(buildIdentityFilter(WILDCARD_SEARCH), opContext);
 	}
 
 	protected Filter buildRoleFilter(String roleName, boolean isWildcard) {
@@ -656,25 +707,25 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 		String identityGuidAttribute = getConfiguration().getIdentityGuidAttribute();
 		return ldapService.buildObjectClassFilter(identityObjectClass, identityGuidAttribute, identityGuid);
 	}
-	
+
 	protected Filter buildIdentityFilter(String identityName) {
 		String identityObjectClass = getConfiguration().getIdentityObjectClass();
 		String identityNameAttribute = getConfiguration().getIdentityNameAttribute();
 		return ldapService.buildObjectClassFilter(identityObjectClass, identityNameAttribute, identityName);
 	}
 
-	public Iterator<Identity> getIdentities(Filter filter) {
+	public ResultIterator<Identity> getIdentities(Filter filter, OperationContext opContext) {
 		try {
 			return ldapService.search(filter, new ResultMapper<Identity>() {
 
 				public Identity apply(SearchResult result) throws NamingException {
-					return mapIdentity(result);
+					return mapIdentity(result, opContext);
 				}
 
 				public boolean isApplyFilters() {
 					return true;
 				}
-			}, configureSearchControls(ldapService.getSearchControls()));
+			}, configureSearchControls(ldapService.getSearchControls()), opContext);
 		} catch (NamingException e) {
 			processNamingException(e);
 			throw new IllegalStateException("Unreachable code");
@@ -683,11 +734,10 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 		}
 	}
 
-	protected Identity mapIdentity(SearchResult result) throws NamingException {
+	protected Identity mapIdentity(SearchResult result, OperationContext opContext) throws NamingException {
 		Attributes attributes = result.getAttributes();
 		Attribute guidAttr = attributes.get(getConfiguration().getIdentityGuidAttribute());
-		String guid = guidAttr == null ? "" : StringUtil
-				.nonNull(guidAttr.get().toString());
+		String guid = guidAttr == null ? "" : StringUtil.nonNull(guidAttr.get().toString());
 		Attribute nameAttr = attributes.get(getConfiguration().getIdentityNameAttribute());
 		String identityName = nameAttr == null ? "" : StringUtil.nonNull(nameAttr.get().toString());
 		LdapName dn = new LdapName(result.getName().toString());
@@ -714,28 +764,78 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 		}
 
 		String idRoleAttr = getConfiguration().getIdentityRoleGuidAttribute();
-		Role role = null;
 		if (!StringUtil.isNullOrEmpty(idRoleAttr)) {
-			String roleObjectClass = getConfiguration().getRoleObjectClass();
-			String roleNameAttribute = getConfiguration().getRoleGuidAttribute();
-			Attribute roleAttr = attributes.get(idRoleAttr);
-			if(roleAttr != null) {
-				Filter filter = ldapService.buildObjectClassFilter(roleObjectClass, roleNameAttribute,
-						roleAttr.get().toString());
-				role = getPrincipal(filter.encode(), getRoles(filter, true));
+			String idRole = getStringAttribute(attributes, idRoleAttr);
+			if (StringUtils.isNotBlank(idRole)) {
+				opContext.getRelationshipCache().addRoleToIdentity(dn.toString(), new GroupKey(KeyType.GID, idRole));
 			}
+
 		} else {
 			idRoleAttr = getConfiguration().getIdentityRoleNameAttribute();
-			if (!StringUtil.isNullOrEmpty(idRoleAttr)) {
-				role = getRoleByName(idRoleAttr);
+			String idRole = getStringAttribute(attributes, idRoleAttr);
+			if (StringUtils.isNotBlank(idRole)) {
+				opContext.getRelationshipCache().addRoleToIdentity(dn.toString(), new GroupKey(KeyType.NAME, idRole));
+			}
+		}
+
+		String memberOfAttr = getConfiguration().getMemberOfAttribute();
+		if (StringUtils.isNotBlank(memberOfAttr)) {
+			String[] sattrs = getStringAttributes(attributes, memberOfAttr);
+			if(sattrs != null) {
+				for (String groupDn : sattrs) {
+					opContext.getRelationshipCache().addRoleToIdentity(dn.toString(), new GroupKey(KeyType.DN, groupDn));
+				}
+			}
+		}
+
+		String fullNameAttr = getConfiguration().getIdentityFullNameAttribute();
+		if (StringUtils.isNotBlank(fullNameAttr)) {
+			String fullName = getStringAttribute(attributes, fullNameAttr);
+			if(fullName != null) {
+				directoryIdentity.setFullName(fullName);
+			}	
+		}
+		
+		String emailAttr = getConfiguration().getIdentityEmailAttribute();
+		if (StringUtils.isNotBlank(emailAttr)) {
+			String email = getStringAttribute(attributes, emailAttr);
+			if(email != null) {
+				directoryIdentity.setAddress(Media.email, email);
 			}
 		}
 		
-		if(role != null) {
-			boolean included = isIncluded(role);
-			
-			if(included)
+		String mobileAttr = getConfiguration().getIdentityMobileAttribute();
+		if (StringUtils.isNotBlank(mobileAttr)) {
+			String mobile = getStringAttribute(attributes, mobileAttr);
+			if(mobile != null) {
+				directoryIdentity.setAddress(Media.mobile, mobile);
+			}
+		}
+
+		Collection<Role> rolesForUser = opContext.getRelationshipCache().getRolesForUser(dn.toString(), (d) -> {
+			switch (d.getType()) {
+			case DN:
+				try {
+					LdapName ldn = new LdapName(d.getKey());
+					Attributes attr = ldapService.getAttributes(ldn);
+					return mapRole(d.getKey(), attr, ldn, opContext);
+				} catch (RuntimeException re) {
+					throw re;
+				} catch (Exception e) {
+					throw new IllegalStateException("Failed to get role.", e);
+				}
+			case GID:
+				Filter filter = ldapService.buildObjectClassFilter(getConfiguration().getRoleObjectClass(),
+						getConfiguration().getRoleGuidAttribute(), d.getKey());
+				return getPrincipal(filter.encode(), getRoles(filter, true, opContext));
+			default:
+				return getRoleByName(d.getKey());
+			}
+		});
+		for (Role role : rolesForUser) {
+			if (isIncluded(role)) {
 				directoryIdentity.addRole(role);
+			}
 		}
 
 		return directoryIdentity;
@@ -743,8 +843,8 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 
 	protected boolean isIncluded(Role role) {
 		boolean included = true;
-		
-		if(getConfiguration().isFilteredByRolePrincipalName()) {
+
+		if (getConfiguration().isFilteredByRolePrincipalName()) {
 			included = getConfiguration().getIncludedRoles().isEmpty();
 			if (!included) {
 				for (String name : getConfiguration().getIncludedRoles()) {
@@ -763,7 +863,8 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 			}
 
 		}
-		if(getConfiguration().isFilteredByRoleDistinguishedName() && !getConfiguration().getRoleMode().equals(RoleMode.serverDistinguishedNames)) {
+		if (getConfiguration().isFilteredByRoleDistinguishedName()
+				&& !getConfiguration().getRoleMode().equals(RoleMode.serverDistinguishedNames)) {
 			included = getConfiguration().getIncludedRolesDN().isEmpty();
 			if (!included) {
 				for (String name : getConfiguration().getIncludedRolesDN()) {
@@ -790,32 +891,33 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 			throw new PrincipalNotFoundException("Roles are not enabled");
 		}
 		Filter roleNameFilter = buildRoleFilter(roleName, false);
-		return getPrincipal(roleNameFilter.encode(), getRoles(roleNameFilter, true));
+		return getPrincipal(roleNameFilter.encode(), getRoles(roleNameFilter, true, OperationContext.createDefault()));
 	}
 
-	public final Iterator<Role> allRoles() throws ConnectorException {
+	@Override
+	public ResultIterator<Role> allRoles(OperationContext opContext) throws ConnectorException {
 		if (!getConfiguration().isEnableRoles()) {
-			return ROLE_ITERATOR;
+			return ResultIterator.createDefault(opContext.getTag());
 		}
-		return getRoles(buildRoleFilter(WILDCARD_SEARCH, true), true);
+		return getRoles(buildRoleFilter(WILDCARD_SEARCH, true), true, opContext);
 	}
 
-	protected Iterator<Role> getRoles() {
-		return getRoles(buildRoleFilter(WILDCARD_SEARCH, true), true);
+	protected ResultIterator<Role> getRoles(OperationContext opContext) {
+		return getRoles(buildRoleFilter(WILDCARD_SEARCH, true), true, opContext);
 	}
 
-	protected Iterator<Role> getRoles(Filter filter, boolean applyFilters) {
+	protected ResultIterator<Role> getRoles(Filter filter, boolean applyFilters, OperationContext opContext) {
 		try {
 			return ldapService.search(filter, new ResultMapper<Role>() {
 
 				public Role apply(SearchResult result) throws NamingException {
-					return mapRole(result);
+					return mapRole(result, opContext);
 				}
 
 				public boolean isApplyFilters() {
 					return applyFilters;
 				}
-			}, configureRoleSearchControls(ldapService.getSearchControls()));
+			}, configureRoleSearchControls(ldapService.getSearchControls()), opContext);
 
 		} catch (NamingException e) {
 			processNamingException(e);
@@ -826,16 +928,34 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 
 	}
 
-	protected Role mapRole(SearchResult result) throws NamingException {
+	protected final Role mapRole(SearchResult result, OperationContext opContext) throws NamingException {
 		Attributes attributes = result.getAttributes();
+		String dnStr = result.getNameInNamespace();
+		Role role = mapRole(dnStr, attributes, new LdapName(dnStr), opContext);
+		opContext.getRelationshipCache().addRole(new GroupKey(KeyType.DN, dnStr), role);
+		return role;
+	}
+
+	protected Role mapRole(String dn, Attributes attributes, LdapName nameInNamespace, OperationContext opContext)
+			throws NamingException, InvalidNameException {
 		Attribute guidAttr = attributes.get(getConfiguration().getRoleGuidAttribute());
-		String guid = guidAttr == null ? "" : StringUtil
-				.nonNull(guidAttr.get().toString());
+		String guid = guidAttr == null ? "" : StringUtil.nonNull(guidAttr.get().toString());
 		String identityName = StringUtil
 				.nonNull(attributes.get(getConfiguration().getRoleNameAttribute()).get().toString());
-		LdapName dn = new LdapName(result.getName().toString());
+
+		if (getConfiguration().getIncludedRoles().size() > 0) {
+			if (!getConfiguration().getIncludedRoles().contains(identityName)) {
+				return null;
+			}
+		} else if (getConfiguration().getExcludedRoles().size() > 0) {
+			if (getConfiguration().getExcludedRoles().contains(identityName)) {
+				return null;
+			}
+		}
+
 		NamingEnumeration<? extends Attribute> ne = attributes.getAll();
-		DirectoryRole directoryRole = new DirectoryRole(guid, identityName, dn);
+		DirectoryRole directoryRole = new DirectoryRole(guid, identityName, nameInNamespace);
+
 		while (ne.hasMoreElements()) {
 			Attribute a = ne.next();
 			if (!a.getID().equals(getConfiguration().getIdentityGuidAttribute())
@@ -849,18 +969,63 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 				directoryRole.setAttribute(a.getID(), vals.toArray(new String[0]));
 			}
 		}
-		
-		if (getConfiguration().getIncludedRoles().size() > 0) {
-			if (!getConfiguration().getIncludedRoles().contains(identityName)) {
-				return null;
-			}
-		} else if (getConfiguration().getExcludedRoles().size() > 0) {
-			if (getConfiguration().getExcludedRoles().contains(identityName)) {
-				return null;
+
+		Iterator<String> parentGroups = getGroups(attributes);
+		GroupKey gk = new GroupKey(KeyType.DN, dn);
+		while (parentGroups.hasNext()) {
+			opContext.getRelationshipCache().addRoleToRole(gk, new GroupKey(KeyType.DN, parentGroups.next()));
+		}
+		String[] member = getStringAttributes(attributes, getConfiguration().getUniqueMemberAttribute());
+		if (member != null) {
+			for (String m : member) {
+				opContext.getRelationshipCache().addRoleToIdentity(m, gk);
 			}
 		}
-		
+
 		return directoryRole;
+	}
+
+	protected Object getAttribute(Attribute attribute) throws NamingException {
+		return attribute != null ? attribute.get() : null;
+	}
+
+	protected Object getAttributeValue(Attributes attrs, String attrName) throws NamingException {
+		Attribute attr = attrs.get(attrName);
+		if (attr == null) {
+			return null;
+		}
+		return attr.get();
+	}
+
+	protected Iterator<String> getGroups(Attributes attributes) throws NamingException {
+		if (StringUtils.isBlank(getConfiguration().getMemberOfAttribute()))
+			return CollectionUtil.emptyIterator(String.class);
+		String[] memberOfAttribute = getStringAttributes(attributes, getConfiguration().getMemberOfAttribute());
+		if (memberOfAttribute == null) {
+			return Collections.<String>emptyList().iterator();
+		}
+		return Arrays.asList(memberOfAttribute).iterator();
+	}
+
+	protected String getStringAttribute(Attributes attrs, String attrName) throws NamingException {
+		try {
+			return (String) getAttributeValue(attrs, attrName);
+		} catch(NoSuchElementException e) {
+			return null;
+		}
+	}
+
+	protected String[] getStringAttributes(Attributes attrs, String attrName) throws NamingException {
+		Attribute attr = attrs.get(attrName);
+		if (attr == null) {
+			return null;
+		}
+		List<String> a = new ArrayList<>();
+		for (NamingEnumeration<?> en = attr.getAll(); en.hasMoreElements();) {
+			Object o = en.next();
+			a.add(o == null ? null : String.valueOf(o));
+		}
+		return a.toArray(new String[0]);
 	}
 
 	protected SearchControls configureSearchControls(SearchControls searchControls) {
@@ -882,7 +1047,8 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 		try {
 			LdapContext ctx = ldapService.lookupContext(dn);
 			try {
-				Attributes attributes = ctx.getAttributes("", new String[] {attributeName,"rootDomainNamingContext"});
+				Attributes attributes = ctx.getAttributes("",
+						new String[] { attributeName, "rootDomainNamingContext" });
 				return attributes.get(attributeName) != null ? attributes.get(attributeName).get().toString() : null;
 			} catch (NamingException e) {
 				processNamingException(e);
@@ -933,8 +1099,9 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 
 	protected String processNamingException(NamingException nme) {
 		if (nme instanceof CommunicationException) {
-			if(nme.getRootCause() != null && nme.getRootCause().getClass().getName().equals("com.hypersocket.certificates.CertificateVerificationException")) {
-				throw (RuntimeException)nme.getCause();
+			if (nme.getRootCause() != null && nme.getRootCause().getClass().getName()
+					.equals("com.hypersocket.certificates.CertificateVerificationException")) {
+				throw (RuntimeException) nme.getCause();
 			}
 			throw new ConnectorException(
 					String.format("Failed to connect to %s", getConfiguration().getControllerHostnames()[0]), nme);
@@ -1011,8 +1178,8 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 		ctrls.setReturningObjFlag(true);
 
 		try {
-			Iterator<List<BrowseNode>> nodes = ldapService.search(new LdapName(parent.toString()), new Eq("objectClass", "*"),
-					new ResultMapper<List<BrowseNode>>() {
+			Iterator<List<BrowseNode>> nodes = ldapService.search(new LdapName(parent.toString()),
+					new Eq("objectClass", "*"), new ResultMapper<List<BrowseNode>>() {
 
 						@SuppressWarnings("serial")
 						public List<BrowseNode> apply(SearchResult result) throws NamingException {
@@ -1046,7 +1213,7 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 						public boolean isApplyFilters() {
 							return true;
 						}
-					}, ldapService.getSearchControls());
+					}, ldapService.getSearchControls(), OperationContext.createDefault());
 
 			return nodes.hasNext() ? nodes.next().iterator() : new ArrayList<BrowseNode>().iterator();
 		} catch (NamingException e) {

@@ -60,12 +60,14 @@ import javax.naming.ldap.Rdn;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.identity4j.connector.ConnectorCapability;
 import com.identity4j.connector.Count;
 import com.identity4j.connector.Media;
+import com.identity4j.connector.OperationContext;
 import com.identity4j.connector.ResultIterator;
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.exception.InvalidLoginCredentialsException;
@@ -165,6 +167,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 	public static final String GROUP_TYPE_ATTRIBUTE = "groupType";
 	public static final String USN_CHANGED = "uSNChanged";
 	public static final String HIGHEST_COMMITTED_USN = "highestCommittedUSN";
+	public static final String THUMBNAIL_PHOTO = "thumbnailPhoto";
 
 	/**
 	 * This is a special attribute we add to mimic the Office365 ImmutableID
@@ -189,6 +192,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 		thisCaps.add(ConnectorCapability.deleteRole);
 		thisCaps.add(ConnectorCapability.forcePasswordChange);
 		thisCaps.add(ConnectorCapability.tag);
+		thisCaps.add(ConnectorCapability.thumbnailPhoto);
 		return thisCaps;
 	}
 
@@ -222,7 +226,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 			SCRIPT_PATH_ATTRIBUTE, HOME_DIR_ATTRIBUTE, HOME_DRIVE_ATTRIBUTE, HOME_PHONE_ATTRIBUTE, PAGER_ATTRIBUTE,
 			FAX_ATTRIBUTE, IPPHONE_ATTRIBUTE, INFO_ATTRIBUTE, TITLE_ATTRIBUTE, DEPARTMENT_ATTRIBUTE, COMPANY_ATTRIBUTE,
 			MANAGER_ATTRIBUTE, DISPLAY_NAME_ATTRIBUTE, PASSWORD_POLICY_APPLIES, PROXY_ADDRESSES, COUNTRY, COUNTRY_CODE,
-			CITY, STATE, STREET_ADRESS, POST_OFFICE_BOX, POSTAL_CODE, PRINCIPAL_NAME_ATTR
+			CITY, STATE, STREET_ADRESS, POST_OFFICE_BOX, POSTAL_CODE, PRINCIPAL_NAME_ATTR, THUMBNAIL_PHOTO
 
 	});
 
@@ -245,18 +249,24 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 	final byte[] controlData = { 48, (byte) 132, 0, 0, 0, 3, 2, 1, 1 };
 	final String LDAP_SERVER_POLICY_HINTS_OID = "1.2.840.113556.1.4.2066";
 
+	private PasswordCharacteristics passwordCharacteristics = null;
+	
 	@Override
 	public PasswordCharacteristics getPasswordCharacteristics() {
-		boolean complex = false;
-		String value = getAttributeValue(getRootDn(), PWD_PROPERTIES_ATTRIBUTE);
-		if (!StringUtil.isNullOrEmpty(value)) {
-			int val = Integer.parseInt(value);
-			complex = (val & DOMAIN_PASSWORD_COMPLEX) != 0;
+		
+		if(passwordCharacteristics==null) {
+			boolean complex = false;
+			String value = getAttributeValue(getRootDn(), PWD_PROPERTIES_ATTRIBUTE);
+			if (!StringUtil.isNullOrEmpty(value)) {
+				int val = Integer.parseInt(value);
+				complex = (val & DOMAIN_PASSWORD_COMPLEX) != 0;
+			}
+			String minPwdLengthField = getAttributeValue(getRootDn(), "minPwdLength");
+			passwordCharacteristics = new ADPasswordCharacteristics(complex,
+					minPwdLengthField == null ? 6 : Integer.parseInt(minPwdLengthField), getPasswordHistoryLength(),
+					getMaximumPasswordAge(), getMinimumPasswordAge(), 0, "Default Group Policy", null);
 		}
-		String minPwdLengthField = getAttributeValue(getRootDn(), "minPwdLength");
-		return new ADPasswordCharacteristics(complex,
-				minPwdLengthField == null ? 6 : Integer.parseInt(minPwdLengthField), getPasswordHistoryLength(),
-				getMaximumPasswordAge(), getMinimumPasswordAge(), 0, "Default Group Policy", null);
+		return passwordCharacteristics;
 	}
 
 	@Override
@@ -271,8 +281,17 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 			}
 		}
 
-		getSchemaVersion();
-		getPasswordCharacteristics();
+		/**
+		 * LDP - I believe these add lag to every connection
+		 * 
+		 * As getSchemeVersion is caching it should not matter where its called. So avoid
+		 * calling it now because not every connection will require it.
+		 * 
+		 * getPasswordCharacteristics is not caching and used a lot in reconciles. Perhaps 
+		 * this should cache?
+		 */
+		//getSchemaVersion();
+		//getPasswordCharacteristics();
 	}
 
 	protected boolean areCredentialsValid(Identity identity, char[] password) throws ConnectorException {
@@ -316,9 +335,9 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 	}
 
 	@Override
-	public Count<Long> countIdentities(String tag) throws ConnectorException {
+	public Count<Long> countIdentities(OperationContext opContext) throws ConnectorException {
 		try {
-			USNWrapperIterator<Identity> it = new USNWrapperIterator<Identity>(getIdentities(createTagFilter(buildIdentityFilter(WILDCARD_SEARCH), tag)));
+			USNWrapperIterator<Identity> it = new USNWrapperIterator<Identity>(getIdentities(createTagFilter(buildIdentityFilter(WILDCARD_SEARCH), opContext.getTag()), opContext));
 			return new Count<Long>(count(it), it.tag());
 		} catch (NamingException e) {
 			throw new ConnectorException(processNamingException(e), e);
@@ -329,9 +348,9 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 	}
 
 	@Override
-	public Count<Long> countRoles(String tag) throws ConnectorException {
+	public Count<Long> countRoles(OperationContext opContext) throws ConnectorException {
 		try {
-			USNWrapperIterator<Role> it = new USNWrapperIterator<Role>(getRoles(createTagFilter(buildRoleFilter(WILDCARD_SEARCH, true), tag), true));
+			USNWrapperIterator<Role> it = new USNWrapperIterator<Role>(getRoles(createTagFilter(buildRoleFilter(WILDCARD_SEARCH, true), opContext.getTag()), true, opContext));
 			return new Count<Long>(count(it), it.tag());
 		} catch (NamingException e) {
 			throw new ConnectorException(processNamingException(e), e);
@@ -356,9 +375,9 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 	}
 
 	@Override
-	public ResultIterator<Identity> allIdentities(String tag) throws ConnectorException {
+	public ResultIterator<Identity> allIdentities(OperationContext opContext) throws ConnectorException {
 		try {
-			return new USNWrapperIterator<Identity>(getIdentities(createTagFilter(buildIdentityFilter(WILDCARD_SEARCH), tag)));
+			return new USNWrapperIterator<Identity>(getIdentities(createTagFilter(buildIdentityFilter(WILDCARD_SEARCH), opContext.getTag()), opContext));
 		} catch (NamingException e) {
 			throw new ConnectorException(processNamingException(e), e);
 		} catch (IOException e) {
@@ -367,9 +386,27 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 	}
 
 	@Override
-	public final ResultIterator<Role> allRoles(String tag) throws ConnectorException {
+	public final ResultIterator<Role> allRoles(OperationContext opContext) throws ConnectorException {
 		try {
-			return new USNWrapperIterator<Role>(getRoles(createTagFilter(buildRoleFilter(WILDCARD_SEARCH, true), tag), true));
+			if(getConfiguration().isEnableRoles())
+				return new USNWrapperIterator<Role>(getRoles(createTagFilter(buildRoleFilter(WILDCARD_SEARCH, true), opContext.getTag()), true, opContext));
+			else
+				return new ResultIterator<Role>() {
+					@Override
+					public String tag() {
+						return opContext.getTag();
+					}
+					
+					@Override
+					public Role next() {
+						throw new IllegalStateException();
+					}
+					
+					@Override
+					public boolean hasNext() {
+						return false;
+					}
+				};
 		} catch (NamingException e) {
 			throw new ConnectorException(processNamingException(e), e);
 		} catch (IOException e) {
@@ -481,6 +518,10 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 	public void updateRole(final Role role) throws ConnectorException {
 
 		try {
+			if(!getConfiguration().isEnableRoles()) {
+				throw new UnsupportedOperationException("Roles are not enabled.");
+			}
+			
 			List<ModificationItem> modificationItems = new ArrayList<ModificationItem>();
 			Role oldRole = getRoleByName(role.getPrincipalName());
 
@@ -533,9 +574,9 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 
 	@Override
 	protected void processUserAttributes(List<ModificationItem> modificationItems, Identity previousState,
-			Identity newState) {
+			Map<String, String[]> newAttributes, Identity newState) {
 
-		super.processUserAttributes(modificationItems, previousState, newState);
+		super.processUserAttributes(modificationItems, previousState, newAttributes, newState);
 
 		String principalNameWithDomain = newState.getPrincipalName() + "@"
 				+ getActiveDirectoryConfiguration().getDomain();
@@ -543,26 +584,6 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 				&& !principalNameWithDomain
 						.equalsIgnoreCase(previousState.getAttribute(USER_PRINCIPAL_NAME_ATTRIBUTE))) {
 			Attribute attribute = new BasicAttribute(USER_PRINCIPAL_NAME_ATTRIBUTE, principalNameWithDomain);
-			modificationItems.add(new ModificationItem(DirContext.REPLACE_ATTRIBUTE, attribute));
-		}
-
-		/*
-		 * Not entirely convinvced by this. The attribute itself gets changed as a
-		 * normal attribute, why is this here? It looks very intentional. I can't seem
-		 * to find any problems by removing it.
-		 * 
-		 * #LBPR2380 - Updating mobile number on AD user does not update AD itself
-		 */
-
-//		String contactDetail = newState.getAddress(com.identity4j.connector.Media.mobile);
-//		if (!StringUtil.isNullOrEmpty(contactDetail)) {
-//			Attribute attribute = new BasicAttribute(MOBILE_PHONE_NUMBER_ATTRIBUTE, contactDetail);
-//			modificationItems.add(new ModificationItem(DirContext.REPLACE_ATTRIBUTE, attribute));
-//		}
-		
-		String contactDetail = newState.getAddress(com.identity4j.connector.Media.email);
-		if (!StringUtil.isNullOrEmpty(contactDetail)) {
-			Attribute attribute = new BasicAttribute(getEmailAttribute(), contactDetail);
 			modificationItems.add(new ModificationItem(DirContext.REPLACE_ATTRIBUTE, attribute));
 		}
 	}
@@ -582,6 +603,9 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 
 		try {
 			final ActiveDirectoryConfiguration config = getActiveDirectoryConfiguration();
+			if(!config.isEnableRoles()) {
+				throw new UnsupportedOperationException("Roles are not enabled.");
+			}
 
 			// OU may have been provided
 			String roleOU = role.getAttribute(OU_ATTRIBUTE);
@@ -742,7 +766,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 		try {
 			Collection<ModificationItem> items = new ArrayList<ModificationItem>();
 			items.add(new ModificationItem(DirContext.REPLACE_ATTRIBUTE, new BasicAttribute(LOCKOUT_TIME_ATTRIBUTE,
-					String.valueOf(ActiveDirectoryDateUtil.javaDataToADTime(new Date())))));
+					String.valueOf(ActiveDirectoryDateUtil.javaDateToADTime(new Date())))));
 			ldapService.update(((DirectoryIdentity) identity).getDn(),
 					items.toArray(new ModificationItem[items.size()]));
 			identity.getAccountStatus().lock();
@@ -817,6 +841,61 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 		}
 
 	}
+	
+	public void removePassNotReqUserControlFlag(Identity identity) throws ConnectorException {
+		try {
+			
+			if (!(identity instanceof DirectoryIdentity)) {
+				throw new IllegalArgumentException("May only disable LDAP identities.");
+			}
+			
+			DirectoryIdentity directoryIdentity = (DirectoryIdentity) identity;
+			
+			Name userDn = directoryIdentity.getDn();
+			
+			Attributes attributes = ldapService.getAttributes(userDn);
+			
+			Attribute attribute = attributes.get(USER_ACCOUNT_CONTROL_ATTRIBUTE);
+			
+			if (attribute != null) {
+				
+				Object attributeValue = attribute.get();
+				
+				if (attributeValue == null || !NumberUtils.isDigits(attributeValue.toString())) {
+					LOG.info(String.format("The account with DN's '%s' userAccountControl flag is null or is not digits, cannot proceed.",
+							userDn));
+					return;
+				}
+				
+				Integer value = Integer.parseInt(attributeValue.toString());
+				
+				if (UserAccountControl.isValueSet(value, 
+						UserAccountControl.PASSWD_NOTREQD_FLAG)) {
+					
+					LOG.info(String.format("The account with DN %s has password not required flag set.", userDn));
+					
+					int valueWithoutPassNoReq = value & (UserAccountControl.PASSWD_NOTREQD_FLAG ^ Integer.MAX_VALUE);
+					
+					Collection<ModificationItem> items = new ArrayList<ModificationItem>();
+					items.add(new ModificationItem(DirContext.REPLACE_ATTRIBUTE, new BasicAttribute(
+							USER_ACCOUNT_CONTROL_ATTRIBUTE,
+							String.valueOf(valueWithoutPassNoReq))));
+
+					ldapService.update(((DirectoryIdentity) identity).getDn(),
+							items.toArray(new ModificationItem[items.size()]));
+					
+				}
+				
+			}
+			
+		} catch (NamingException e) {
+			processNamingException(e);
+			throw new IllegalStateException("Unreachable code");
+		} catch (IOException e) {
+			throw new ConnectorException(e.getMessage(), e);
+		}
+
+	}
 
 	protected void setForcePasswordChangeAtNextLogon(DirectoryIdentity identity, boolean forcePasswordChangeAtLogon) {
 
@@ -867,19 +946,19 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 	}
 
 	@Override
-	protected Iterator<Role> getRoles(Filter filter, boolean applyFilters) {
+	protected ResultIterator<Role> getRoles(Filter filter, boolean applyFilters, OperationContext opContext) {
 		try {
 			return ldapService.search(filter, new ResultMapper<Role>() {
 
 				@Override
 				public Role apply(SearchResult result) throws NamingException {
-					return mapRole(result);
+					return mapRole(result, opContext);
 				}
 
 				public boolean isApplyFilters() {
 					return applyFilters;
 				}
-			}, configureRoleSearchControls(ldapService.getSearchControls()));
+			}, configureRoleSearchControls(ldapService.getSearchControls()), opContext);
 		} catch (NamingException e) {
 			processNamingException(e);
 			throw new IllegalStateException("Unreachable code");
@@ -905,7 +984,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 						public boolean isApplyFilters() {
 							return false;
 						}
-					}, ldapService.getSearchControls());
+					}, ldapService.getSearchControls(), OperationContext.createDefault());
 		} catch (NamingException e) {
 			processNamingException(e);
 			throw new IllegalStateException("Unreachable code");
@@ -975,65 +1054,92 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 	}
 
 	protected ActiveDirectorySchemaVersion getSchemaVersion() {
+		
+		ActiveDirectorySchemaVersion cfgSchema = getConfiguration().getSchema();
+		if(cfgSchema != null && cfgSchema != ActiveDirectorySchemaVersion.AUTOMATIC) {
+			return cfgSchema;
+		}
 
 		if (cachedVersion != null) {
 			return cachedVersion;
 		}
+		
+		Throwable firstException = null;
+		Name rootDn = getRootDn();
 
-		try {
-
-			/**
-			 * TODO we need to fix this for child domains
-			 */
-			LdapName schemaDn = new LdapName("CN=Schema,CN=Configuration," + getRootDn().toString());
-			String value = getAttributeValue(schemaDn, "objectVersion");
-
-			int version = Integer.parseInt(value);
-			switch (version) {
-			case 13:
-				cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2000;
-				break;
-			case 30:
-				cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2003;
-				break;
-			case 31:
-				cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2003_R2;
-				break;
-			case 44:
-				cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2008;
-				break;
-			case 47:
-				cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2008_R2;
-				break;
-			case 56:
-				cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2012;
-				break;
-			case 69:
-				cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2012_R2;
-				break;
-			case 87:
-				cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2016;
-				break;
-			case 88:
-				cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2019;
-				break;
-			default:
-				LOG.info("Could not determine Active Directory schema version from value " + value);
-				if (version < ActiveDirectorySchemaVersion.WINDOWS_2000.getVersion()) {
-					cachedVersion = ActiveDirectorySchemaVersion.PRE_WINDOWS_2000;
-				} else if (version > ActiveDirectorySchemaVersion.WINDOWS_2019.getVersion()) {
-					cachedVersion = ActiveDirectorySchemaVersion.POST_WINDOWS_2019;
-				} else {
-					cachedVersion = ActiveDirectorySchemaVersion.UNKNOWN;
+		while(true) {
+			try {
+	
+				/**
+				 * TODO we need to fix this for child domains
+				 */
+				LdapName schemaDn = new LdapName("CN=Schema,CN=Configuration," + rootDn.toString());
+				LOG.info("Attempting to get schema version from " + schemaDn);
+				String value = getAttributeValue(schemaDn, "objectVersion");
+	
+				int version = Integer.parseInt(value);
+				switch (version) {
+				case 13:
+					cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2000;
+					break;
+				case 30:
+					cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2003;
+					break;
+				case 31:
+					cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2003_R2;
+					break;
+				case 44:
+					cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2008;
+					break;
+				case 47:
+					cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2008_R2;
+					break;
+				case 56:
+					cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2012;
+					break;
+				case 69:
+					cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2012_R2;
+					break;
+				case 87:
+					cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2016;
+					break;
+				case 88:
+					cachedVersion = ActiveDirectorySchemaVersion.WINDOWS_2019;
+					break;
+				default:
+					LOG.info("Could not determine Active Directory schema version from value " + value);
+					if (version < ActiveDirectorySchemaVersion.WINDOWS_2000.getVersion()) {
+						cachedVersion = ActiveDirectorySchemaVersion.PRE_WINDOWS_2000;
+					} else if (version > ActiveDirectorySchemaVersion.WINDOWS_2019.getVersion()) {
+						cachedVersion = ActiveDirectorySchemaVersion.POST_WINDOWS_2019;
+					} else {
+						cachedVersion = ActiveDirectorySchemaVersion.UNKNOWN;
+					}
+					break;
 				}
+	
+			} catch (Throwable e) {
+				if(firstException == null)
+					firstException = e;
+			}
+			
+			if(cachedVersion == null) {
+				try {
+					rootDn = rootDn.getPrefix(rootDn.size() - 1);
+				}
+				catch(Exception e) {
+					break;
+				}
+			}
+			else {
 				break;
 			}
-
-		} catch (NumberFormatException e) {
-			LOG.info("Could not determine Active Directory schema version", e);
-			cachedVersion = ActiveDirectorySchemaVersion.UNKNOWN;
-		} catch (Throwable e) {
-			LOG.info("Could not determine Active Directory schema version", e);
+		}
+		
+		if(cachedVersion == null) {
+			if(firstException != null) {
+				LOG.info("Could not determine Active Directory schema version. Dumping first exception.", firstException);
+			}
 			cachedVersion = ActiveDirectorySchemaVersion.UNKNOWN;
 		}
 
@@ -1097,7 +1203,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 		} else if (reason.equals("80090308") && "775".equals(dep.getData())) {
 			throw new ConnectorException("Your account is locked");
 		} else if (reason.equals("00000005") && "0".equals(dep.getData())) {
-			throw new ConnectorException("The administrator does not allow you to change your password.");
+			throw new ConnectorException("Password change not allowed for this account. Check 'User Cannot Change Password' in your Active Directory.");
 		}
 
 		/**
@@ -1206,7 +1312,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 	}
 
 	@Override
-	public Iterator<Identity> getIdentities(Filter filter) {
+	public ResultIterator<Identity> getIdentities(Filter filter, OperationContext opContext) {
 
 		final ActiveDirectoryConfiguration config = (ActiveDirectoryConfiguration) getConfiguration();
 		
@@ -1215,8 +1321,8 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 		final Map<Long, ActiveDirectoryGroup> groupsByRID = new HashMap<Long, ActiveDirectoryGroup>();
 		final Map<String, List<String>> userGroups = new HashMap<String, List<String>>();
 
-		if (config.isEnableRoles()) {
-			Iterator<Role> it = getRoles(buildRoleFilter(WILDCARD_SEARCH, true), config.isCacheFilteredGroups());
+		if (opContext.isGroups() && config.isEnableRoles()) {
+			Iterator<Role> it = getRoles(buildRoleFilter(WILDCARD_SEARCH, true), config.isCacheFilteredGroups(), opContext);
 			LOG.info(String.format("Pre-caching roles (%s)", config.isCacheFilteredGroups() ? "using filtered groups for cache" : "using unfiltered groups for cache"));
 			while (it.hasNext()) {
 				ActiveDirectoryGroup group = (ActiveDirectoryGroup) it.next();
@@ -1423,7 +1529,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 								trimDate(new Date(accountStatus.getLocked().getTime() - (lockoutDuration / 1000))));
 					}
 
-					if (config.isEnableRoles()) {
+					if (opContext.isGroups() && config.isEnableRoles()) {
 						ActiveDirectoryGroup primaryGroup = null;
 						try {
 							Long rid = Long
@@ -1555,7 +1661,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 				public boolean isApplyFilters() {
 					return true;
 				}
-			}, configureSearchControls(ldapService.getSearchControls()));
+			}, configureSearchControls(ldapService.getSearchControls()), opContext);
 		} catch (NamingException e) {
 			processNamingException(e);
 			throw new IllegalStateException("Unreachable code");
@@ -1587,7 +1693,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 					}
 				}
 				else {
-					LOG.info("Ignoring " + dnKey + " because it is not included in the main DN filter.");
+					LOG.debug("Ignoring " + dnKey + " because it is not included in the main DN filter.");
 				}
 			} catch (Exception ex) {
 				LOG.info("Ignoring " + dnKey + " because of " + ex.getMessage());
@@ -1649,7 +1755,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 		if (age == 0) {
 			return null;
 		} else {
-			Calendar cal = Calendar.getInstance();
+			Calendar cal = Util.getCalendarUTC();
 			if (date != null) {
 				cal.setTime(date);
 				cal.add(Calendar.DAY_OF_YEAR, age);
@@ -1774,7 +1880,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 		if (date == null) {
 			return null;
 		}
-		Calendar cal = Calendar.getInstance();
+		Calendar cal = Util.getCalendarUTC();
 		cal.setTime(date);
 		if (cal.get(Calendar.YEAR) > 3999) {
 			cal.setTimeInMillis(0);
@@ -1916,23 +2022,6 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 		return STRING_ITERATOR;
 	}
 
-	private Iterator<String> getGroupsForUser(SearchResult result) throws NamingException, IOException {
-		Filter filter = ldapService.buildObjectClassFilter("group", "member", result.getNameInNamespace());
-
-		return ldapService.search(filter, new ResultMapper<String>() {
-
-			@Override
-			public String apply(SearchResult result) throws NamingException {
-				return result.getNameInNamespace();
-			}
-
-			public boolean isApplyFilters() {
-				return true;
-			}
-		}, configureRoleSearchControls(ldapService.getSearchControls()));
-
-	}
-
 	@Override
 	protected void assertPasswordChangeIsAllowed(Identity identity, char[] oldPassword, char[] password)
 			throws ConnectorException {
@@ -1949,12 +2038,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 	}
 
 	@Override
-	protected ActiveDirectoryGroup mapRole(SearchResult result) throws NamingException {
-		Attributes attributes = result.getAttributes();
-		return mapRole(result.getNameInNamespace(), attributes, new LdapName(result.getNameInNamespace()));
-	}
-
-	protected ActiveDirectoryGroup mapRole(String dn, Attributes attributes, LdapName nameInNamespace)
+	protected ActiveDirectoryGroup mapRole(String dn, Attributes attributes, LdapName nameInNamespace, OperationContext opContext)
 			throws NamingException, InvalidNameException {
 		String commonName = selectGroupName(attributes, nameInNamespace);
 		if (commonName.length() != 0) {
@@ -1993,45 +2077,8 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 		return null;
 	}
 
-	private Iterator<String> getGroups(Attributes attributes) throws NamingException {
-		String[] memberOfAttribute = getStringAttributes(attributes, MEMBER_OF_ATTRIBUTE);
-		if (memberOfAttribute == null) {
-			return Collections.<String>emptyList().iterator();
-		}
-		return Arrays.asList(memberOfAttribute).iterator();
-	}
-
 	private ActiveDirectoryConfiguration getActiveDirectoryConfiguration() {
 		return (ActiveDirectoryConfiguration) getConfiguration();
-	}
-
-	private Object getAttribute(Attribute attribute) throws NamingException {
-		return attribute != null ? attribute.get() : null;
-	}
-
-	protected Object getAttributeValue(Attributes attrs, String attrName) throws NamingException {
-		Attribute attr = attrs.get(attrName);
-		if (attr == null) {
-			return null;
-		}
-		return attr.get();
-	}
-
-	protected String getStringAttribute(Attributes attrs, String attrName) throws NamingException {
-		return (String) getAttributeValue(attrs, attrName);
-	}
-
-	protected String[] getStringAttributes(Attributes attrs, String attrName) throws NamingException {
-		Attribute attr = attrs.get(attrName);
-		if (attr == null) {
-			return null;
-		}
-		List<String> a = new ArrayList<>();
-		for(NamingEnumeration<?> en = attr.getAll(); en.hasMoreElements(); ) {
-			Object o = en.next();
-			a.add(o == null ? null : String.valueOf(o));
-		}
-		return a.toArray(new String[0]);
 	}
 
 	protected ADPasswordCharacteristics loadCharacteristics(SearchResult pso) throws NamingException, IOException {

@@ -38,6 +38,7 @@ import org.junit.Test;
 import com.identity4j.connector.AbstractConnectorTest;
 import com.identity4j.connector.Connector;
 import com.identity4j.connector.ConnectorCapability;
+import com.identity4j.connector.OperationContext;
 import com.identity4j.connector.ResultIterator;
 import com.identity4j.connector.principal.Identity;
 import com.identity4j.connector.principal.IdentityImpl;
@@ -94,7 +95,7 @@ public class ActiveDirectoryConnectorIntegrationTest extends AbstractConnectorTe
 	public void testTag() {
 
 		Assume.assumeTrue(connector.getCapabilities().contains(ConnectorCapability.tag));
-		ResultIterator<Identity> ri = connector.allIdentities(null);
+		ResultIterator<Identity> ri = connector.allIdentities(OperationContext.createDefault());
 		
 		/* Count first iterate */
 		int i = 0;
@@ -105,13 +106,13 @@ public class ActiveDirectoryConnectorIntegrationTest extends AbstractConnectorTe
 		
 		String tag = ri.tag();
 		
-		ResultIterator<Identity> nri = connector.allIdentities(tag);
+		ResultIterator<Identity> nri = connector.allIdentities(OperationContext.createDefault(tag));
 		Assert.assertTrue("Should return no results in iterator", !nri.hasNext());
 		
 		updateIdentity();
 
 		tag = nri.tag();
-		nri = connector.allIdentities(tag);
+		nri = connector.allIdentities(OperationContext.createDefault(tag));
 		i = 0;
 		while(nri.hasNext()) {
 			nri.next();

@@ -38,7 +38,6 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -52,6 +51,8 @@ import com.identity4j.connector.AbstractConnector;
 import com.identity4j.connector.ConnectorCapability;
 import com.identity4j.connector.ConnectorConfigurationParameters;
 import com.identity4j.connector.Media;
+import com.identity4j.connector.OperationContext;
+import com.identity4j.connector.ResultIterator;
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.exception.PasswordChangeRequiredException;
 import com.identity4j.connector.exception.PrincipalNotFoundException;
@@ -117,7 +118,8 @@ public abstract class JDBCConnector<P extends ConnectorConfigurationParameters> 
 		return caps;
 	}
 
-	public Iterator<Identity> allIdentities() throws ConnectorException {
+	@Override
+	public ResultIterator<Identity> allIdentities(OperationContext opContext) throws ConnectorException {
 
 		List<Identity> identities = new ArrayList<Identity>();
 		Statement statement = null;
@@ -137,10 +139,10 @@ public abstract class JDBCConnector<P extends ConnectorConfigurationParameters> 
 			closeResultSet(resultSet);
 		}
 
-		return identities.iterator();
+		return ResultIterator.createDefault(identities.iterator(), opContext.getTag());
 	}
 
-	public Identity getIdentityByName(String name) throws PrincipalNotFoundException, ConnectorException {
+	public Identity getIdentityByName(String name, boolean withGroups) throws PrincipalNotFoundException, ConnectorException {
 		String sql = configuration.getSelectIdentitySQL(name);
 		if (sql.equals("")) {
 			return super.getIdentityByName(name);
@@ -338,7 +340,8 @@ public abstract class JDBCConnector<P extends ConnectorConfigurationParameters> 
 		}
 	}
 
-	public Iterator<Role> allRoles() throws ConnectorException {
+	@Override
+	public ResultIterator<Role> allRoles(OperationContext opContext) throws ConnectorException {
 		List<Role> roles = new ArrayList<Role>();
 		Statement statement = null;
 		ResultSet resultSet = null;
@@ -356,7 +359,7 @@ public abstract class JDBCConnector<P extends ConnectorConfigurationParameters> 
 			closeResultSet(resultSet);
 		}
 
-		return roles.iterator();
+		return ResultIterator.createDefault(roles.iterator(), opContext.getTag());
 	}
 
 	public boolean isOpen() {

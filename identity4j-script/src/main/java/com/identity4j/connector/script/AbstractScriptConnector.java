@@ -40,6 +40,9 @@ import org.apache.commons.logging.LogFactory;
 import com.identity4j.connector.AbstractConnector;
 import com.identity4j.connector.ConnectorCapability;
 import com.identity4j.connector.ConnectorConfigurationParameters;
+import com.identity4j.connector.Count;
+import com.identity4j.connector.OperationContext;
+import com.identity4j.connector.ResultIterator;
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.exception.PasswordChangeRequiredException;
 import com.identity4j.connector.exception.PrincipalNotFoundException;
@@ -139,7 +142,7 @@ public class AbstractScriptConnector<P extends AbstractScriptConfiguration> exte
 	}
 
 	@Override
-	public Identity getIdentityByName(String name) throws PrincipalNotFoundException, ConnectorException {
+	public Identity getIdentityByName(String name, boolean withGroups) throws PrincipalNotFoundException, ConnectorException {
 		try {
 			Identity identity = (Identity) ((Invocable) engine).invokeFunction("getIdentityByName", name);
 			if (identity == null) {
@@ -236,9 +239,10 @@ public class AbstractScriptConnector<P extends AbstractScriptConfiguration> exte
 	}
 
 	@SuppressWarnings("unchecked")
-	public Iterator<Identity> allIdentities() throws ConnectorException {
+	@Override
+	public ResultIterator<Identity> allIdentities(OperationContext opContext) throws ConnectorException {
 		try {
-			return (Iterator<Identity>) ((Invocable) engine).invokeFunction("allIdentities");
+			return ResultIterator.createDefault((Iterator<Identity>) ((Invocable) engine).invokeFunction("allIdentities"), opContext.getTag());
 		} catch (ScriptException e) {
 			processScriptExecption(e);
 			throw new ConnectorException("Failed script execution.", e);
@@ -249,9 +253,10 @@ public class AbstractScriptConnector<P extends AbstractScriptConfiguration> exte
 	}
 
 	@SuppressWarnings("unchecked")
-	public Iterator<Role> allRoles() throws ConnectorException {
+	@Override
+	public ResultIterator<Role> allRoles(OperationContext opContext) throws ConnectorException {
 		try {
-			return (Iterator<Role>) ((Invocable) engine).invokeFunction("allRoles");
+			return ResultIterator.createDefault((Iterator<Role>) ((Invocable) engine).invokeFunction("allRoles"), opContext.getTag());
 		} catch (ScriptException e) {
 			processScriptExecption(e);
 			throw new ConnectorException("Failed script execution.", e);
@@ -310,14 +315,14 @@ public class AbstractScriptConnector<P extends AbstractScriptConfiguration> exte
 	}
 
 	@Override
-	public long countIdentities() throws ConnectorException {
+	public Count<Long> countIdentities(OperationContext opContext) throws ConnectorException {
 		try {
-			return ((Number) ((Invocable) engine).invokeFunction("countIdentities")).longValue();
+			return new Count<>(((Number) ((Invocable) engine).invokeFunction("countIdentities")).longValue(), opContext.getTag());
 		} catch (ScriptException e) {
 			processScriptExecption(e);
 			throw new ConnectorException("Failed script execution.", e);
 		} catch (NoSuchMethodException e) {
-			return super.countIdentities();
+			return super.countIdentities(opContext);
 		}
 	}
 
@@ -359,14 +364,14 @@ public class AbstractScriptConnector<P extends AbstractScriptConfiguration> exte
 	}
 
 	@Override
-	public long countRoles() throws ConnectorException {
+	public Count<Long> countRoles(OperationContext opContext) throws ConnectorException {
 		try {
-			return ((Number) ((Invocable) engine).invokeFunction("countRoles")).longValue();
+			return new Count<>(((Number) ((Invocable) engine).invokeFunction("countRoles")).longValue(), opContext.getTag());
 		} catch (ScriptException e) {
 			processScriptExecption(e);
 			throw new ConnectorException("Failed script execution.", e);
 		} catch (NoSuchMethodException e) {
-			return super.countRoles();
+			return super.countRoles(opContext);
 		}
 	}
 

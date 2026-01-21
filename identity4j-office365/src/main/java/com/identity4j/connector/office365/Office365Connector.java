@@ -42,6 +42,8 @@ import com.azure.identity.implementation.IdentityClientBuilder;
 import com.azure.identity.implementation.MsalToken;
 import com.identity4j.connector.AbstractConnector;
 import com.identity4j.connector.ConnectorCapability;
+import com.identity4j.connector.OperationContext;
+import com.identity4j.connector.ResultIterator;
 import com.identity4j.connector.WebAuthenticationAPI;
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.exception.PrincipalAlreadyExistsException;
@@ -97,12 +99,19 @@ import reactor.core.publisher.Mono;
  */
 public class Office365Connector extends AbstractConnector<Office365Configuration> {
 
-	private abstract class PrincipalFilterIterator<P extends Principal> implements Iterator<P> {
+	private abstract class PrincipalFilterIterator<P extends Principal> implements ResultIterator<P> {
 		private P current;
 		private Iterator<P> source;
+		private final OperationContext opContext;
 
-		PrincipalFilterIterator(Iterator<P> source) {
+		PrincipalFilterIterator(Iterator<P> source, OperationContext opContext) {
 			this.source = source;
+			this.opContext = opContext;
+		}
+
+		@Override
+		public String tag() {
+			return opContext.getTag();
 		}
 
 		@Override
@@ -150,8 +159,8 @@ public class Office365Connector extends AbstractConnector<Office365Configuration
 
 	private final class IdentityFilterIterator extends PrincipalFilterIterator<Identity> {
 
-		IdentityFilterIterator(Iterator<Identity> source) {
-			super(source);
+		IdentityFilterIterator(Iterator<Identity> source, OperationContext opContext) {
+			super(source, opContext);
 		}
 
 		protected boolean matches(Identity identity) {
@@ -198,8 +207,8 @@ public class Office365Connector extends AbstractConnector<Office365Configuration
 
 		Set<String> exc = getConfiguration().getExcludedGroups();
 
-		RoleFilterIterator(Iterator<Role> source) {
-			super(source);
+		RoleFilterIterator(Iterator<Role> source, OperationContext opContext) {
+			super(source, opContext);
 		}
 
 		protected boolean matches(Role group) {
@@ -209,12 +218,22 @@ public class Office365Connector extends AbstractConnector<Office365Configuration
 	}
 
 	private abstract class PrincipalIterator<P extends Principal, R extends com.identity4j.connector.office365.entity.Principal, L extends Principals<R>>
-			implements Iterator<P> {
+			implements ResultIterator<P> {
 		private L list;
 		private String nextLink;
 		private Iterator<R> inner;
 		private R current;
 		private boolean eof;
+		protected final OperationContext opContext;
+		
+		PrincipalIterator(OperationContext opContext) {
+			this.opContext = opContext;
+		}
+
+		@Override
+		public String tag() {
+			return opContext.getTag();
+		}
 
 		@Override
 		public final boolean hasNext() {
@@ -286,6 +305,10 @@ public class Office365Connector extends AbstractConnector<Office365Configuration
 
 	private final class IdentityIterator extends PrincipalIterator<Identity, User, Users> {
 
+		IdentityIterator(OperationContext opContext) {
+			super(opContext);
+		}
+
 		private HashMap<String, List<Role>> roleMap;
 
 		@Override
@@ -299,7 +322,7 @@ public class Office365Connector extends AbstractConnector<Office365Configuration
 					log.info("Pre-loading groups users");
 					int userRelationships = 0;
 					int groups = 0;
-					Iterator<Role> roleIt = new RoleIterator();
+					Iterator<Role> roleIt = new RoleIterator(opContext);
 					
 					while(roleIt.hasNext()) {
 						Role role = roleIt.next();
@@ -373,6 +396,10 @@ public class Office365Connector extends AbstractConnector<Office365Configuration
 	}
 
 	private final class RoleIterator extends PrincipalIterator<Role, Group, Groups> {
+
+		RoleIterator(OperationContext opContext) {
+			super(opContext);
+		}
 
 		@Override
 		protected Role convert(Group current) {
@@ -546,8 +573,8 @@ public class Office365Connector extends AbstractConnector<Office365Configuration
 	 * @throws ConnectorException for api, connection related errors.
 	 */
 	@Override
-	public Iterator<Role> allRoles() throws ConnectorException {
-		return isGroupFilterInUse() ? new RoleFilterIterator(new RoleIterator()) : new RoleIterator();
+	public ResultIterator<Role> allRoles(OperationContext opContext) throws ConnectorException {
+		return isGroupFilterInUse() ? new RoleFilterIterator(new RoleIterator(opContext), opContext) : new RoleIterator(opContext);
 	}
 
 	/**
@@ -688,8 +715,8 @@ public class Office365Connector extends AbstractConnector<Office365Configuration
 	 * @return iterator with all identities.
 	 */
 	@Override
-	public Iterator<Identity> allIdentities() throws ConnectorException {
-		return isGroupFilterInUse() ? new IdentityFilterIterator(new IdentityIterator()) : new IdentityIterator();
+	public ResultIterator<Identity> allIdentities(OperationContext opContext) throws ConnectorException {
+		return isGroupFilterInUse() ? new IdentityFilterIterator(new IdentityIterator(opContext), opContext) : new IdentityIterator(opContext);
 	}
 
 	/**
@@ -718,8 +745,8 @@ public class Office365Connector extends AbstractConnector<Office365Configuration
 	 * @return Identity instance found by the specified email id/principal name.
 	 */
 	@Override
-	public Identity getIdentityByName(String name) throws PrincipalNotFoundException, ConnectorException {
-		User user = directory.users().get(name);
+	public Identity getIdentityByName(String name, boolean withGroups) throws PrincipalNotFoundException, ConnectorException {
+		User user = directory.users().get(name, withGroups);
 		return Office365ModelConvertor.convertOffice365UserToOfficeIdentity(user);
 	}
 
@@ -857,6 +884,12 @@ public class Office365Connector extends AbstractConnector<Office365Configuration
 		identity.getAccountStatus().setDisabled(false);
 	}
 
+	@Override
+	public void logoff(Identity identity) throws PrincipalNotFoundException, ConnectorException {
+		User user = Office365ModelConvertor.covertOfficeIdentityToOffice365User(identity);
+		directory.users().logoff(user);
+	}
+	
 	@Override
 	protected boolean areCredentialsValid(Identity identity, char[] password) throws ConnectorException {
 		try {
@@ -1020,7 +1053,7 @@ public class Office365Connector extends AbstractConnector<Office365Configuration
 	 * @return true if role is present else false
 	 */
 	private boolean isRolePresent(String roleName) {
-		Iterator<Role> roles = allRoles();
+		Iterator<Role> roles = allRoles(OperationContext.createDefault());
 		Role role = null;
 		while (roles.hasNext()) {
 			role = roles.next();

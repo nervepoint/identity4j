@@ -28,7 +28,6 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Enumeration;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -45,6 +44,8 @@ import com.ibm.as400.access.UserGroup;
 import com.ibm.as400.access.UserList;
 import com.identity4j.connector.AbstractConnector;
 import com.identity4j.connector.ConnectorCapability;
+import com.identity4j.connector.OperationContext;
+import com.identity4j.connector.ResultIterator;
 import com.identity4j.connector.as400.callback.As400Callback;
 import com.identity4j.connector.as400.callback.As400CallbackWithoutResult;
 import com.identity4j.connector.exception.ConnectorException;
@@ -218,10 +219,11 @@ public class As400Connector extends AbstractConnector<As400Configuration> {
 	 * 
 	 * @param principal
 	 *            name
+	 * @param withGroups with grups
 	 * @return identity
 	 */
 	@Override
-	public Identity getIdentityByName(final String principalName)
+	public Identity getIdentityByName(final String principalName, boolean withGroups)
 			throws PrincipalNotFoundException, ConnectorException {
 		if (principalName.length() > 10) {
 			throw new PrincipalNotFoundException(
@@ -234,7 +236,7 @@ public class As400Connector extends AbstractConnector<As400Configuration> {
 				if (!user.exists()) {
 					throw new PrincipalNotFoundException("Identity not found = '" + principalName + "'");
 				}
-				return mapUserToIdentity(user);
+				return mapUserToIdentity(user, withGroups);
 			}
 		}.execute();
 	}
@@ -245,9 +247,9 @@ public class As400Connector extends AbstractConnector<As400Configuration> {
 	 * @return list of identities
 	 */
 	@Override
-	public Iterator<Identity> allIdentities() throws ConnectorException {
+	public ResultIterator<Identity> allIdentities(OperationContext opContext) throws ConnectorException {
 		final Enumeration<User> users = getUsers(UserList.USER);
-		return new Iterator<Identity>() {
+		return new ResultIterator<Identity>() {
 			@Override
 			public boolean hasNext() {
 				return users.hasMoreElements();
@@ -256,12 +258,17 @@ public class As400Connector extends AbstractConnector<As400Configuration> {
 			@Override
 			public Identity next() {
 				User nextElement = users.nextElement();
-				return mapUserToIdentity(nextElement);
+				return mapUserToIdentity(nextElement, true);
 			}
 
 			@Override
 			public void remove() {
 				throw new UnsupportedOperationException("remove is not supported");
+			}
+
+			@Override
+			public String tag() {
+				return opContext.getTag();
 			}
 		};
 	}
@@ -270,9 +277,10 @@ public class As400Connector extends AbstractConnector<As400Configuration> {
 	 * Translate between system user to internal identity
 	 * 
 	 * @param user
+	 * @param withGroups with groups
 	 * @return identity
 	 */
-	private Identity mapUserToIdentity(final User user) {
+	private Identity mapUserToIdentity(final User user, boolean withGroups) {
 		return new As400Callback<Identity>() {
 			@Override
 			protected Identity executeInCallback() throws Exception {
@@ -285,7 +293,7 @@ public class As400Connector extends AbstractConnector<As400Configuration> {
 
 				PasswordStatus passwordStatus = identity.getPasswordStatus();
 				passwordStatus.setLastChange(user.getPasswordLastChangedDate());
-				String warndays = policy.getAttributes().get(AS400PasswordRules.QPWDEXPWRN);
+				String warndays = policy.getAttributes().get(AS400PasswordRules.QPWDEXPWRN.name());
 				if (!StringUtil.isNullOrEmpty(warndays)) {
 					Calendar warn = Calendar.getInstance();
 					warn.setTime(user.getPasswordExpireDate());
@@ -309,23 +317,26 @@ public class As400Connector extends AbstractConnector<As400Configuration> {
 				accountStatus.setExpire(user.getUserExpirationDate());
 				accountStatus.setDisabled("*DISABLED".equals(user.getStatus()));
 				accountStatus.calculateType();
+				
+				if(withGroups) {
 
-				// group is represented as a profile just like user. To retrieve
-				// guid for group you need to interrogate it
-				String groupName = user.getGroupProfileName();
-
-				// as long as user has a group then retrieve its guid
-				if (!StringUtil.isNullOrEmpty(groupName) && !groupName.equals(User.NONE)) {
-					UserGroup nativeGroup = new UserGroup(as400, groupName);
-					String groupId = String.valueOf(nativeGroup.getUserID());
-					identity.addRole(new As400Role(nativeGroup, groupId, groupName));
-				}
-
-				// other groups
-				for (String g : user.getSupplementalGroups()) {
-					UserGroup nativeGroup = new UserGroup(as400, g);
-					String groupId = String.valueOf(nativeGroup.getUserID());
-					identity.addRole(new As400Role(nativeGroup, groupId, groupName));
+					// group is represented as a profile just like user. To retrieve
+					// guid for group you need to interrogate it
+					String groupName = user.getGroupProfileName();
+	
+					// as long as user has a group then retrieve its guid
+					if (!StringUtil.isNullOrEmpty(groupName) && !groupName.equals(User.NONE)) {
+						UserGroup nativeGroup = new UserGroup(as400, groupName);
+						String groupId = String.valueOf(nativeGroup.getUserID());
+						identity.addRole(new As400Role(nativeGroup, groupId, groupName));
+					}
+	
+					// other groups
+					for (String g : user.getSupplementalGroups()) {
+						UserGroup nativeGroup = new UserGroup(as400, g);
+						String groupId = String.valueOf(nativeGroup.getUserID());
+						identity.addRole(new As400Role(nativeGroup, groupId, groupName));
+					}
 				}
 
 				// add group to memberOf attribute
@@ -365,9 +376,9 @@ public class As400Connector extends AbstractConnector<As400Configuration> {
 	 * @return all roles
 	 */
 	@Override
-	public Iterator<Role> allRoles() throws ConnectorException {
+	public ResultIterator<Role> allRoles(OperationContext opContext) throws ConnectorException {
 		final Enumeration<User> users = getUsers(UserList.GROUP);
-		return new Iterator<Role>() {
+		return new ResultIterator<Role>() {
 			@Override
 			public boolean hasNext() {
 				return users.hasMoreElements();
@@ -382,6 +393,11 @@ public class As400Connector extends AbstractConnector<As400Configuration> {
 			@Override
 			public void remove() {
 				throw new UnsupportedOperationException("remove is not supported");
+			}
+
+			@Override
+			public String tag() {
+				return opContext.getTag();
 			}
 		};
 	}

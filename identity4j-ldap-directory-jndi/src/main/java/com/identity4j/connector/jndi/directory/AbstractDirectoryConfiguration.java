@@ -106,6 +106,45 @@ public abstract class AbstractDirectoryConfiguration extends AbstractConnectorCo
 
 	public static final String DIRECTORY_EXCLUDE_ROLES_DN = "directory.excludeRolesDN";
 
+	public static final String DIRECCTORY_IDENTITY_CREATION_OBJECT_CLASSES = "direcctory.identityCreationObjectClasses";
+
+	public static final String DIRECTORY_IDENTITY_OBJECT_CLASS = "directory.identityObjectClass";
+
+	public static final String DIRECTORY_IDENTITY_NAME_ATTRIBUTE = "directory.identityNameAttribute";
+
+	public static final String DIRECTORY_IDENTITY_CN_ATTRIBUTE = "directory.identityCNAttribute";
+
+	public static final String DIRECTORY_IDENTITY_FULL_NAME_ATTRIBUTE = "directory.identityFullNameAttribute";
+
+	public static final String DIRECTORY_UNIQUE_MEMBER_ATTRIBUTE = "directory.uniqueMemberAttribute";
+
+	public static final String DIRECTORY_MEMBER_OF_ATTRIBUTE = "directory.memberOfAttribute";
+
+	public static final String DIRECTORY_ROLE_GUID_ATTRIBUTE = "directory.roleGuidAttribute";
+
+	public static final String DIRECTORY_ROLE_NAME_ATTRIBUTE = "directory.roleNameAttribute";
+
+	public static final String DIRECTORY_ROLE_OBJECT_CLASS = "directory.roleObjectClass";
+
+	public static final String DIRECTORY_IDENTITY_PASSWORD_ENCODING = "directory.identityPasswordEncoding";
+
+	public static final String DIRECTORY_DISTINGUISHED_NAME_ATTRIBUTE = "directory.distinguishedNameAttribute";
+
+	public static final String DIRECTORY_IDENTITY_PASSWORD_ATTRIBUTE = "directory.identityPasswordAttribute";
+
+	public static final String DIRECTORY_IDENTITY_ROLE_NAME_ATTRIBUTE = "directory.identityRoleNameAttribute";
+
+	public static final String DIRECTORY_IDENTITY_ROLE_GUID_ATTRIBUTE = "directory.identityRoleGuidAttribute";
+
+	public static final String DIRECTORY_IDENTITY_GUID_ATTRIBUTE = "directory.identityGuidAttribute";
+
+	public static final String DIRECTORY_IDENTITY_MOBILE_ATTRIBUTE = "directory.identityMobileAttribute";
+
+	public static final String DIRECTORY_IDENTITY_EMAIL_ATTRIBUTE = "directory.identityEmailAttribute";
+
+	public static final String ADDITIONAL_USER_ATTRIBUTES = "directory.additionalUserattributes";
+	
+
 	/**
 	 * Follow referrals?
 	 */
@@ -189,6 +228,7 @@ public abstract class AbstractDirectoryConfiguration extends AbstractConnectorCo
 			if (includes.isEmpty()) {
 				includes.add(baseDn);
 			}
+			setIdentityAttributesToRetrieve(Arrays.asList(configurationParameters.getStringArrayOrDefault(ADDITIONAL_USER_ATTRIBUTES)));
 		} catch (NamingException ne) {
 			throw new Error(ne);
 		}
@@ -456,7 +496,7 @@ public abstract class AbstractDirectoryConfiguration extends AbstractConnectorCo
 	 * @return identity object class
 	 */
 	public final String getIdentityObjectClass() {
-		return configurationParameters.getStringOrFail("directory.identityObjectClass");
+		return configurationParameters.getStringOrFail(DIRECTORY_IDENTITY_OBJECT_CLASS);
 	}
 
 	/**
@@ -465,8 +505,8 @@ public abstract class AbstractDirectoryConfiguration extends AbstractConnectorCo
 	 * @return identity object class
 	 */
 	public final List<String> getIdentityCreationObjectClasses() {
-		if (configurationParameters.containsKey("direcctory.identityCreationObjectClasses"))
-			return Arrays.asList(configurationParameters.getStringOrFail("directory.identityObjectClass").split(","));
+		if (configurationParameters.containsKey(DIRECCTORY_IDENTITY_CREATION_OBJECT_CLASSES))
+			return Arrays.asList(configurationParameters.getStringOrFail(DIRECTORY_IDENTITY_OBJECT_CLASS).split(","));
 		else {
 			Set<String> n = new LinkedHashSet<String>();
 			n.add("inetOrgPerson");
@@ -476,21 +516,61 @@ public abstract class AbstractDirectoryConfiguration extends AbstractConnectorCo
 	}
 
 	/**
+	 * The attribute name which is used as value of the common name. This may be either 'principalName', 'fullName' or
+	 * any other generic property name. When blank, the principal name will be used.
+	 * 
+	 * @return identity CN attribute
+	 */
+	public final String getIdentityCNAttribute() {
+		return configurationParameters.getStringOrDefault(DIRECTORY_IDENTITY_CN_ATTRIBUTE, "");
+	}
+
+	/**
+	 * The attribute name which is used to match against the identity full name. Or empty not to 
+	 * map this explicitly.
+	 * 
+	 * @return identity full name attribute
+	 */
+	public final String getIdentityFullNameAttribute() {
+		return configurationParameters.getStringOrDefault(DIRECTORY_IDENTITY_FULL_NAME_ATTRIBUTE, "");
+	}
+
+	/**
 	 * The attribute name which is used to match against the identity username.
 	 * 
 	 * @return identity name attribute
 	 */
 	public final String getIdentityNameAttribute() {
-		return configurationParameters.getStringOrFail("directory.identityNameAttribute");
+		return configurationParameters.getStringOrFail(DIRECTORY_IDENTITY_NAME_ATTRIBUTE);
 	}
-
+	
+	/**
+	 * The attribute name which is used to match against the identity description.
+	 * 
+	 * @return identity name attribute
+	 */
+	public final String getIdentityEmailAttribute() {
+		return configurationParameters.getString(DIRECTORY_IDENTITY_EMAIL_ATTRIBUTE);
+	}
+	
+	
+	/**
+	 * The attribute name which is used to match against the identity description.
+	 * 
+	 * @return identity name attribute
+	 */
+	public final String getIdentityMobileAttribute() {
+		return configurationParameters.getString(DIRECTORY_IDENTITY_MOBILE_ATTRIBUTE);
+	}
+	
+	
 	/**
 	 * The attribute name which is used to match against the identity guid.
 	 * 
 	 * @return identity guid attribute
 	 */
 	public final String getIdentityGuidAttribute() {
-		return configurationParameters.getStringOrFail("directory.identityGuidAttribute");
+		return configurationParameters.getStringOrFail(DIRECTORY_IDENTITY_GUID_ATTRIBUTE);
 	}
 
 	/**
@@ -499,7 +579,7 @@ public abstract class AbstractDirectoryConfiguration extends AbstractConnectorCo
 	 * @return identity role guid attribute
 	 */
 	public final String getIdentityRoleGuidAttribute() {
-		return configurationParameters.getStringOrNull("directory.identityRoleGuidAttribute");
+		return configurationParameters.getStringOrNull(DIRECTORY_IDENTITY_ROLE_GUID_ATTRIBUTE);
 	}
 
 	/**
@@ -508,7 +588,7 @@ public abstract class AbstractDirectoryConfiguration extends AbstractConnectorCo
 	 * @return identity role name attribute
 	 */
 	public final String getIdentityRoleNameAttribute() {
-		return configurationParameters.getStringOrNull("directory.identityRoleNameAttribute");
+		return configurationParameters.getStringOrNull(DIRECTORY_IDENTITY_ROLE_NAME_ATTRIBUTE);
 	}
 
 	/**
@@ -517,7 +597,7 @@ public abstract class AbstractDirectoryConfiguration extends AbstractConnectorCo
 	 * @return password attribute
 	 */
 	public final String getIdentityPasswordAttribute() {
-		return configurationParameters.getStringOrFail("directory.identityPasswordAttribute");
+		return configurationParameters.getStringOrFail(DIRECTORY_IDENTITY_PASSWORD_ATTRIBUTE);
 	}
 
 	/**
@@ -526,7 +606,7 @@ public abstract class AbstractDirectoryConfiguration extends AbstractConnectorCo
 	 * @return distinguished name attribute
 	 */
 	public final String getDistinguishedNameAttribute() {
-		return configurationParameters.getStringOrDefault("directory.distinguishedNameAttribute", "dn");
+		return configurationParameters.getStringOrDefault(DIRECTORY_DISTINGUISHED_NAME_ATTRIBUTE, "dn");
 	}
 
 	/**
@@ -535,7 +615,7 @@ public abstract class AbstractDirectoryConfiguration extends AbstractConnectorCo
 	 * @return password encoding type
 	 */
 	public final String getIdentityPasswordEncoding() {
-		return configurationParameters.getStringOrFail("directory.identityPasswordEncoding");
+		return configurationParameters.getStringOrFail(DIRECTORY_IDENTITY_PASSWORD_ENCODING);
 	}
 
 	/**
@@ -544,7 +624,7 @@ public abstract class AbstractDirectoryConfiguration extends AbstractConnectorCo
 	 * @return role object class
 	 */
 	public final String getRoleObjectClass() {
-		return configurationParameters.getStringOrFail("directory.roleObjectClass");
+		return configurationParameters.getStringOrFail(DIRECTORY_ROLE_OBJECT_CLASS);
 	}
 
 	/**
@@ -553,7 +633,7 @@ public abstract class AbstractDirectoryConfiguration extends AbstractConnectorCo
 	 * @return role name attribute
 	 */
 	public final String getRoleNameAttribute() {
-		return configurationParameters.getStringOrFail("directory.roleNameAttribute");
+		return configurationParameters.getStringOrFail(DIRECTORY_ROLE_NAME_ATTRIBUTE);
 	}
 
 	/**
@@ -562,7 +642,26 @@ public abstract class AbstractDirectoryConfiguration extends AbstractConnectorCo
 	 * @return role name guid attribute
 	 */
 	public final String getRoleGuidAttribute() {
-		return configurationParameters.getStringOrFail("directory.roleGuidAttribute");
+		return configurationParameters.getStringOrFail(DIRECTORY_ROLE_GUID_ATTRIBUTE);
+	}
+
+	/**
+	 * The attribute name which is used to indicate which group(s) the user or grup
+	 * is a part of.
+	 * 
+	 * @return member of attribute
+	 */
+	public final String getMemberOfAttribute() {
+		return configurationParameters.getStringOrFail(DIRECTORY_MEMBER_OF_ATTRIBUTE);
+	}
+
+	/**
+	 * The attribute name which is used to indicate which users or groups in are a group.
+	 * 
+	 * @return member of attribute
+	 */
+	public final String getUniqueMemberAttribute() {
+		return configurationParameters.getStringOrFail(DIRECTORY_UNIQUE_MEMBER_ATTRIBUTE);
 	}
 
 	public final Map<String, String> getConnectorConfigurationParameters() {

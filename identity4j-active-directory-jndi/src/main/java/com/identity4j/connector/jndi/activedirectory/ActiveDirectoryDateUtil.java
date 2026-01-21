@@ -26,13 +26,14 @@ package com.identity4j.connector.jndi.activedirectory;
 
 import java.util.Calendar;
 import java.util.Date;
-import java.util.TimeZone;
+
+import com.identity4j.util.Util;
 
 public final class ActiveDirectoryDateUtil {
 
     private ActiveDirectoryDateUtil() {
     }
-
+    
     /**
      * Converts an Active Directory long value into a
      * <code>java.util.Date</code>.
@@ -41,9 +42,9 @@ public final class ActiveDirectoryDateUtil {
      * @return the <code>java.util.Date</code> representing the long
      */
     public static Date adTimeToJavaDate(long timeStamp) {
-        Calendar calendar = Calendar.getInstance();
+        Calendar calendar = Util.getCalendarUTC();
         calendar.clear();
-        calendar.set(1601, 0, 1, 0, 0);
+        calendar.set(1601, Calendar.JANUARY, 1, 0, 0);
         timeStamp = timeStamp / 10000 + calendar.getTime().getTime();
         return new Date(timeStamp);
     }
@@ -58,15 +59,28 @@ public final class ActiveDirectoryDateUtil {
         return (int) timeStamp == -9223372036854775808L ? 0 : (int) (timeStamp / -86400L / 10000000L);
     }
 
+    /**
+     * @deprecated This method is named incorrectly and should not be used. 
+     * In name its Data should be Date.
+     * Use {@link #javaDateToAdTime()} instead.
+     */
+    @Deprecated()
 	public static long javaDataToADTime(Date date) {
-        Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        calendar.clear();
-        calendar.setTime(date);
-        
-        Calendar calendar2 = Calendar.getInstance();
-        calendar.clear();
-        calendar.set(1601, 0, 1, 0, 0);
-        
-        return ( calendar.getTimeInMillis() - calendar2.getTimeInMillis() ) * 10000;        
+        return javaDateToADTime(date);      
+	}
+	
+	public static long javaDateToADTime(Date date) {
+		// Create a calendar in UTC for the date provided
+	    Calendar calendar = Util.getCalendarUTC();
+	    calendar.setTime(date);
+
+	    // Create another calendar in UTC for January 1, 1601
+	    Calendar calendar1601 = Util.getCalendarUTC();
+	    calendar1601.clear();
+	    calendar1601.set(1601, Calendar.JANUARY, 1, 0, 0, 0);
+
+	    // Calculate the difference in milliseconds and convert to 100-nanosecond units (Windows FILETIME format)
+	    long diffInMillis = calendar.getTimeInMillis() - calendar1601.getTimeInMillis();
+	    return diffInMillis * 10000; // Convert to 100-nanosecond intervals
 	}
 }

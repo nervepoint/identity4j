@@ -186,5 +186,10 @@ public enum ConnectorCapability {
 	 * the last stored tag. If it has change, then the new details can be retrieved, otherwise
 	 * nothing is to be done and the client code can use cached details.
 	 */
-	tag
+	tag,
+	/**
+	 * The connector allows fetching binary image via attribute thumbnailPhoto
+	 */
+	thumbnailPhoto
+	
 }

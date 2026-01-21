@@ -75,7 +75,9 @@ import com.google.api.services.admin.directory.model.User;
 import com.google.api.services.admin.directory.model.Users;
 import com.identity4j.connector.AbstractConnector;
 import com.identity4j.connector.ConnectorCapability;
+import com.identity4j.connector.OperationContext;
 import com.identity4j.connector.PrincipalType;
+import com.identity4j.connector.ResultIterator;
 import com.identity4j.connector.WebAuthenticationAPI;
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.exception.PrincipalAlreadyExistsException;
@@ -342,7 +344,7 @@ public class GoogleConnector extends AbstractConnector<GoogleConfiguration> {
 	 * @return Identity instance found by the specified email id/principal name.
 	 */
 	@Override
-	public Identity getIdentityByName(String name) throws PrincipalNotFoundException, ConnectorException {
+	public Identity getIdentityByName(String name, boolean withGroups) throws PrincipalNotFoundException, ConnectorException {
 		if (log.isInfoEnabled()) {
 			log.info("Get google identity " + name);
 		}
@@ -350,7 +352,7 @@ public class GoogleConnector extends AbstractConnector<GoogleConfiguration> {
 			checkRequestInterval();
 			User user = directory.users().get(name).execute();
 			GoogleIdentity identity = GoogleModelConvertor.googleUserToGoogleIdentity(user);
-			if (getConfiguration().getFetchRoles()) {
+			if (withGroups && getConfiguration().getFetchRoles()) {
 				List<Role> roles = findAllRolesForAUser(user.getPrimaryEmail());
 				identity.setRoles(roles);
 			}
@@ -398,11 +400,11 @@ public class GoogleConnector extends AbstractConnector<GoogleConfiguration> {
 	 * @return iterator with all identities.
 	 */
 	@Override
-	public Iterator<Identity> allIdentities() throws ConnectorException {
+	public ResultIterator<Identity> allIdentities(OperationContext opContext) throws ConnectorException {
 		if (log.isWarnEnabled()) {
 			log.warn("Listing all google identities");
 		}
-		return new Iterator<Identity>() {
+		return new ResultIterator<Identity>() {
 
 			Iterator<Identity> currentIterator;
 			String pageToken = null;
@@ -502,7 +504,11 @@ public class GoogleConnector extends AbstractConnector<GoogleConfiguration> {
 
 			@Override
 			public void remove() {
+			}
 
+			@Override
+			public String tag() {
+				return opContext.getTag();
 			}
 		};
 
@@ -600,11 +606,11 @@ public class GoogleConnector extends AbstractConnector<GoogleConfiguration> {
 	 *             for api, connection related errors.
 	 */
 	@Override
-	public Iterator<Role> allRoles() throws ConnectorException {
+	public ResultIterator<Role> allRoles(OperationContext opContext) throws ConnectorException {
 		if (log.isWarnEnabled()) {
 			log.warn("Listing all google groups");
 		}
-		return new Iterator<Role>() {
+		return new ResultIterator<Role>() {
 
 			Iterator<Role> currentIterator;
 			String pageToken = null;
@@ -639,9 +645,11 @@ public class GoogleConnector extends AbstractConnector<GoogleConfiguration> {
 					}
 
 					List<Role> roles = new ArrayList<Role>();
-
-					for (Group group : groups.getGroups()) {
-						roles.add(GoogleModelConvertor.groupToRole(group));
+					List<Group> groupList = groups.getGroups();
+					if(groupList != null) {
+						for (Group group : groupList) {
+							roles.add(GoogleModelConvertor.groupToRole(group));
+						}
 					}
 
 					currentIterator = roles.iterator();
@@ -675,7 +683,11 @@ public class GoogleConnector extends AbstractConnector<GoogleConfiguration> {
 
 			@Override
 			public void remove() {
+			}
 
+			@Override
+			public String tag() {
+				return opContext.getTag();
 			}
 		};
 

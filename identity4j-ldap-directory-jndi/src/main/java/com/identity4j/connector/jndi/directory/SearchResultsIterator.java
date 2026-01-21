@@ -17,7 +17,6 @@ import java.util.Arrays;
  */
 
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 import javax.naming.Context;
@@ -36,10 +35,12 @@ import javax.naming.ldap.PagedResultsResponseControl;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import com.identity4j.connector.OperationContext;
+import com.identity4j.connector.ResultIterator;
 import com.identity4j.connector.jndi.directory.LdapService.ResultMapper;
 import com.identity4j.connector.jndi.directory.filter.Filter;
 
-public class SearchResultsIterator<T extends Object> implements Iterator<T> {
+public class SearchResultsIterator<T extends Object> implements ResultIterator<T> {
 
 	final static Log LOG = LogFactory.getLog(LdapService.class);
 
@@ -54,16 +55,23 @@ public class SearchResultsIterator<T extends Object> implements Iterator<T> {
 	private SearchControls searchControls;
 	private AbstractDirectoryConfiguration configuration;
 	private byte[] cookie = null;
+	private OperationContext opContext;
 
 	public SearchResultsIterator(Collection<? extends Name> dns, Filter filter, SearchControls searchControls,
-			AbstractDirectoryConfiguration configuration, ResultMapper<T> filteredMapper, LdapContext context) {
+			AbstractDirectoryConfiguration configuration, ResultMapper<T> filteredMapper, LdapContext context, OperationContext opContext) {
 		this.context = context;
+		this.opContext = opContext;
 		this.configuration = configuration;
 		this.searchControls = searchControls;
 		this.filteredMapper = filteredMapper;
 		this.dns = dns == null ? null : dns.toArray(new Name[0]);
 		this.filter = filter;
 		LOG.info(String.format("New search iterator using filter: %s for DNs: %s", filter == null ? "<none>" : filter.encode(), dns == null ? null : Arrays.asList(dns)));
+	}
+
+	@Override
+	public String tag() {
+		return opContext.getTag();
 	}
 
 	@Override

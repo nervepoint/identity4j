@@ -45,6 +45,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
+import java.util.TimeZone;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
@@ -59,9 +60,24 @@ import org.apache.commons.logging.LogFactory;
 public final class Util {
 
 	private final static Log LOG = LogFactory.getLog(Util.class);
+	private static final TimeZone UTC_TIME_ZONE = TimeZone.getTimeZone("UTC");
 
 	private Util() {
 		// don't create an instance
+	}
+	
+	public static Calendar convertToUTCForSafety(Calendar cal) {
+		Calendar calUtc = (Calendar) cal.clone();
+	    calUtc.setTimeZone(UTC_TIME_ZONE);
+	    return calUtc;
+	}
+	
+	public static Calendar getCalendarUTC() {
+		return getCalendarInTimeZone(UTC_TIME_ZONE);
+	}
+	
+	public static Calendar getCalendarInTimeZone(TimeZone timeZone) {
+		return Calendar.getInstance(timeZone);
 	}
 
 	/**
@@ -78,9 +94,9 @@ public final class Util {
 		if (date1 == null || date2 == null) {
 			throw new IllegalArgumentException("The dates must not be null");
 		}
-		Calendar cal1 = Calendar.getInstance();
+		Calendar cal1 = getCalendarUTC();
 		cal1.setTime(date1);
-		Calendar cal2 = Calendar.getInstance();
+		Calendar cal2 = getCalendarUTC();
 		cal2.setTime(date2);
 		return isSameDay(cal1, cal2);
 	}
@@ -99,6 +115,10 @@ public final class Util {
 		if (cal1 == null || cal2 == null) {
 			throw new IllegalArgumentException("The dates must not be null");
 		}
+		
+		cal1 = convertToUTCForSafety(cal1);
+		cal2 = convertToUTCForSafety(cal2);
+	    
 		return (cal1.get(Calendar.ERA) == cal2.get(Calendar.ERA) && cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) && cal1
 			.get(Calendar.DAY_OF_YEAR) == cal2.get(Calendar.DAY_OF_YEAR));
 	}
@@ -113,7 +133,7 @@ public final class Util {
 	 * @throws IllegalArgumentException if the date is <code>null</code>
 	 */
 	public static boolean isToday(Date date) {
-		return isSameDay(date, Calendar.getInstance().getTime());
+		return isSameDay(date, getCalendarUTC().getTime());
 	}
 
 	/**
@@ -126,7 +146,8 @@ public final class Util {
 	 * @throws IllegalArgumentException if the calendar is <code>null</code>
 	 */
 	public static boolean isToday(Calendar cal) {
-		return isSameDay(cal, Calendar.getInstance());
+		TimeZone givenTimeZone = cal.getTimeZone();
+		return isSameDay(cal, getCalendarInTimeZone(givenTimeZone));
 	}
 
 	/**
@@ -143,9 +164,9 @@ public final class Util {
 		if (date1 == null || date2 == null) {
 			throw new IllegalArgumentException("The dates must not be null");
 		}
-		Calendar cal1 = Calendar.getInstance();
+		Calendar cal1 = getCalendarUTC();
 		cal1.setTime(date1);
-		Calendar cal2 = Calendar.getInstance();
+		Calendar cal2 = getCalendarUTC();
 		cal2.setTime(date2);
 		return isBeforeDay(cal1, cal2);
 	}
@@ -166,6 +187,10 @@ public final class Util {
 		if (cal1 == null || cal2 == null) {
 			throw new IllegalArgumentException("The dates must not be null");
 		}
+		
+		cal1 = convertToUTCForSafety(cal1);
+		cal2 = convertToUTCForSafety(cal2);
+		
 		if (cal1.get(Calendar.ERA) < cal2.get(Calendar.ERA))
 			return true;
 		if (cal1.get(Calendar.ERA) > cal2.get(Calendar.ERA))
@@ -191,9 +216,9 @@ public final class Util {
 		if (date1 == null || date2 == null) {
 			throw new IllegalArgumentException("The dates must not be null");
 		}
-		Calendar cal1 = Calendar.getInstance();
+		Calendar cal1 = getCalendarUTC();
 		cal1.setTime(date1);
-		Calendar cal2 = Calendar.getInstance();
+		Calendar cal2 = getCalendarUTC();
 		cal2.setTime(date2);
 		return isAfterDay(cal1, cal2);
 	}
@@ -214,6 +239,10 @@ public final class Util {
 		if (cal1 == null || cal2 == null) {
 			throw new IllegalArgumentException("The dates must not be null");
 		}
+		
+		cal1 = convertToUTCForSafety(cal1);
+		cal2 = convertToUTCForSafety(cal2);
+		
 		if (cal1.get(Calendar.ERA) < cal2.get(Calendar.ERA))
 			return false;
 		if (cal1.get(Calendar.ERA) > cal2.get(Calendar.ERA))
@@ -241,7 +270,7 @@ public final class Util {
 		if (date == null) {
 			throw new IllegalArgumentException("The date must not be null");
 		}
-		Calendar cal = Calendar.getInstance();
+		Calendar cal = getCalendarUTC();
 		cal.setTime(date);
 		return isWithinDaysFuture(cal, days);
 	}
@@ -262,8 +291,11 @@ public final class Util {
 		if (cal == null) {
 			throw new IllegalArgumentException("The date must not be null");
 		}
-		Calendar today = Calendar.getInstance();
-		Calendar future = Calendar.getInstance();
+		
+		cal = convertToUTCForSafety(cal);
+		
+		Calendar today = getCalendarUTC();
+		Calendar future = getCalendarUTC();
 		future.add(Calendar.DAY_OF_YEAR, days);
 		return (isAfterDay(cal, today) && !isAfterDay(cal, future));
 	}
@@ -278,7 +310,7 @@ public final class Util {
 		if (date == null) {
 			return null;
 		}
-		Calendar c = Calendar.getInstance();
+		Calendar c = getCalendarUTC();
 		c.setTime(date);
 		c.set(Calendar.HOUR_OF_DAY, 0);
 		c.set(Calendar.MINUTE, 0);
@@ -304,7 +336,7 @@ public final class Util {
 		if (date == null) {
 			return false;
 		}
-		Calendar c = Calendar.getInstance();
+		Calendar c = getCalendarUTC();
 		c.setTime(date);
 		if (c.get(Calendar.HOUR_OF_DAY) > 0) {
 			return true;
@@ -326,7 +358,7 @@ public final class Util {
 		if (date == null) {
 			return null;
 		}
-		Calendar c = Calendar.getInstance();
+		Calendar c = getCalendarUTC();
 		c.setTime(date);
 		c.set(Calendar.HOUR_OF_DAY, 23);
 		c.set(Calendar.MINUTE, 59);
@@ -420,7 +452,7 @@ public final class Util {
 	 * @return
 	 */
 	public static boolean isDatePast(Date fromDate, int days) {
-		Calendar calendar = Calendar.getInstance();
+		Calendar calendar = getCalendarUTC();
 		calendar.setTime(fromDate);
 		calendar.add(Calendar.DAY_OF_MONTH, days);
 		return new Date().after(calendar.getTime());
@@ -509,12 +541,16 @@ public final class Util {
 	 * @return new cal
 	 */
 	public static Calendar dayPrecision(Calendar calendar) {
-		Calendar cal = Calendar.getInstance();
+		
+		TimeZone givenTimeZone = calendar.getTimeZone();
+		
+		Calendar cal = getCalendarInTimeZone(givenTimeZone);
 		cal.setTime(calendar.getTime());
 		cal.set(Calendar.MILLISECOND, 0);
 		cal.set(Calendar.SECOND, 0);
 		cal.set(Calendar.MINUTE, 0);
 		cal.set(Calendar.HOUR_OF_DAY, 0);
+		
 		return cal;
 	}
 

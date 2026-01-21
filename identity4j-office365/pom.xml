@@ -7,7 +7,7 @@
 	<parent>
 		<groupId>com.nervepoint</groupId>
 		<artifactId>identity4j</artifactId>
-		<version>1.2.2</version>
+		<version>1.2.3</version>
 		<relativePath>..</relativePath>
 	</parent>
 	<dependencies>
@@ -29,12 +29,12 @@
 		<dependency>
 			<groupId>com.microsoft.graph</groupId>
 			<artifactId>microsoft-graph</artifactId>
-			<version>[4.0,)</version>
+			<version>6.7.0</version>
 		</dependency>
 		<dependency>
 			<groupId>com.azure</groupId>
 			<artifactId>azure-identity</artifactId>
-			<version>[1.2,)</version>
+			<version>1.12.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>com.fasterxml.jackson.core</groupId>
