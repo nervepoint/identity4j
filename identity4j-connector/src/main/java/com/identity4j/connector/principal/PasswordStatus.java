@@ -23,9 +23,15 @@ package com.identity4j.connector.principal;
  */
 
 import java.io.Serializable;
+import java.util.Calendar;
 import java.util.Date;
 
+import com.identity4j.util.Util;
+
 public class PasswordStatus  implements Serializable {
+	
+	// Define your cutoff date: Jan 1, 2155 00:00:00 UTC
+    public static final Date MAX_DB_DATE = createCutoffDate(2155, 0, 1);
 
 	private static final long serialVersionUID = -4370203404346470398L;
 
@@ -207,6 +213,10 @@ public class PasswordStatus  implements Serializable {
 		if(isNeedChange()) {
 			setType(PasswordStatusType.changeRequired);
 		}
+		else if (getExpire() != null && (getExpire().equals(MAX_DB_DATE) || getExpire().after(MAX_DB_DATE))) {
+			// Expired, must change password
+			setType(PasswordStatusType.neverExpires);
+		}
 		else if (getExpire() != null && now.after(getExpire())) {
 			// Expired, must change password
 			setType(PasswordStatusType.expired);
@@ -225,6 +235,17 @@ public class PasswordStatus  implements Serializable {
 		}
 	}
 
+	/**
+     * Helper to create the cutoff date in UTC to ensure consistency with AD.
+     */
+    private static Date createCutoffDate(int year, int month, int day) {
+    	Calendar cal = Util.getCalendarUTC();
+        cal.clear();
+        cal.set(year, month, day, 0, 0, 0);
+        cal.set(Calendar.MILLISECOND, 0);
+        return cal.getTime();
+    }
+    
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder(super.toString());

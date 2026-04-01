@@ -1472,9 +1472,19 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 
 						if (passwordexpiryComputed != null && StringUtils.isNotBlank(passwordexpiryComputed)) {
 							long expireTime = Long.parseLong(passwordexpiryComputed);
-							if (expireTime > 0 && expireTime < Long.MAX_VALUE) {
-								passwordStatus.setExpire(ActiveDirectoryDateUtil.adTimeToJavaDate(expireTime));
-							}
+							
+				            Date safeExpiryDate = ActiveDirectoryDateUtil.parseAndCapExpiry(expireTime);
+
+				            if (safeExpiryDate != null) {
+				                passwordStatus.setExpire(safeExpiryDate);
+				                
+				                // Log if we had to clamp it
+				                if (safeExpiryDate.equals(PasswordStatus.MAX_DB_DATE) && LOG.isInfoEnabled()) {
+				                	LOG.info(String.format("Clamped password expiry for %s to max DB date (2155-01-01)", username));
+				                }
+				                
+				            }
+				            
 						} else if (passwordLastSet != null) {
 							passwordStatus.setExpire(getAgedDate(maximumPasswordAge, passwordLastSet));
 						}

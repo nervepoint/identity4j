@@ -27,10 +27,11 @@ package com.identity4j.connector.jndi.activedirectory;
 import java.util.Calendar;
 import java.util.Date;
 
+import com.identity4j.connector.principal.PasswordStatus;
 import com.identity4j.util.Util;
 
 public final class ActiveDirectoryDateUtil {
-
+	
     private ActiveDirectoryDateUtil() {
     }
     
@@ -83,4 +84,35 @@ public final class ActiveDirectoryDateUtil {
 	    long diffInMillis = calendar.getTimeInMillis() - calendar1601.getTimeInMillis();
 	    return diffInMillis * 10000; // Convert to 100-nanosecond intervals
 	}
+	
+	/**
+     * Parses the AD expiry time, converts it to a Java Date, 
+     * and caps it to the MAX_DB_DATE if it exceeds it.
+     *
+     * @param expireTime The raw long value from AD (msDS-UserPasswordExpiryTimeComputed)
+     * @return A Date object capped at 2155-01-01 if the original was further in the future.
+     *         Returns null if expireTime is 0 or invalid.
+     */
+    public static Date parseAndCapExpiry(long expireTime) {
+        // 1. Handle standard "Never" or invalid cases first
+        if (expireTime <= 0) {
+            return null; 
+        }
+
+        // 2. Convert AD time to Java Date using your existing utility
+        // This handles the 100-ns to ms conversion and epoch shift
+        Date convertedDate = adTimeToJavaDate(expireTime);
+
+        // 3. Check if the converted date is beyond our database limit
+        if (convertedDate.after(PasswordStatus.MAX_DB_DATE)) {
+            // It's too far in the future (e.g., year 29405).
+            // Cap it to the maximum supported date.
+            return PasswordStatus.MAX_DB_DATE;
+        }
+
+        // 4. Return the valid date
+        return convertedDate;
+    }
+
+	
 }
