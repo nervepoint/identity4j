@@ -743,6 +743,9 @@ public abstract class AbstractDirectoryConfiguration extends AbstractConnectorCo
 	public String buildProviderUrl(boolean ssl, String... controllerHosts) {
 		StringBuilder builder = new StringBuilder();
 		for (String controllerHost : buildProviderUrls(controllerHosts)) {
+			if(builder.length() > 0) {
+				builder.append(" ");
+			}
 			int idx;
 			if ((idx = controllerHost.indexOf(':')) > -1) {
 				int port = Integer.parseInt(controllerHost.substring(idx + 1));

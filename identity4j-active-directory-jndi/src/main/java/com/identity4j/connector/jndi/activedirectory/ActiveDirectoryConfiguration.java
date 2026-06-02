@@ -231,6 +231,11 @@ public class ActiveDirectoryConfiguration extends AbstractDirectoryConfiguration
 			String... controllerHosts) {
 		StringBuilder builder = new StringBuilder();
 		for (String controllerHost : buildProviderUrls(controllerHosts)) {
+			
+			if(builder.length() > 0) {
+				builder.append(" ");
+			}
+			
 			int idx;
 			if ((idx = controllerHost.indexOf(':')) > -1) {
 				int port = Integer.parseInt(controllerHost.substring(idx + 1));
@@ -258,8 +263,6 @@ public class ActiveDirectoryConfiguration extends AbstractDirectoryConfiguration
 				} else {
 					builder.append(":").append(ssl ? 636 : 389);
 				}
-
-				builder.append(" ");
 			}
 
 		}
