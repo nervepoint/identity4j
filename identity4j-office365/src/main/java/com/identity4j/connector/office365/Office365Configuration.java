@@ -50,7 +50,6 @@ public class Office365Configuration extends AbstractConnectorConfiguration {
 	/**
 	 * Active Directory OAuth URL related properties
 	 */
-	public static final String OFFICE365O_AUTH_URL = "office365OAuthUrl";
 	public static final String OFFICE365O_AUTH_URL_REDIRECT_URI = "office365OAuthUrlRedirectUri";
 	
 	/**
@@ -71,6 +70,11 @@ public class Office365Configuration extends AbstractConnectorConfiguration {
 	public static final String OFFICE365_APP_DELETE_PRINCIPAL_ROLE = "office365AppDeletePrincipalRole";
 
 
+	/**
+	 * Configuration property key for use US Government Servers.
+	 */
+	public static final String OFFICE365_USE_US_GOV_SERVERS = "office365UseUSGovernmentServers";
+	
 	/**
 	 * Configuration property key for excludes
 	 */
@@ -187,7 +191,7 @@ public class Office365Configuration extends AbstractConnectorConfiguration {
 	 * @return the restServiceHost
 	 */
 	public  String getRestServiceHost() {
-		return configurationParameters.getStringOrDefault(OFFICE365_REST_SERVICE_HOST, "graph.microsoft.com");
+		return configurationParameters.getStringOrDefault(OFFICE365_REST_SERVICE_HOST, getGraphEndpoint());
 	}
 	
 	/**
@@ -208,7 +212,7 @@ public class Office365Configuration extends AbstractConnectorConfiguration {
 	 * @return the stsUrl
 	 */
 	public  String getStsUrl() {
-		return configurationParameters.getStringOrDefault(OFFICE365_STS_URL, "https://login.microsoftonline.com/%s/oauth2/v2.0/token");
+		return configurationParameters.getStringOrDefault(OFFICE365_STS_URL, "https://" + getAuthenticationEndpoint() + "/%s/oauth2/v2.0/token");
 	}
 	
 	/**
@@ -222,14 +226,7 @@ public class Office365Configuration extends AbstractConnectorConfiguration {
 	 * @return the graphPrincipalId
 	 */
 	public String getGraphPrincipalId(){
-		return configurationParameters.getStringOrDefault(OFFICE365_GRAPH_PRINCIPAL_ID, "https://graph.microsoft.com");
-	}
-	
-	/**
-	 * @return the oAuthUrl
-	 */
-	public String getOAuthUrl(){
-		return configurationParameters.getStringOrDefault(OFFICE365O_AUTH_URL, "https://login.windows.net/common/oauth2/authorize?response_type=code&client_id=%s&redirect_uri=%s&resource=%s");
+		return configurationParameters.getStringOrDefault(OFFICE365_GRAPH_PRINCIPAL_ID, "https://" + getGraphEndpoint());
 	}
 	
 	
@@ -251,11 +248,21 @@ public class Office365Configuration extends AbstractConnectorConfiguration {
 	 * @return the graphApiAuthorityURI
 	 */
 	public String getGraphAPIAuthorityURI() {
-		return configurationParameters.getStringOrDefault(MICROSOFT_GRAPH_API_AUTHORITY_URI, "https://login.microsoftonline.com/%s");
+		return configurationParameters.getStringOrDefault(MICROSOFT_GRAPH_API_AUTHORITY_URI, "https://" + getAuthenticationEndpoint() + "/%s");
 	}
 	
+	/**
+	 * @return the getGraphAPIDefaultScope
+	 */
 	public String getGraphAPIDefaultScope() {
-		return configurationParameters.getStringOrDefault(MICROSOFT_GRAPH_API_DEFAULT_SCOPE, "https://graph.microsoft.com/.default");
+		return configurationParameters.getStringOrDefault(MICROSOFT_GRAPH_API_DEFAULT_SCOPE, "https://" +  getGraphEndpoint() + "/.default");
+	}
+	
+	/**
+	 * @return the getUseUsGovServers
+	 */
+	public Boolean isUseUsGovServers() {
+		return configurationParameters.getBooleanOrDefault(OFFICE365_USE_US_GOV_SERVERS, false);
 	}
 	
 	@Override
@@ -322,5 +329,13 @@ public class Office365Configuration extends AbstractConnectorConfiguration {
 	@Override
 	public Class<? extends Connector<?>> getConnectorClass() {
 		return Office365Connector.class;
+	}
+	
+	private String getGraphEndpoint() {
+	    return Boolean.TRUE.equals(isUseUsGovServers()) ? "graph.microsoft.us" : "graph.microsoft.com";
+	}
+	
+	private String getAuthenticationEndpoint() {
+	    return Boolean.TRUE.equals(isUseUsGovServers()) ? "login.microsoftonline.us" : "login.microsoftonline.com";
 	}
 }

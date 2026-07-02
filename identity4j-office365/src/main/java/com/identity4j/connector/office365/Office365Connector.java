@@ -961,6 +961,12 @@ public class Office365Connector extends AbstractConnector<Office365Configuration
 	 */
 	@Override
 	protected void onOpen(Office365Configuration parameters) throws ConnectorException {
+		
+		if (Boolean.TRUE.equals(parameters.isUseUsGovServers()) 
+					&& !parameters.getGraphAPIAuthorityURI().endsWith(".us") 
+					&& !parameters.getStsUrl().endsWith(".us")) {
+			throw new IllegalStateException("US Government server connection is configured but the API endpoints are not ending with '.us', please verify.");
+		}
 
 		directory = new Directory();
 

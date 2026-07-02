@@ -87,7 +87,6 @@ public class Office365OAuth extends AbstractOAuth2 {
 					JWTToken jwtToken = objectMapper.readValue(jwt, JWTToken.class);
 					username = jwtToken.getUpn();
 				}
-				System.out.println("::: " + jwt);
 
 			} catch (Exception e) {
 				throw new ConnectorException(Office365Configuration.ErrorGeneratingToken + ":"

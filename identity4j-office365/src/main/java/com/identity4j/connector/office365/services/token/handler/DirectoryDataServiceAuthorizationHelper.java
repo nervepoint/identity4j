@@ -85,8 +85,6 @@ public class DirectoryDataServiceAuthorizationHelper {
 			
 			IAuthenticationResult token = app.acquireToken(clientCredentialParameters).get();
 			
-			log.info(token);
-			
 			ADToken adToken = new ADToken();
 			adToken.setAccessToken(token.accessToken());
 			adToken.setExpiresOn(token.expiresOnDate().getTime());
