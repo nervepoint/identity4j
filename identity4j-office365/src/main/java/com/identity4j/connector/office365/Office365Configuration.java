@@ -331,11 +331,11 @@ public class Office365Configuration extends AbstractConnectorConfiguration {
 		return Office365Connector.class;
 	}
 	
-	private String getGraphEndpoint() {
+	public String getGraphEndpoint() {
 	    return Boolean.TRUE.equals(isUseUsGovServers()) ? "graph.microsoft.us" : "graph.microsoft.com";
 	}
 	
-	private String getAuthenticationEndpoint() {
+	public String getAuthenticationEndpoint() {
 	    return Boolean.TRUE.equals(isUseUsGovServers()) ? "login.microsoftonline.us" : "login.microsoftonline.com";
 	}
 }
