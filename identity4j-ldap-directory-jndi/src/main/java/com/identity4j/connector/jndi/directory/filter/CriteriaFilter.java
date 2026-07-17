@@ -53,13 +53,20 @@ public abstract class CriteriaFilter implements Filter {
 	}
 
 	protected static String escape(String name, boolean escapeWildcard) {
-		name = name.replace("(", "\\28").replace("|", "\\7c").replace("<", "\\3c").replace("/", "\\2f")
-				.replace(")", "\\29").replace("~", "\\7e").replace("\\", "\\5c").replace("&", "\\26")
-				.replace(">", "\\3e");
-		if (escapeWildcard)
-			name = name.replace("*", "\\2a");
-		return name;
+	    name = name.replace("\\", "\\5c")   // MUST be first
+	               .replace("(", "\\28")
+	               .replace("|", "\\7c")
+	               .replace("<", "\\3c")
+	               .replace("/", "\\2f")
+	               .replace(")", "\\29")
+	               .replace("&", "\\26")
+	               .replace(">", "\\3e")
+	               .replace("~", "\\7e");
+	    if (escapeWildcard)
+	        name = name.replace("*", "\\2a");
+	    return name;
 	}
+
 
 	@Override
 	public String toString() {
