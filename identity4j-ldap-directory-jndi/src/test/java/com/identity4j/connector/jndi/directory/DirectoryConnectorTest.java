@@ -1,5 +1,13 @@
 package com.identity4j.connector.jndi.directory;
 
+import javax.naming.NamingException;
+
+import org.junit.Assert;
+import org.junit.Test;
+
+import com.identity4j.connector.exception.ConnectorException;
+import com.identity4j.connector.exception.InvalidLoginCredentialsException;
+
 /*
  * #%L
  * Idenity4J LDAP Directory JNDI
@@ -22,9 +30,13 @@ package com.identity4j.connector.jndi.directory;
  * #L%
  */
 
-import org.junit.Test;
-
 public class DirectoryConnectorTest {
+
+	private static class TestDirectoryConnector extends DirectoryConnector {
+		String process(NamingException exception) {
+			return processNamingException(exception);
+		}
+	}
 
 	@Test
 	public void testParseDNContainingBackslash() {
@@ -36,5 +48,57 @@ public class DirectoryConnectorTest {
 //        assertEquals("dc=com", name.getLdapRdn(0).toString());
 //        assertEquals("cn=This is a problem \\\\\\ Group, dc=example, dc=com", name.toString());
     }
+
+	@Test
+	public void testInvalidCredentialsResultCode() {
+		NamingException exception = new NamingException("LDAP: error code 49 - Invalid Credentials");
+
+		try {
+			new TestDirectoryConnector().process(exception);
+			Assert.fail("Expected invalid credentials exception");
+		} catch (InvalidLoginCredentialsException e) {
+			Assert.assertEquals("Invalid login credentials", e.getMessage());
+		}
+	}
+
+	@Test
+	public void testAccessDeniedResultCode() {
+		NamingException exception = new NamingException("LDAP: error code 50 - Insufficient Access Rights");
+
+		try {
+			new TestDirectoryConnector().process(exception);
+			Assert.fail("Expected connector exception");
+		} catch (ConnectorException e) {
+			Assert.assertEquals("Insufficient access rights to perform the LDAP operation.", e.getMessage());
+			Assert.assertSame(exception, e.getCause());
+		}
+	}
+
+	@Test
+	public void testMissingObjectResultCode() {
+		NamingException exception = new NamingException(
+				"[LDAP: error code 32 - No Such Object]; remaining name 'uid=manager'");
+
+		try {
+			new TestDirectoryConnector().process(exception);
+			Assert.fail("Expected connector exception");
+		} catch (ConnectorException e) {
+			Assert.assertEquals("The requested LDAP object does not exist.", e.getMessage());
+			Assert.assertSame(exception, e.getCause());
+		}
+	}
+
+	@Test
+	public void testUnknownResultCodeUsesDiagnosticMessage() {
+		NamingException exception = new NamingException("LDAP: error code 999 - Future Server Error");
+
+		try {
+			new TestDirectoryConnector().process(exception);
+			Assert.fail("Expected connector exception");
+		} catch (ConnectorException e) {
+			Assert.assertEquals("LDAP: error code 999 - Future Server Error", e.getMessage());
+			Assert.assertSame(exception, e.getCause());
+		}
+	}
 
 }

@@ -652,9 +652,12 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 		try {
 			ldapService.setPassword(directoryIdentity.getDn().toString(), password);
 		} catch (NamingException e) {
-			LOG.error("Problem in getting identities.", e);
+			LOG.error("Problem setting password.", e);
+			processNamingException(e);
+			throw new IllegalStateException(e.getMessage(), e);
 		} catch (IOException e) {
-			LOG.error("Problem in getting identities.", e);
+			LOG.error("Problem setting password.", e);
+			throw new IllegalStateException(e.getMessage(), e);
 		}
 	}
 
@@ -1115,6 +1118,24 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 		throw new ConnectorException(message, nme);
 	}
 
+	protected int getCode(NamingException nme) {
+		/*
+		 * This is a bit crap. There must be a better way of getting at the codes? Also,
+		 * are they AD specific?
+		 */
+		String message = getMessage(nme);
+		if (!StringUtil.isNullOrEmpty(message)) {
+			final String string = "LDAP: error code ";
+			int ldpx = message.indexOf(string);
+			if (ldpx != -1) {
+				String err = message.substring(ldpx + string.length());
+				StringTokenizer t = new StringTokenizer(err);
+				return Integer.parseInt(t.nextToken());
+			}
+		}
+		return 0;
+	}
+
 	protected String getReason(NamingException nme) {
 		/*
 		 * This is a bit crap. There must be a better way of getting at the codes? Also,
@@ -1139,23 +1160,7 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 		return "Unknown reason";
 	}
 
-	protected int getCode(NamingException nme) {
-		/*
-		 * This is a bit crap. There must be a better way of getting at the codes? Also,
-		 * are they AD specific?
-		 */
-		String message = getMessage(nme);
-		if (!StringUtil.isNullOrEmpty(message)) {
-			final String string = "LDAP: error code ";
-			int ldpx = message.indexOf(string);
-			if (ldpx != -1) {
-				String err = message.substring(ldpx + string.length());
-				StringTokenizer t = new StringTokenizer(err);
-				return Integer.parseInt(t.nextToken());
-			}
-		}
-		return 0;
-	}
+	
 
 	protected String getMessage(NamingException nme) {
 		String message = nme.getExplanation();
