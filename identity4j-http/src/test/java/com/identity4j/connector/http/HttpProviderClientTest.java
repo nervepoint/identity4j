@@ -33,13 +33,13 @@ import java.net.ServerSocket;
 import java.util.Arrays;
 import java.util.Enumeration;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.webapp.WebAppContext;
+import org.eclipse.jetty.ee10.webapp.WebAppContext;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -76,10 +76,9 @@ public class HttpProviderClientTest {
 	@Before
 	public void startServer() throws Exception {
 		server = new Server(port = findPort());
-		server.setStopAtShutdown(true);
 		WebAppContext webAppContext = new WebAppContext();
 		webAppContext.setContextPath("/test");
-		webAppContext.setResourceBase("src/test/webapp");
+		webAppContext.setBaseResourceAsString("src/test/webapp");
 		webAppContext.setClassLoader(getClass().getClassLoader());
 		webAppContext.addServlet(PostServlet.class, "/post");
 		webAppContext.addServlet(PostJsonServlet.class, "/post-json");
