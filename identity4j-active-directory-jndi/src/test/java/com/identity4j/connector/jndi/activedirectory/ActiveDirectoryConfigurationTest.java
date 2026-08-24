@@ -97,4 +97,18 @@ public class ActiveDirectoryConfigurationTest {
         AbstractDirectoryConfiguration configuration = new ActiveDirectoryConfiguration(configurationParameters);
         assertEquals(username, configuration.getServiceAccountDn());
     }
+
+    // CWE-477 regression: isPasswordRulesEnforced() uses ACTIVE_DIRECTORY_ENFORCE_PASSWORD_RULES (correct spelling)
+    @Test
+    public void passwordRulesEnforcedFalseByDefault() {
+        ActiveDirectoryConfiguration configuration = new ActiveDirectoryConfiguration(configurationParameters);
+        assertEquals(false, configuration.isPasswordRulesEnforced());
+    }
+
+    @Test
+    public void passwordRulesEnforcedTrueWhenSet() {
+        configurationParameters.set(ActiveDirectoryConfiguration.ACTIVE_DIRECTORY_ENFORCE_PASSWORD_RULES, "true");
+        ActiveDirectoryConfiguration configuration = new ActiveDirectoryConfiguration(configurationParameters);
+        assertEquals(true, configuration.isPasswordRulesEnforced());
+    }
 }

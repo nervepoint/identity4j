@@ -193,13 +193,8 @@ public abstract class AbstractConnector<P extends ConnectorConfigurationParamete
 		setPassword(identity, password, forcePasswordChangeAtLogon, resetType);
 	}
 
-	@Deprecated
-	protected void setPassword(Identity identity, char[] password, boolean forcePasswordChangeAtLogon) throws ConnectorException {
-		throw new UnsupportedOperationException("Set password is not supported");
-	}
-
 	protected void setPassword(Identity identity, char[] password, boolean forcePasswordChangeAtLogon, PasswordResetType type) throws ConnectorException {
-		setPassword(identity, password, forcePasswordChangeAtLogon);
+		throw new UnsupportedOperationException("Set password is not supported");
 	}
 
 	protected final void assertGuid(Principal principal, String guid) {

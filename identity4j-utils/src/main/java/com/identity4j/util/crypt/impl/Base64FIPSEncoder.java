@@ -25,7 +25,6 @@ package com.identity4j.util.crypt.impl;
 import com.identity4j.util.crypt.nss.FIPSEncoder;
 import com.identity4j.util.crypt.nss.NssTokenDatabase;
 
-@Deprecated
 public class Base64FIPSEncoder extends CompoundEncoder {
 
     public final static String ID = FIPSEncoder.ID + "-base64";

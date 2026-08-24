@@ -197,16 +197,6 @@ public interface Connector<P extends ConnectorConfigurationParameters> extends C
 	ResultIterator<Identity> allIdentities(OperationContext opContext) throws ConnectorException;
 	
 	/**
-	 * @param tag tag
-	 * @return {@link Identity}s
-	 * @throws ConnectorException
-	 */
-	@Deprecated
-	default ResultIterator<Identity> allIdentities(String tag) throws ConnectorException {
-		return allIdentities(OperationContext.createDefault());
-	}
-
-	/**
 	 * Count identities.
 	 * 
 	 * @return
@@ -224,17 +214,6 @@ public interface Connector<P extends ConnectorConfigurationParameters> extends C
 	 * @throws ConnectorException
 	 */
 	Count<Long> countIdentities(OperationContext opContext) throws ConnectorException;
-
-	/**
-	 * Count identities.
-	 * @param tag tag
-	 * @return count
-	 * @throws ConnectorException
-	 */
-	@Deprecated
-	default Count<Long> countIdentities(String tag) throws ConnectorException {
-		return countIdentities(OperationContext.createDefault(tag));
-	}
 
 	/**
 	 * Does the {@link Identity} name already belong to another {@link Identity}
@@ -298,16 +277,6 @@ public interface Connector<P extends ConnectorConfigurationParameters> extends C
 	ResultIterator<Role> allRoles(OperationContext opContext) throws ConnectorException;
 
 	/**
-	 * @param tag tag
-	 * @return Roles
-	 * @throws ConnectorException
-	 */
-	@Deprecated
-	default ResultIterator<Role> allRoles(String tag) throws ConnectorException {
-		return allRoles(OperationContext.createDefault(tag));
-	}
-
-	/**
 	 * Count roles.
 	 * 
 	 * @return
@@ -324,17 +293,6 @@ public interface Connector<P extends ConnectorConfigurationParameters> extends C
 	 * @throws ConnectorException
 	 */
 	Count<Long> countRoles(OperationContext opContext) throws ConnectorException;
-	
-	/**
-	 * Count roles.
-	 * @param tag tag
-	 * @return count
-	 * @throws ConnectorException
-	 */
-	@Deprecated
-	default Count<Long> countRoles(String tag) throws ConnectorException {
-		return countRoles(OperationContext.createDefault());
-	}
 	
 	/**
 	 * Does the role name already belong to another role?

@@ -52,9 +52,6 @@ public class ActiveDirectoryConfiguration extends AbstractDirectoryConfiguration
 	public static final String ACTIVE_DIRECTORY_USERNAME_IS_SAMACCOUNTNAME = "activeDirectory.usernameSamAccountName";
 	public static final String ACTIVE_DIRECTORY_GROUP_IS_SAMACCOUNTNAME = "activeDirectory.groupSamAccountName";
 	
-	@Deprecated
-	public static final String ACTIVE_DIRECTORy_ENFORCE_PASSWORD_RULES = "activeDirectory.enforcePasswordRules";
-	
 	public static final String ACTIVE_DIRECTORY_ENFORCE_PASSWORD_RULES = "activeDirectory.enforcePasswordRules";
 	
 	public ActiveDirectoryConfiguration(MultiMap configurationParameters) {
@@ -338,7 +335,7 @@ public class ActiveDirectoryConfiguration extends AbstractDirectoryConfiguration
 
 	
 	public boolean isPasswordRulesEnforced() {
-		return getConfigurationParameters().getBoolean(ACTIVE_DIRECTORy_ENFORCE_PASSWORD_RULES);
+		return getConfigurationParameters().getBoolean(ACTIVE_DIRECTORY_ENFORCE_PASSWORD_RULES);
 	}
 	
 	public boolean isUsernameSamAccountName() {

@@ -60,16 +60,6 @@ public final class ActiveDirectoryDateUtil {
         return (int) timeStamp == -9223372036854775808L ? 0 : (int) (timeStamp / -86400L / 10000000L);
     }
 
-    /**
-     * @deprecated This method is named incorrectly and should not be used. 
-     * In name its Data should be Date.
-     * Use {@link #javaDateToAdTime()} instead.
-     */
-    @Deprecated()
-	public static long javaDataToADTime(Date date) {
-        return javaDateToADTime(date);      
-	}
-	
 	public static long javaDateToADTime(Date date) {
 		// Create a calendar in UTC for the date provided
 	    Calendar calendar = Util.getCalendarUTC();
