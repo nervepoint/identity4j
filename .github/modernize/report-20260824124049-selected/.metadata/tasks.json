@@ -1,0 +1,112 @@
+{
+  "$schema": "../../../../../../.vscode/extensions/vscjava.migrate-java-to-azure-1.23.0-linux-x64/skills/create-modernization-plan/tasks-schema.json",
+  "description": "Selected modernization tasks generated from assessment report report-20260824124049.",
+  "tasks": [
+    {
+      "type": "upgrade",
+      "id": "001-upgrade-java-version",
+      "description": "Upgrade Java Version",
+      "reason": "Addresses issue: Java Version Has Reached the End of Support (2 assessment incidents).",
+      "requirements": "Upgrade the full multi-module Maven reactor from its Java 8 compiler baseline to OpenJDK 21, the required target. Preserve public behavior and resolve build, test, plugin, and dependency compatibility issues caused by the runtime change.",
+      "kbId": "java-version-upgrade",
+      "dependencies": [],
+      "successCriteria": {
+        "passBuild": "true",
+        "generateNewUnitTests": "false",
+        "passUnitTests": "true"
+      }
+    },
+    {
+      "type": "upgrade",
+      "id": "002-upgrade-jakarta-ee-version",
+      "description": "Upgrade Jakarta EE Version",
+      "reason": "Addresses issue: Jakarta EE Version is not the latest stable (25 assessment incidents).",
+      "requirements": "Upgrade the selected Java EE/Jakarta EE usage across affected modules to the latest stable Jakarta EE release compatible with OpenJDK 21. Preserve connector APIs and behavior while resolving removed or incompatible APIs and dependencies.",
+      "kbId": "jakarta-ee-upgrade",
+      "dependencies": [
+        "001-upgrade-java-version"
+      ],
+      "successCriteria": {
+        "passBuild": "true",
+        "generateNewUnitTests": "false",
+        "passUnitTests": "true"
+      }
+    },
+    {
+      "type": "upgrade",
+      "id": "003-upgrade-deprecated-apis",
+      "description": "Upgrade Deprecated APIs",
+      "reason": "Addresses issues: Deprecation of Locale Class Constructors; java.net.URL Constructors Are Deprecated; Deprecation of SecurityPermission 'insertProvider.{name}' in Favor of 'insertProvider' (12 assessment incidents).",
+      "requirements": "Replace only the selected deprecated Locale constructors, java.net.URL constructors, and SecurityPermission insertProvider.{name} usages with supported equivalents. Preserve observable behavior and compatibility with the upgraded Java and Jakarta EE baselines.",
+      "kbId": "deprecated-api-upgrade",
+      "dependencies": [
+        "002-upgrade-jakarta-ee-version"
+      ],
+      "successCriteria": {
+        "passBuild": "true",
+        "generateNewUnitTests": "false",
+        "passUnitTests": "true"
+      }
+    },
+    {
+      "type": "transform",
+      "id": "004-transform-eclipse-project-to-maven",
+      "description": "Migrate from Eclipse Project to Maven Project",
+      "reason": "Addresses issue: Eclipse project found (86 assessment incidents and 49 Eclipse metadata files in the workspace).",
+      "requirements": "Complete the Maven configuration needed for the Eclipse-to-Maven migration using the existing multi-module Maven reactor. Preserve every .project and .classpath file unchanged: do not modify, delete, rename, or regenerate any of them. Create or update Maven configuration as required to represent source, resource, generated-source, and dependency settings.",
+      "environmentConfiguration": "Use the repository's existing root Maven reactor and module pom.xml files.",
+      "kbId": "eclipse-project-to-maven-project",
+      "skills": [
+        {
+          "name": "migration-eclipse-project-to-maven-project",
+          "location": "builtin"
+        }
+      ],
+      "dependencies": [
+        "003-upgrade-deprecated-apis"
+      ],
+      "successCriteria": {
+        "passBuild": "true",
+        "generateNewUnitTests": "false",
+        "passUnitTests": "true"
+      }
+    },
+    {
+      "type": "security",
+      "id": "005-security-remediate-selected-cwes",
+      "description": "Scan and resolve the selected CWE vulnerabilities",
+      "reason": "Addresses the 22 CWE findings explicitly selected from assessment report report-20260824124049.",
+      "requirements": "Scan and remediate exactly CWE-130, CWE-477, CWE-570, CWE-665, CWE-681, CWE-682, CWE-775, CWE-783, CWE-789, CWE-543, CWE-567, CWE-662, CWE-667, CWE-820, CWE-821, CWE-259, CWE-321, CWE-778, CWE-798, CWE-22, CWE-23, and CWE-611. Use the evidence and affected files in the existing report, add focused regression tests for each changed behavior, and exclude unselected CWE-89 and CWE-502.",
+      "dependencies": [
+        "004-transform-eclipse-project-to-maven"
+      ],
+      "successCriteria": {
+        "passBuild": "true",
+        "generateNewUnitTests": "true",
+        "passUnitTests": "true"
+      }
+    },
+    {
+      "type": "security",
+      "id": "006-security-remediate-cves",
+      "description": "Scan and fix CVE vulnerabilities",
+      "reason": "Addresses all 107 CVE/GHSA dependency findings in assessment report report-20260824124049.",
+      "requirements": "Scan the complete Maven dependency graph and remediate all reported CVE and GHSA vulnerabilities at the assessment's medium-or-higher threshold. Upgrade vulnerable dependencies to patched versions; for required major upgrades, document the dependency, version change, compatibility risk, and any accepted exception. Re-scan after remediation and verify the full reactor build and unit tests.",
+      "dependencies": [
+        "005-security-remediate-selected-cwes"
+      ],
+      "successCriteria": {
+        "passBuild": "true",
+        "generateNewUnitTests": "false",
+        "passUnitTests": "true"
+      }
+    }
+  ],
+  "metadata": {
+    "planName": "report-20260824124049-selected",
+    "projectName": "identity4j",
+    "language": "java",
+    "createdAt": "2026-08-24T14:34:58Z",
+    "version": "1.0"
+  }
+}
