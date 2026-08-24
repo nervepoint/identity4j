@@ -104,6 +104,8 @@ public class AESEncoder extends RawAESEncoder {
                 offset += 4;
             }
             int saltLen = din.readShort();
+            if (saltLen < 0 || toDecode.length - offset - saltLen < 0)
+                throw new EncoderException("Malformed encoded data: invalid salt length");
             salt = new byte[saltLen];
             din.readFully(salt);
             byte[] data = new byte[toDecode.length - offset - saltLen];
@@ -131,6 +133,8 @@ public class AESEncoder extends RawAESEncoder {
                 offset += 4;
             }
             int saltLen = din.readShort();
+            if (saltLen < 0 || encodedData.length - offset - saltLen < 0)
+                return false;
             byte[] salt = new byte[saltLen];
             din.readFully(salt);
             byte[] data = new byte[encodedData.length - offset - saltLen];

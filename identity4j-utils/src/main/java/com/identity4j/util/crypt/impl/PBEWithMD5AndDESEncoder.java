@@ -70,9 +70,11 @@ public class PBEWithMD5AndDESEncoder extends AbstractEncoder {
 	@Override
 	public byte[] decode(byte[] toDecode, byte[] salt, byte[] passphrase, String charset) throws EncoderException {
 		try {
-			int saltLen = toDecode[0];
+			int saltLen = toDecode[0] & 0xFF;
 			if(salt != null)
 			    throw new IllegalArgumentException("Salt is encoded in data for " + getId());
+			if (saltLen > toDecode.length - 1)
+			    throw new EncoderException("Malformed encoded data: invalid salt length");
 			salt = new byte[saltLen];
 			byte[] crypted = new byte[toDecode.length - 1 - saltLen];
 			System.arraycopy(toDecode, 1, salt, 0, saltLen);
