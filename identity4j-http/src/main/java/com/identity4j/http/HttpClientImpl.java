@@ -26,8 +26,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
-import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
@@ -448,23 +447,24 @@ public class HttpClientImpl implements HttpProviderClient {
 		context = HttpClientContext.create();
 		
 		try {
-			URL url = new URL(this.url);
+			URI uri = URI.create(this.url);
 			if (username != null && username.length() > 0) {
 				CredentialsProvider credsProvider = new BasicCredentialsProvider();
-				int port = url.getPort() == -1 ? url.getDefaultPort() : url.getPort();
+				int defaultPort = "https".equalsIgnoreCase(uri.getScheme()) ? 443 : 80;
+				int port = uri.getPort() == -1 ? defaultPort : uri.getPort();
 				credsProvider.setCredentials(
-						new AuthScope(url.getHost(), port,
+						new AuthScope(uri.getHost(), port,
 								realm == null || realm.length() == 0 ? AuthScope.ANY_REALM : realm),
 						new UsernamePasswordCredentials(username, password == null ? null : new String(password)));
 				cl.setDefaultCredentialsProvider(credsProvider);
-				HttpHost targetHost = new HttpHost(url.getHost(), port, url.getProtocol());
+				HttpHost targetHost = new HttpHost(uri.getHost(), port, uri.getScheme());
 				AuthCache authCache = new BasicAuthCache();
 				authCache.put(targetHost, new BasicScheme());
 				
 				context.setCredentialsProvider(credsProvider);
 				context.setAuthCache(authCache);
 			}
-		} catch (MalformedURLException mrle) {
+		} catch (IllegalArgumentException mrle) {
 			throw new IllegalArgumentException(mrle);
 		}
 		

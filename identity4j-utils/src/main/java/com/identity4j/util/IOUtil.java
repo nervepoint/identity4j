@@ -28,6 +28,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.nio.charset.Charset;
 
@@ -65,10 +66,10 @@ public class IOUtil {
         else {
             try {
                 // A URL
-                URL url = new URL(resourceName);
+                URL url = URI.create(resourceName).toURL();
                 return url.openStream(); 
             }
-            catch(MalformedURLException murle) {
+            catch(IllegalArgumentException | MalformedURLException murle) {
                 File file = new File(resourceName);
                 // A file
                 return new FileInputStream(file);

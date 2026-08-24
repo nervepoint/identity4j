@@ -24,6 +24,8 @@ package com.identity4j.connector.salesforce.services.token.handler;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Date;
@@ -86,7 +88,12 @@ public class SalesforceAuthorizationHelper {
 	 * @throws IOException
 	 */
 	public Token login(String userId,String userPassword) throws IOException{
-		URL url = new URL(String.format(loginSoapUrl, version));
+		URL url;
+		try {
+			url = URI.create(String.format(loginSoapUrl, version)).toURL();
+		} catch (MalformedURLException e) {
+			throw new IllegalArgumentException("Invalid login URL: " + loginSoapUrl, e);
+		}
 		String data = String.format(loginSoapEnvelopTemplate, userId,userPassword);
 		return tokenFetcher(url, data);
 	}
@@ -109,7 +116,12 @@ public class SalesforceAuthorizationHelper {
 	 * @throws IOException
 	 */
 	public Token login(String userId,String userPassword,String userSecretKey) throws IOException{
-		URL url = new URL(String.format(loginSoapUrl, version));
+		URL url;
+		try {
+			url = URI.create(String.format(loginSoapUrl, version)).toURL();
+		} catch (MalformedURLException e) {
+			throw new IllegalArgumentException("Invalid login URL: " + loginSoapUrl, e);
+		}
 		String data = String.format(loginSoapEnvelopTemplate, userId,probeFinalPassword(userPassword, userSecretKey));
 		return tokenFetcher(url, data);
 	}

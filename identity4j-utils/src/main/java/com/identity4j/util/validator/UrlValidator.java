@@ -25,6 +25,7 @@ package com.identity4j.util.validator;
 
 
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.util.Collection;
 import java.util.Collections;
@@ -49,8 +50,8 @@ public class UrlValidator extends AbstractSingleValueValidator {
     @Override
     final Collection<ValidationError> validate(ValidationContext context, String value) {
         try {
-            new URL(value);
-        } catch (MalformedURLException mue) {
+            URI.create(value).toURL();
+        } catch (IllegalArgumentException | MalformedURLException mue) {
             return Collections.singleton(new ValidationError("url.value.invalid", context, value));
         }
         return Collections.emptyList();

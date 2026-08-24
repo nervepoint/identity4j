@@ -436,11 +436,11 @@ public final class Util {
 	public static Locale parseLocale(String languageCountry) {
 		String[] els = languageCountry.split("_");
 		if (els.length == 2) {
-			return new Locale(els[0], els[1]);
+			return Locale.of(els[0], els[1]);
 		} else if (els.length == 3) {
-			return new Locale(els[0], els[1], els[2]);
+			return Locale.of(els[0], els[1], els[2]);
 		}
-		return new Locale(els[0]);
+		return Locale.of(els[0]);
 	}
 
 	/**

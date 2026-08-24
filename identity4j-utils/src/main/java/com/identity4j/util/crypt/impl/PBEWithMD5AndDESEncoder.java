@@ -22,8 +22,6 @@ package com.identity4j.util.crypt.impl;
  * #L%
  */
 
-import java.security.Provider;
-import java.security.Security;
 import java.util.Arrays;
 
 import javax.crypto.Cipher;
@@ -52,16 +50,6 @@ public class PBEWithMD5AndDESEncoder extends AbstractEncoder {
 
 	public PBEWithMD5AndDESEncoder() {
 		super(ID);
-		if (Security.getProviders("Cipher." + CRYPT_METHOD).length > 0) {
-			return; // we are good to go!
-		}
-		try {
-			// Initialize and add a security provider required for encryption
-			final Class<?> clazz = getClass().getClassLoader().loadClass("com.sun.crypto.provider.SunJCE");
-			Security.addProvider((Provider) clazz.newInstance());
-		} catch (Exception ex) {
-			throw new RuntimeException("Unable to load SunJCE service provider");
-		}
 	}
 
 	@Override

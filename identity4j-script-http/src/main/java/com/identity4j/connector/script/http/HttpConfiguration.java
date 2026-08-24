@@ -23,7 +23,8 @@ package com.identity4j.connector.script.http;
  * #L%
  */
 
-import java.net.URL;
+import java.net.URI;
+
 import com.identity4j.connector.Connector;
 import com.identity4j.connector.script.AbstractScriptConfiguration;
 import com.identity4j.util.MultiMap;
@@ -78,8 +79,8 @@ public class HttpConfiguration extends AbstractScriptConfiguration {
 
 	public boolean isHTTPS() {
 		try {
-			URL url = new URL(getUrl());
-			return url.getProtocol().equalsIgnoreCase("https");
+			URI uri = URI.create(getUrl());
+			return uri.getScheme().equalsIgnoreCase("https");
 		} catch (Exception e) {
 			return false;
 		}
@@ -93,8 +94,8 @@ public class HttpConfiguration extends AbstractScriptConfiguration {
 	@Override
 	public String getHostnameHint() {
 		try {
-			URL url = new URL(getUrl());
-			return url.getHost();
+			URI uri = URI.create(getUrl());
+			return uri.getHost();
 		} catch (Exception e) {
 			return "unknown";
 		}
