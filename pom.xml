@@ -21,9 +21,9 @@
 
 		<mysqlGroupId>mysql</mysqlGroupId>
 		<mysqlArtifactId>mysql-connector-java</mysqlArtifactId>
-		<mysqlVersion>8.0.15</mysqlVersion>
+		<mysqlVersion>8.0.28</mysqlVersion>
 		
-		<jackson.version>2.10.5</jackson.version>
+		<jackson.version>2.19.4</jackson.version>
 		
         <build.projectProperties>${basedir}/nervepoint.build.properties</build.projectProperties>
         <build.userProperties>${user.home}/.nervepoint.build.properties</build.userProperties>
@@ -106,7 +106,7 @@
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
-			<version>4.7</version>
+			<version>4.13.2</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
