@@ -66,22 +66,4 @@
 
 	</dependencies>
 
-	<build>
-		<sourceDirectory>src/main/java</sourceDirectory>
-		<testSourceDirectory>src/test/java</testSourceDirectory>
-		<outputDirectory>target/classes</outputDirectory>
-		<testOutputDirectory>target/test-classes</testOutputDirectory>
-		<resources>
-			<resource>
-				<targetPath>.</targetPath>
-				<directory>src/main/resources</directory>
-			</resource>
-		</resources>
-		<testResources>
-			<testResource>
-				<targetPath>.</targetPath>
-				<directory>src/test/resources</directory>
-			</testResource>
-		</testResources>
-	</build>
-</project>
+
