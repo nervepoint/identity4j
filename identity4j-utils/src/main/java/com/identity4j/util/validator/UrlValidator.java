@@ -50,7 +50,7 @@ public class UrlValidator extends AbstractSingleValueValidator {
     @Override
     final Collection<ValidationError> validate(ValidationContext context, String value) {
         try {
-            URI.create(value).toURL();
+            URI.create(value.strip()).toURL();
         } catch (IllegalArgumentException | MalformedURLException mue) {
             return Collections.singleton(new ValidationError("url.value.invalid", context, value));
         }

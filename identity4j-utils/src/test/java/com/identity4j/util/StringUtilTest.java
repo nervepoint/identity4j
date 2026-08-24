@@ -107,8 +107,8 @@ public class StringUtilTest {
 
 	@Test
 	public void toStringWithEscapes() {
-		Assert.assertEquals(StringUtil.toDefaultString((String[]) STRING1_LIST.toArray()), STRING1_FORMATTED_FOR_STORAGE);
-		Assert.assertEquals(StringUtil.toString("^", (String[]) STRING2_LIST.toArray()), STRING2_FORMATTED_FOR_STORAGE);
+		Assert.assertEquals(StringUtil.toDefaultString(STRING1_LIST.toArray(new String[0])), STRING1_FORMATTED_FOR_STORAGE);
+		Assert.assertEquals(StringUtil.toString("^", STRING2_LIST.toArray(new String[0])), STRING2_FORMATTED_FOR_STORAGE);
 	}
 
 	@Test
