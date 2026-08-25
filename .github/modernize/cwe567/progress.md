@@ -19,13 +19,15 @@ Occurs when code accesses or modifies shared data (static or instance fields) fr
 - [✅] Code Migration (CWE-567 fixes)
     - [✅] identity4j-salesforce/src/main/java/com/identity4j/connector/salesforce/services/token/handler/SalesforceAuthorizationHelper.java
     - [✅] identity4j-zendesk/src/main/java/com/identity4j/connector/zendesk/services/token/handler/ZendeskAuthorizationHelper.java
+    - [✅] identity4j-zendesk/src/main/java/com/identity4j/connector/zendesk/services/Directory.java
+    - [✅] identity4j-salesforce/src/main/java/com/identity4j/connector/salesforce/services/Directory.java
 - Validation & Fixing
-    - [⌛️] Build and Fix
-    - CVE Check
-    - Consistency Check
-    - Test Fix
-    - Completeness Check
-    - Build Validation
+    - [✅] Build and Fix — PASSED
+    - [✅] CVE Check — no new CVEs introduced (volatile-only change; 21 pre-existing CVEs in unchanged dependencies)
+    - [✅] Consistency Check — 0 critical, 0 major, 0 minor issues
+    - [✅] Test Fix — all tests pass
+    - [✅] Completeness Check — 4 files fixed (2 found in initial scan + 2 found in completeness pass); 0 remaining
+    - [⌛️] Build Validation (final)
 - Final Summary
 
 ## Progress

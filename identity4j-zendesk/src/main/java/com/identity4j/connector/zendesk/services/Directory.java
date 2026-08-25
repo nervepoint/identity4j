@@ -35,9 +35,10 @@ import com.identity4j.util.http.request.HttpRequestHandler;
  */
 public class Directory {
 
-	private HttpRequestHandler httpRequestHandler;
-	private UserService userServices;
-	private GroupService groupService;
+// CWE-567: volatile ensures cross-thread visibility between init() writer and users()/groups() readers
+        private volatile HttpRequestHandler httpRequestHandler;
+        private volatile UserService userServices;
+        private volatile GroupService groupService;
 	
 	private Directory(){}
 	
