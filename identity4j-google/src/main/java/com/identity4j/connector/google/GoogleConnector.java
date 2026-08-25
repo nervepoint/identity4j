@@ -1062,7 +1062,7 @@ public class GoogleConnector extends AbstractConnector<GoogleConfiguration> {
 
 				JsonObjectParser parser = new JsonObjectParser(JSON_FACTORY);
 				byte[] jsonStr = json.getBytes("UTF-8");
-				System.out.println(">> " + new String(jsonStr));
+				log.debug(">> credentials JSON parsed for service account");
 				GenericJson fileContents = parser.parseAndClose(new ByteArrayInputStream(jsonStr),
 						Charset.forName("UTF-8"), GenericJson.class);
 				String fileType = (String) fileContents.get("type");

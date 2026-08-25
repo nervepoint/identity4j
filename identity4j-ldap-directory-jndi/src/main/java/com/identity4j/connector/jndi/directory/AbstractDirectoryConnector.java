@@ -1223,11 +1223,9 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 
 			return nodes.hasNext() ? nodes.next().iterator() : new ArrayList<BrowseNode>().iterator();
 		} catch (NamingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			LOG.error("Failed to browse directory nodes", e);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			LOG.error("Failed to browse directory nodes", e);
 		}
 
 		return null;

@@ -11,7 +11,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 public class NamedParameterStatement {
+	private static final Log log = LogFactory.getLog(NamedParameterStatement.class);
 	/** The statement this object is wrapping. */
 	private PreparedStatement statement;
 
@@ -63,7 +67,7 @@ public class NamedParameterStatement {
 		if(this.connection == null)
 			throw new IllegalStateException("NamedParameterStatement was constructed with a query.");
 		String parsedQuery = parse(query, indexMap);
-		System.out.println("SQL: " + parsedQuery);
+		log.debug("SQL: " + parsedQuery);
 		statement = connection.prepareStatement(parsedQuery);
 	}
 
