@@ -80,6 +80,10 @@ public class HttpClientWrapper {
 	@SuppressWarnings("unchecked")
 	private StringBuilder toJSON(Object o, StringBuilder b) {
 		int i = 0;
+		if(o == null) {
+			b.append("null");
+			return b;
+		}
 		if(o.getClass().getName().equals("jdk.nashorn.api.scripting.ScriptObjectMirror")) {
 			try {
 				Class<?> clz = Class.forName("jdk.nashorn.api.scripting.ScriptObjectMirror", false, getClass().getClassLoader());
@@ -120,9 +124,7 @@ public class HttpClientWrapper {
 		}
 		else if(o instanceof Number) {
 			b.append((Number)o);
-		}
-		else if(o == null) {
-			b.append("null");
+
 		} else {
 			b.append("\"");
 			b.append(String.valueOf(o));

@@ -63,7 +63,7 @@ public abstract class AbstractFilteredIterator<E> implements Iterator<E> {
                 E n = sourceIterator.next();
                 if (n == null) {
                     break;
-                } else if (n != null && include(n)) {
+                } else if (include(n)) {
                     next = n;
                     break;
                 }

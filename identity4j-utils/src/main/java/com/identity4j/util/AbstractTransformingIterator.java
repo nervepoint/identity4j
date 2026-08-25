@@ -63,7 +63,7 @@ public abstract class AbstractTransformingIterator<E, O> implements Iterator<O> 
                 E n = sourceIterator.next();
                 if (n == null) {
                     break;
-                } else if (n != null) {
+                } else {
                     O enext = transform(n);
                     if(enext != null) {
                         next = enext;
