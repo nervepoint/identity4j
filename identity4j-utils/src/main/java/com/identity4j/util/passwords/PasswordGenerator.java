@@ -118,7 +118,7 @@ public class PasswordGenerator {
 		}
 
 		int diff = characteristics.getMaximumSize() - characteristics.getMinimumSize();
-		int off = (int) Math.round((float) diff * Math.random());
+		int off = (int) Math.round(diff * Math.random());
 		int targetLength = Math.min(
 				characteristics.getMaximumSize() < 1 ? Integer.MAX_VALUE : characteristics.getMaximumSize(),
 				characteristics.getMinimumSize() + off);
@@ -232,8 +232,8 @@ public class PasswordGenerator {
 			return 0;
 		if (maximum == -1)
 			maximum = targetLength;
-		int min = minimum == 0 ? (int) Math.round((float) targetLength * 0.1) : minimum;
-		int c = min + (int) ((float) (maximum - min + 1) * Math.random());
+		int min = minimum == 0 ? (int) Math.round(targetLength * 0.1) : minimum;
+		int c = min + (int) ((maximum - min + 1) * Math.random());
 		return c;
 	}
 

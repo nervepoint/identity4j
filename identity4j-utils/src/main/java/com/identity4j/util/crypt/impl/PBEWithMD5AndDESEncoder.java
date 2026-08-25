@@ -58,6 +58,10 @@ public class PBEWithMD5AndDESEncoder extends AbstractEncoder {
 		try {
 			Crypt c = new Crypt(new String(passphrase, StandardCharsets.UTF_8).toCharArray(), salt);
 			byte[] crypted = c.encrypt(toEncode);
+			// CWE-681 fix: guard against salt length truncation before narrowing to byte
+			if (c.salt.length > 0xFF) {
+				throw new EncoderException(new IllegalArgumentException("Salt length exceeds 255 bytes"));
+			}
 			byte[] finalData = new byte[c.salt.length + crypted.length + 1];
 			finalData[0] = (byte) c.salt.length;
 			System.arraycopy(c.salt, 0, finalData, 1, c.salt.length);

@@ -59,7 +59,8 @@ public abstract class AbstractEncoder implements Encoder {
     protected byte[] randomBytes(int count) {
         byte[] b = new byte[count];
         for (int i = 0; i < b.length; i++) {
-            b[i] = (byte) (Math.random() * 256f);
+            // CWE-681 fix: explicit int truncation before narrowing to byte
+            b[i] = (byte) (int) (Math.random() * 256);
         }
         return b;
     }

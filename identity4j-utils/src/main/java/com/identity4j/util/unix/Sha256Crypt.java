@@ -198,7 +198,8 @@ public final class Sha256Crypt
 
         while (saltBuf.length() < 16)
           {
-            int index = (int) (randgen.nextFloat() * SALTCHARS.length());
+            // CWE-681 fix: use nextInt to avoid float-to-int narrowing
+            int index = randgen.nextInt(SALTCHARS.length());
             saltBuf.append(SALTCHARS.substring(index, index+1));
           }
 

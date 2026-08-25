@@ -586,7 +586,8 @@ public final class Util {
 	 */
 	public static void randomSleep(long ms) {
 		try {
-			Thread.sleep((long) (ms * Math.random()));
+			// CWE-681 fix: Math.round(double) returns long directly, no cast needed
+			Thread.sleep(Math.round(ms * Math.random()));
 		} catch (InterruptedException e) {
 		}
 	}

@@ -111,7 +111,8 @@ public class Drupal7Encoder extends AbstractPHPHashEncoder {
         int len = hash.length;
 
         String output = setting + passwordBase64Encode(hash, len);
-        int expected = 12 + (int) Math.ceil((8f * len) / 6f);
+        // CWE-681 fix: use integer ceiling division instead of float arithmetic
+        int expected = 12 + (8 * len + 5) / 6;
         
         if (output.length() == expected)
             return (expected > DRUPAL_HASH_LENGTH ? output.substring(0, DRUPAL_HASH_LENGTH) : output).getBytes(charset);
