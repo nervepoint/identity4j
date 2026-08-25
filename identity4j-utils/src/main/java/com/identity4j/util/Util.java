@@ -650,7 +650,7 @@ public final class Util {
 	}
 
 	public static boolean differs(Object o1, Object o2) {
-		if (o1 == null && o2 != null || o2 == null && o1 != null) {
+			if ((o1 == null && o2 != null) || (o2 == null && o1 != null)) {
 			return true;
 		}
 		if (o1 instanceof Date) {

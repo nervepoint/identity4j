@@ -67,7 +67,7 @@ public class LocalFixedWidthFlatFile extends FixedWidthFlatFile {
     }
 
     public boolean isStale() {
-        return lastModified == -1 || file.exists() && file.lastModified() != lastModified;
+        return lastModified == -1 || (file.exists() && file.lastModified() != lastModified);
     }
 
     public void load() throws IOException {

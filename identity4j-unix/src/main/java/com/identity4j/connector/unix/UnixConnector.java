@@ -171,8 +171,8 @@ public class UnixConnector extends AbstractFlatFileConnector<UnixConfiguration> 
 		List<String> shadowRow = passwordsInShadow
 				? shadowFlatFile.getRowByKeyField(getConfiguration().getKeyFieldIndex(), identity.getPrincipalName())
 				: null;
-		if (!passwordsInShadow && password.startsWith("!") || passwordsInShadow && password.startsWith("!")
-				&& !getFromRowOrDefault(shadowRow, DAYS_SINCE_ACCOUNT_WAS_DISABLED_INDEX, "").trim().equals("")) {
+		if ((!passwordsInShadow && password.startsWith("!")) || (passwordsInShadow && password.startsWith("!")
+				&& !getFromRowOrDefault(shadowRow, DAYS_SINCE_ACCOUNT_WAS_DISABLED_INDEX, "").trim().equals(""))) {
 			throw new IllegalStateException("Account already locked");
 		}
 		try {
@@ -404,8 +404,8 @@ public class UnixConnector extends AbstractFlatFileConnector<UnixConfiguration> 
 				? shadowFlatFile.getRowByKeyField(getConfiguration().getKeyFieldIndex(), identity.getPrincipalName())
 				: null;
 		String password = row.get(1);
-		if (!passwordsInShadow && !password.startsWith("!") || passwordsInShadow && !password.startsWith("!")
-				&& getFromRowOrDefault(shadowRow, DAYS_SINCE_ACCOUNT_WAS_DISABLED_INDEX, "").trim().equals("")) {
+		if ((!passwordsInShadow && !password.startsWith("!")) || (passwordsInShadow && !password.startsWith("!")
+				&& getFromRowOrDefault(shadowRow, DAYS_SINCE_ACCOUNT_WAS_DISABLED_INDEX, "").trim().equals(""))) {
 			throw new IllegalStateException("Account not locked");
 		}
 		try {
