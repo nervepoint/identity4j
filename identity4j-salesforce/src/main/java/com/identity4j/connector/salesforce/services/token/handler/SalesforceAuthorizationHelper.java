@@ -66,10 +66,11 @@ public class SalesforceAuthorizationHelper {
 		return LazyHolder.INSTANCE;
 	}
 	
-	private Boolean ipRangeOrAppIpLessRestrictive;
-	private String loginSoapEnvelopTemplate;
-	private String loginSoapUrl;
-	private String version;
+// CWE-567: volatile ensures cross-thread visibility of singleton instance fields written via setters
+        private volatile Boolean ipRangeOrAppIpLessRestrictive;
+        private volatile String loginSoapEnvelopTemplate;
+        private volatile String loginSoapUrl;
+        private volatile String version;
 	
 	/**
 	 * <p>

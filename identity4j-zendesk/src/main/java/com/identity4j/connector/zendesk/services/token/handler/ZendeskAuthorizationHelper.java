@@ -42,12 +42,13 @@ import com.identity4j.util.json.JsonMapperService;
  */
 public class ZendeskAuthorizationHelper {
 
-	private String clientId;
-	private String clientSecret;
-	private String oAuthUrl;
-	private String subDomain;
-	private String passwordAccessJSON;
-	private String scope;
+// CWE-567: volatile ensures cross-thread visibility of singleton instance fields written via setters
+        private volatile String clientId;
+        private volatile String clientSecret;
+        private volatile String oAuthUrl;
+        private volatile String subDomain;
+        private volatile String passwordAccessJSON;
+        private volatile String scope;
 	
 	private ZendeskAuthorizationHelper(){}
 	
