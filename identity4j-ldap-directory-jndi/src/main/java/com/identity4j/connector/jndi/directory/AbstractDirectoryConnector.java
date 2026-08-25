@@ -101,20 +101,20 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 	 */
 	public static final String COMMON_NAME_ATTRIBUTE = "cn";
 
-	private static Collection<String> RESERVED_ATTRIBUTES_FOR_CREATION = Arrays
-			.asList(new String[] { OU_ATTRIBUTE, OBJECT_CLASS_ATTRIBUTE, COMMON_NAME_ATTRIBUTE });
+	private static final Collection<String> RESERVED_ATTRIBUTES_FOR_CREATION = Collections.unmodifiableList(
+			Arrays.asList(new String[] { OU_ATTRIBUTE, OBJECT_CLASS_ATTRIBUTE, COMMON_NAME_ATTRIBUTE }));
 
-	private static Collection<String> CORE_IDENTITY_ATTRIBUTES = Arrays
-			.asList(new String[] { COMMON_NAME_ATTRIBUTE, OBJECT_CLASS_ATTRIBUTE });
+	private static final Collection<String> CORE_IDENTITY_ATTRIBUTES = Collections.unmodifiableList(
+			Arrays.asList(new String[] { COMMON_NAME_ATTRIBUTE, OBJECT_CLASS_ATTRIBUTE }));
 
 	protected LdapService ldapService;
 	protected SocketFactory socketFactory;
 
-	protected static Set<ConnectorCapability> capabilities = new HashSet<ConnectorCapability>(Arrays
+	protected static final Set<ConnectorCapability> capabilities = Collections.unmodifiableSet(new HashSet<ConnectorCapability>(Arrays
 			.asList(new ConnectorCapability[] { ConnectorCapability.passwordChange, ConnectorCapability.passwordSet,
 					ConnectorCapability.createUser, ConnectorCapability.deleteUser, ConnectorCapability.updateUser,
 					ConnectorCapability.roles, ConnectorCapability.authentication, ConnectorCapability.identities,
-					ConnectorCapability.roleAttributes, ConnectorCapability.identityAttributes }));
+					ConnectorCapability.roleAttributes, ConnectorCapability.identityAttributes })));
 
 	public SocketFactory getSocketFactory() {
 		return socketFactory;

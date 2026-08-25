@@ -3,6 +3,7 @@ package com.identity4j.connector.sap;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -57,17 +58,17 @@ public class SAPConnector2 extends AbstractConnector {
 	private String dest;
 	private static final Log log = LogFactory.getLog(SAPConnector2.class);
 
-	static Set<ConnectorCapability> capabilities = new HashSet<ConnectorCapability>(
+	static final Set<ConnectorCapability> capabilities = Collections.unmodifiableSet(new HashSet<ConnectorCapability>(
 			Arrays.asList(new ConnectorCapability[] { ConnectorCapability.passwordChange,
 					ConnectorCapability.passwordSet, ConnectorCapability.createUser, ConnectorCapability.deleteUser,
 					ConnectorCapability.updateUser, ConnectorCapability.hasFullName, ConnectorCapability.hasEmail,
 					ConnectorCapability.roles, ConnectorCapability.createRole, ConnectorCapability.deleteRole,
 					ConnectorCapability.updateRole, ConnectorCapability.authentication, ConnectorCapability.identities,
-					ConnectorCapability.accountDisable }));
+					ConnectorCapability.accountDisable })));
 
-	static String ABAP_AS = "ABAP_AS_WITHOUT_POOL";
-	static String ABAP_AS_POOLED = "ABAP_AS_WITH_POOL";
-	static String ABAP_MS = "ABAP_MS_WITHOUT_POOL";
+	static final String ABAP_AS = "ABAP_AS_WITHOUT_POOL";
+	static final String ABAP_AS_POOLED = "ABAP_AS_WITH_POOL";
+	static final String ABAP_MS = "ABAP_MS_WITHOUT_POOL";
 
 	/**
 	 * This example demonstrates the destination concept introduced with JCO 3.

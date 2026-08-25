@@ -31,7 +31,7 @@ import java.util.Map;
 
 public abstract class AbstractOAuth2
 		implements OAuth2 {
-	private static SecureRandom random = new SecureRandom();
+	private static final SecureRandom random = new SecureRandom();
 
 	protected String authorizeUrl;
 	protected String clientId;

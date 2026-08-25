@@ -35,6 +35,7 @@ import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -74,9 +75,9 @@ public abstract class JDBCConnector<P extends ConnectorConfigurationParameters> 
 
 	static Log log = LogFactory.getLog(JDBCConnector.class);
 
-	static Set<ConnectorCapability> capabilities = new HashSet<ConnectorCapability>(
+	static final Set<ConnectorCapability> capabilities = Collections.unmodifiableSet(new HashSet<ConnectorCapability>(
 			Arrays.asList(new ConnectorCapability[] { ConnectorCapability.passwordChange,
-					ConnectorCapability.passwordSet, ConnectorCapability.identities }));
+					ConnectorCapability.passwordSet, ConnectorCapability.identities })));
 
 	@Override
 	public Set<ConnectorCapability> getCapabilities() {

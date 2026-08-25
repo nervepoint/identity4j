@@ -72,7 +72,7 @@ public class SalesforceModelConvertor {
 	public static final String LANGUAGE_LOCALE_KEY = "LanguageLocaleKey";
 	
 	private SalesforceModelConvertor salesforceModelConvertor;
-	private SalesforceConfiguration configuration;
+	private volatile SalesforceConfiguration configuration;
 	
 	private SalesforceModelConvertor(){}
 

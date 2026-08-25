@@ -77,7 +77,9 @@ public class NssTokenDatabase {
 	}
 
 	{
-		instance = this;
+		synchronized (NssTokenDatabase.class) {
+			instance = this;
+		}
 	}
 
 	static Log log = LogFactory.getLog(NssTokenDatabase.class);

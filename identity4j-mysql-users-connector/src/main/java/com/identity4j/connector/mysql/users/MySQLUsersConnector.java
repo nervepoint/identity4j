@@ -30,6 +30,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
@@ -71,10 +72,10 @@ import com.identity4j.util.StringUtil;
 public class MySQLUsersConnector extends JDBCConnector<MySQLUsersConfiguration> {
 	private final static long DAY = 60000 * 60 * 24;
 
-	private static Set<ConnectorCapability> capabilities = new HashSet<ConnectorCapability>(Arrays
+	private static final Set<ConnectorCapability> capabilities = Collections.unmodifiableSet(new HashSet<ConnectorCapability>(Arrays
 			.asList(new ConnectorCapability[] { ConnectorCapability.passwordChange, ConnectorCapability.passwordSet,
 					ConnectorCapability.createUser, ConnectorCapability.deleteUser, ConnectorCapability.updateUser,
-					ConnectorCapability.authentication, ConnectorCapability.identities }));
+ConnectorCapability.authentication, ConnectorCapability.identities })));
 
 	/**
 	 * Creates user in MySQL database along with access(Grants) given. <br/>

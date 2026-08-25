@@ -128,14 +128,14 @@ public class GoogleConnector extends AbstractConnector<GoogleConfiguration> {
 
 	private long lastRequestTime = 0L;
 
-	static Set<ConnectorCapability> capabilities = new HashSet<ConnectorCapability>(
+	static final Set<ConnectorCapability> capabilities = Collections.unmodifiableSet(new HashSet<ConnectorCapability>(
 			Arrays.asList(new ConnectorCapability[] { ConnectorCapability.passwordChange,
 					ConnectorCapability.passwordSet, ConnectorCapability.createUser, ConnectorCapability.deleteUser,
 					ConnectorCapability.updateUser, ConnectorCapability.hasFullName, ConnectorCapability.hasEmail,
 					ConnectorCapability.roles, ConnectorCapability.createRole, ConnectorCapability.deleteRole,
 					ConnectorCapability.updateRole, ConnectorCapability.webAuthentication,
 					ConnectorCapability.identities, ConnectorCapability.accountDisable,
-					ConnectorCapability.identityAttributes, ConnectorCapability.roleAttributes, ConnectorCapability.forcePasswordChange }));
+					ConnectorCapability.identityAttributes, ConnectorCapability.roleAttributes, ConnectorCapability.forcePasswordChange })));
 
 	@Override
 	public PasswordCharacteristics getPasswordCharacteristics() {

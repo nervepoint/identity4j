@@ -2,6 +2,7 @@ package com.identity4j.connector.aws;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -71,14 +72,14 @@ public class AwsConnector extends AbstractConnector<AwsConfiguration> {
 
 	private IamClient client;
 
-	static Set<ConnectorCapability> capabilities = new HashSet<ConnectorCapability>(Arrays
+	static final Set<ConnectorCapability> capabilities = Collections.unmodifiableSet(new HashSet<ConnectorCapability>(Arrays
 			.asList(new ConnectorCapability[] { ConnectorCapability.passwordSet,
 					ConnectorCapability.createUser, ConnectorCapability.updateUser, 
 					ConnectorCapability.deleteUser, 
 					ConnectorCapability.roles,
 					ConnectorCapability.createRole, ConnectorCapability.deleteRole, ConnectorCapability.updateRole,
 					ConnectorCapability.identities, ConnectorCapability.identityAttributes,
-					ConnectorCapability.roleAttributes }));
+					ConnectorCapability.roleAttributes })));
 
 	@Override
 	public Set<ConnectorCapability> getCapabilities() {

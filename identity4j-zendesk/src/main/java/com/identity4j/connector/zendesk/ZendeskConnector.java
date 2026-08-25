@@ -25,6 +25,7 @@ package com.identity4j.connector.zendesk;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -77,7 +78,7 @@ public class ZendeskConnector extends AbstractConnector<ZendeskConfiguration> {
 	private Directory directory;
 	private static final Log log = LogFactory.getLog(ZendeskConnector.class);
 	
-	static Set<ConnectorCapability> capabilities = new HashSet<ConnectorCapability>(Arrays.asList(new ConnectorCapability[] { 
+	static final Set<ConnectorCapability> capabilities = Collections.unmodifiableSet(new HashSet<ConnectorCapability>(Arrays.asList(new ConnectorCapability[] { 
 			ConnectorCapability.passwordChange,
 			ConnectorCapability.passwordSet,
 			ConnectorCapability.createUser,
@@ -92,7 +93,7 @@ public class ZendeskConnector extends AbstractConnector<ZendeskConfiguration> {
 			ConnectorCapability.authentication,
 			ConnectorCapability.identities,
 			ConnectorCapability.accountDisable
-	}));
+	})));
 
 	@Override
 	public Set<ConnectorCapability> getCapabilities() {

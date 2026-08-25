@@ -25,6 +25,7 @@ package com.identity4j.connector.as400;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Calendar;
 import java.util.Enumeration;
 import java.util.HashSet;
@@ -64,7 +65,7 @@ public class As400Connector extends AbstractConnector<As400Configuration> {
 	private static final String DELETE_PROFILE_SUCCESS = "CPC2191";
 	private static final String CHANGE_PROFILE_SUCCESS = "CPC2205";
 
-	static Set<ConnectorCapability> capabilities = new HashSet<ConnectorCapability>(
+	static final Set<ConnectorCapability> capabilities = Collections.unmodifiableSet(new HashSet<ConnectorCapability>(
 			Arrays.asList(new ConnectorCapability[] { ConnectorCapability.accountDisable,
 					ConnectorCapability.passwordChange, ConnectorCapability.passwordSet, ConnectorCapability.createUser,
 					ConnectorCapability.deleteUser, ConnectorCapability.updateUser, ConnectorCapability.hasFullName,
@@ -74,7 +75,7 @@ public class As400Connector extends AbstractConnector<As400Configuration> {
 					ConnectorCapability.createRole, ConnectorCapability.updateRole, ConnectorCapability.deleteRole,
 					ConnectorCapability.childRoles, ConnectorCapability.roleAttributes,
 					ConnectorCapability.identityAttributes, 
-					ConnectorCapability.caseInsensitivePrincipalNames }));
+					ConnectorCapability.caseInsensitivePrincipalNames })));
 
 	private AS400 as400;
 	private PasswordCharacteristics policy;

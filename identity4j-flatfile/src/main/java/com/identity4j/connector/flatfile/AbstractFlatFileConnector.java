@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -62,7 +63,7 @@ public class AbstractFlatFileConnector<P extends AbstractFlatFileConfiguration> 
 	private boolean open;
 	private final Collection<String> supportedEncoderTypes;
 
-	static Set<ConnectorCapability> capabilities = new HashSet<ConnectorCapability>(Arrays.asList(new ConnectorCapability[] { 
+	static final Set<ConnectorCapability> capabilities = Collections.unmodifiableSet(new HashSet<ConnectorCapability>(Arrays.asList(new ConnectorCapability[] { 
 			ConnectorCapability.passwordChange,
 			ConnectorCapability.passwordSet,
 			ConnectorCapability.createUser,
@@ -74,7 +75,7 @@ public class AbstractFlatFileConnector<P extends AbstractFlatFileConfiguration> 
 			ConnectorCapability.requireGUID,
 			ConnectorCapability.createIdentityGUID,
 			ConnectorCapability.identities
-	}));
+	})));
 	
 	@Override
 	public Set<ConnectorCapability> getCapabilities() {

@@ -520,13 +520,13 @@ public class Office365Connector extends AbstractConnector<Office365Configuration
 	private static final Log log = LogFactory.getLog(Office365Connector.class);
 	private boolean isDeletePrivilege = true;
 
-	static Set<ConnectorCapability> capabilities = new HashSet<ConnectorCapability>(Arrays
+	static final Set<ConnectorCapability> capabilities = Collections.unmodifiableSet(new HashSet<ConnectorCapability>(Arrays
 			.asList(new ConnectorCapability[] { ConnectorCapability.passwordChange, ConnectorCapability.passwordSet,
 					ConnectorCapability.createUser, ConnectorCapability.deleteUser, ConnectorCapability.updateUser,
 					ConnectorCapability.hasFullName, ConnectorCapability.hasEmail, ConnectorCapability.roles,
 					ConnectorCapability.createRole, ConnectorCapability.deleteRole, ConnectorCapability.updateRole,
 					ConnectorCapability.webAuthentication, ConnectorCapability.identities,
-					ConnectorCapability.accountDisable, ConnectorCapability.identityAttributes, ConnectorCapability.authentication }));
+					ConnectorCapability.accountDisable, ConnectorCapability.identityAttributes, ConnectorCapability.authentication })));
 
 	@Override
 	public Set<ConnectorCapability> getCapabilities() {

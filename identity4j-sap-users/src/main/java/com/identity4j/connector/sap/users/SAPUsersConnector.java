@@ -30,6 +30,7 @@ import java.sql.SQLException;
 import java.sql.SQLInvalidAuthorizationSpecException;
 import java.sql.Statement;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -64,7 +65,7 @@ public class SAPUsersConnector extends JDBCConnector<SAPUsersConfiguration> {
 
 	public final static List<String> NATIVE_ATTRIBUTES = Arrays.asList(new String[] { ATTR_EMAIL_ADDRESS });
 
-	private static Set<ConnectorCapability> capabilities = new HashSet<ConnectorCapability>(
+	private static final Set<ConnectorCapability> capabilities = Collections.unmodifiableSet(new HashSet<ConnectorCapability>(
 			Arrays.asList(new ConnectorCapability[] { ConnectorCapability.passwordChange,
 					ConnectorCapability.passwordSet, ConnectorCapability.createUser, ConnectorCapability.deleteUser,
 					ConnectorCapability.updateUser, ConnectorCapability.authentication, ConnectorCapability.identities,
@@ -72,7 +73,7 @@ public class SAPUsersConnector extends JDBCConnector<SAPUsersConfiguration> {
 					ConnectorCapability.accountLocking, ConnectorCapability.accountDisable, ConnectorCapability.roles,
 					ConnectorCapability.forcePasswordChange, ConnectorCapability.createRole,
 					ConnectorCapability.identityAttributes, ConnectorCapability.roleAttributes,
-                    ConnectorCapability.caseInsensitivePrincipalNames }));
+                    ConnectorCapability.caseInsensitivePrincipalNames })));
 
 	@Override
 	protected boolean areCredentialsValid(Identity identity, char[] password) throws ConnectorException {
