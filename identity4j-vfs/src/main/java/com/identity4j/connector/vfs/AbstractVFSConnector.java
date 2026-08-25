@@ -48,8 +48,10 @@ public abstract class AbstractVFSConnector<P extends AbstractVFSConfiguration> e
         FileObject f = file;
         if (f == null) return true;
         try {
-                        return f.isWriteable();
-		}
+            return f.isWriteable();
+        } catch (FileSystemException e) {
+            return true;
+        }
     }
     
     @Override

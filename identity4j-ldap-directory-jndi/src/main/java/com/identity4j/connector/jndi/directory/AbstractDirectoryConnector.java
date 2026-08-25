@@ -123,10 +123,12 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 
 	public void setSocketFactory(SocketFactory socketFactory) {
 		this.socketFactory = socketFactory;
-                // CWE-821: capture single volatile snapshot to avoid TOCTOU race
-                LdapService svc = ldapService;
-                if (svc != null)
-                        svc.setSocketFactory(socketFactory);
+		// CWE-821: capture single volatile snapshot to avoid TOCTOU race
+		LdapService svc = ldapService;
+		if (svc != null)
+			svc.setSocketFactory(socketFactory);
+	}
+
 	@Override
 	public void deleteIdentity(String principalName) throws ConnectorException {
 		try {
@@ -171,11 +173,13 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 
 	@Override
 	protected void onClose() {
-                // CWE-821: capture snapshot before nullifying to guard concurrent calls
-                LdapService svc = ldapService;
-                ldapService = null;
-                if (svc != null)
-                        svc.close();
+		// CWE-821: capture snapshot before nullifying to guard concurrent calls
+		LdapService svc = ldapService;
+		ldapService = null;
+		if (svc != null)
+			svc.close();
+	}
+
 	@Override
 	public boolean isReadOnly() {
 		return getConfiguration().getSecurityProtocol().equals(DirectoryConfiguration.PLAIN);
