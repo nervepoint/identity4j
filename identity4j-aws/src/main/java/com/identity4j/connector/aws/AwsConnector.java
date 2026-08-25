@@ -70,7 +70,7 @@ public class AwsConnector extends AbstractConnector<AwsConfiguration> {
 
 	public static final String AWS_ATTRIBUTE_POLICY_ARNS = "policyArns";
 
-	private IamClient client;
+	private volatile IamClient client;
 
 	static final Set<ConnectorCapability> capabilities = Collections.unmodifiableSet(new HashSet<ConnectorCapability>(Arrays
 			.asList(new ConnectorCapability[] { ConnectorCapability.passwordSet,

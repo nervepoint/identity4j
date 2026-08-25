@@ -55,8 +55,8 @@ public class AbstractScriptConnector<P extends AbstractScriptConfiguration> exte
 
 	private final ScriptEngineManager manager;
 
-	private boolean open;
-	private ScriptEngine engine;
+	private volatile boolean open;
+	private volatile ScriptEngine engine;
 
 	private Float floatVersion;
 
