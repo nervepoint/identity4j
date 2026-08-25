@@ -218,7 +218,7 @@ public abstract class AbstractConnector<P extends ConnectorConfigurationParamete
 		try {
 			setPassword(identity, password, forcePasswordChangeAtLogon, resetType);
 			securityLog.info("PASSWORD_RESET_SUCCESS [" + username + "] type=" + resetType);
-		} catch (ConnectorException | RuntimeException e) {
+		} catch (RuntimeException e) {
 			securityLog.warn("PASSWORD_RESET_FAILED [" + username + "] type=" + resetType);
 			throw e;
 		}

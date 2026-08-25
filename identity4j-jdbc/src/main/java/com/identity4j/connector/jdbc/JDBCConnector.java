@@ -632,6 +632,11 @@ public abstract class JDBCConnector<P extends ConnectorConfigurationParameters> 
 	public void lockIdentity(Identity identity) throws ConnectorException {
 		log.info("LOCK_IDENTITY: " + identity.getPrincipalName());
 		PreparedStatement statement = null;
+		ResultSet resultSet = null;
+		try {
+			statement = connect.prepareStatement(
+					configuration.getSql(String.format("UPDATE ${identityTable} SET ${identityTableLocked} = ?")));
+			statement.setObject(1, configuration.getIdentityLockedValue());
 			statement.executeUpdate();
 		} catch (SQLException e) {
 			throw new ConnectorException(e);
