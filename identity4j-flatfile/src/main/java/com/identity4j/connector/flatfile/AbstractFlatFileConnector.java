@@ -58,7 +58,8 @@ import com.identity4j.util.crypt.impl.DefaultEncoderManager;
 public class AbstractFlatFileConnector<P extends AbstractFlatFileConfiguration> extends AbstractVFSConnector<P> {
 	private final static EncoderManager encoderManager = DefaultEncoderManager.getInstance();
 
-	private LocalDelimitedFlatFile flatFile;
+	// CWE-820: volatile ensures reads outside synchronized(identityMap) see the initialized value
+	private volatile LocalDelimitedFlatFile flatFile;
 	private final Map<String, Identity> identityMap = new HashMap<String, Identity>();
 	private volatile boolean open;
 	private final Collection<String> supportedEncoderTypes;
