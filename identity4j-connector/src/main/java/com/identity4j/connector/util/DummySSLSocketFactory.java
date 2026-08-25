@@ -102,14 +102,18 @@ public class DummySSLSocketFactory extends SSLSocketFactory {
 
 	@Override
 	public String[] getSupportedCipherSuites() {
+		// CWE-821: capture volatile array snapshots once to avoid TOCTOU races
+		String[] includes = getIncludeCipherSuites();
+		String[] excludes = getExcludeCipherSuites();
+
 		// Include cipher suites.
-		if ((getIncludeCipherSuites() != null) && (getIncludeCipherSuites().length > 0)) {
+		if ((includes != null) && (includes.length > 0)) {
 			String[] enabledCipherSuites = factory.getSupportedCipherSuites();
 			List<String> enabledCSList = new ArrayList<String>(Arrays.asList(enabledCipherSuites));
 			List<String> includedCSList = new ArrayList<String>();
 
 			boolean hasValid = false;
-			for (String cipherName : getIncludeCipherSuites()) {
+			for (String cipherName : includes) {
 				if (enabledCSList.contains(cipherName)) {
 					includedCSList.add(cipherName);
 					hasValid = true;
@@ -124,8 +128,8 @@ public class DummySSLSocketFactory extends SSLSocketFactory {
 		}
 
 		// Exclude cipher suites.
-		if ((getExcludeCipherSuites() != null) && (getExcludeCipherSuites().length > 0)) {
-			List<String> excludedCSList = Arrays.asList(getExcludeCipherSuites());
+		if ((excludes != null) && (excludes.length > 0)) {
+			List<String> excludedCSList = Arrays.asList(excludes);
 			String[] enabledCipherSuites = factory.getSupportedCipherSuites();
 			List<String> enabledCSList = new ArrayList<String>(Arrays.asList(enabledCipherSuites));
 			Iterator<String> exIter = excludedCSList.iterator();

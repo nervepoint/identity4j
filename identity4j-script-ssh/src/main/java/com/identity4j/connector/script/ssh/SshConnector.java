@@ -65,7 +65,9 @@ public class SshConnector extends AbstractScriptConnector<SshConfiguration> {
 
 	@Override
 	public boolean isOpen() {
-		return client != null && client.isConnected() && client.isAuthenticated();
+		// CWE-821: capture single volatile snapshot to avoid TOCTOU race with disconnect()
+		SshClientWrapper c = client;
+		return c != null && c.isConnected() && c.isAuthenticated();
 	}
 
 	@Override

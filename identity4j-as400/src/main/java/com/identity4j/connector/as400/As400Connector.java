@@ -84,10 +84,9 @@ public class As400Connector extends AbstractConnector<As400Configuration> {
 	@Override
 	public boolean isOpen() {
 		getIdentityByName(getConfiguration().getServiceAccountUsername());
-		return as400 != null && as400.isConnected();
-	}
-
-	@Override
+                // CWE-821: capture single volatile snapshot to avoid TOCTOU race
+                AS400 client = as400;
+                return client != null && client.isConnected();
 	public boolean isReadOnly() {
 		return false;
 	}

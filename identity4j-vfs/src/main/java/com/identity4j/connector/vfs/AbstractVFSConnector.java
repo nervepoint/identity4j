@@ -44,10 +44,11 @@ public abstract class AbstractVFSConnector<P extends AbstractVFSConfiguration> e
 
     @Override
     public boolean isReadOnly() {
+        // CWE-821: capture single volatile snapshot to avoid TOCTOU race with onClose()
+        FileObject f = file;
+        if (f == null) return true;
         try {
-			return file.isWriteable();
-		} catch (FileSystemException e) {
-			return true;
+                        return f.isWriteable();
 		}
     }
     

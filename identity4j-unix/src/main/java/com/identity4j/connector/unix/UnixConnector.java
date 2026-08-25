@@ -167,13 +167,16 @@ public class UnixConnector extends AbstractFlatFileConnector<UnixConfiguration> 
 
 	@Override
 	public void lockIdentity(Identity identity) throws ConnectorException {
+		// CWE-821: capture volatile snapshots once to prevent TOCTOU races
+		boolean inShadow = passwordsInShadow;
+		LocalDelimitedFlatFile shadow = shadowFlatFile;
 		List<String> row = getPasswordFile().getRowByKeyField(getConfiguration().getKeyFieldIndex(),
 				identity.getPrincipalName());
 		String password = row.get(getConfiguration().getPasswordFieldIndex());
-		List<String> shadowRow = passwordsInShadow
-				? shadowFlatFile.getRowByKeyField(getConfiguration().getKeyFieldIndex(), identity.getPrincipalName())
+		List<String> shadowRow = inShadow
+				? shadow.getRowByKeyField(getConfiguration().getKeyFieldIndex(), identity.getPrincipalName())
 				: null;
-		if ((!passwordsInShadow && password.startsWith("!")) || (passwordsInShadow && password.startsWith("!")
+		if ((!inShadow && password.startsWith("!")) || (inShadow && password.startsWith("!")
 				&& !getFromRowOrDefault(shadowRow, DAYS_SINCE_ACCOUNT_WAS_DISABLED_INDEX, "").trim().equals(""))) {
 			throw new IllegalStateException("Account already locked");
 		}
@@ -183,11 +186,11 @@ public class UnixConnector extends AbstractFlatFileConnector<UnixConfiguration> 
 				row.set(getConfiguration().getPasswordFieldIndex(), password);
 				getPasswordFile().writeRows();
 			}
-			if (passwordsInShadow) {
+			if (inShadow) {
 				final long now = System.currentTimeMillis();
 				setOnRowOrAdd(shadowRow, DAYS_SINCE_ACCOUNT_WAS_DISABLED_INDEX,
 						String.valueOf(now / 1000 / 60 / 60 / 24));
-				shadowFlatFile.writeRows();
+				shadow.writeRows();
 			}
 			identity.getAccountStatus().lock();
 		} catch (IOException e) {
@@ -400,13 +403,16 @@ public class UnixConnector extends AbstractFlatFileConnector<UnixConfiguration> 
 
 	@Override
 	public void unlockIdentity(Identity identity) throws ConnectorException {
+		// CWE-821: capture volatile snapshots once to prevent TOCTOU races
+		boolean inShadow = passwordsInShadow;
+		LocalDelimitedFlatFile shadow = shadowFlatFile;
 		List<String> row = getPasswordFile().getRowByKeyField(getConfiguration().getKeyFieldIndex(),
 				identity.getPrincipalName());
-		List<String> shadowRow = passwordsInShadow
-				? shadowFlatFile.getRowByKeyField(getConfiguration().getKeyFieldIndex(), identity.getPrincipalName())
+		List<String> shadowRow = inShadow
+				? shadow.getRowByKeyField(getConfiguration().getKeyFieldIndex(), identity.getPrincipalName())
 				: null;
 		String password = row.get(1);
-		if ((!passwordsInShadow && !password.startsWith("!")) || (passwordsInShadow && !password.startsWith("!")
+		if ((!inShadow && !password.startsWith("!")) || (inShadow && !password.startsWith("!")
 				&& getFromRowOrDefault(shadowRow, DAYS_SINCE_ACCOUNT_WAS_DISABLED_INDEX, "").trim().equals(""))) {
 			throw new IllegalStateException("Account not locked");
 		}
@@ -416,9 +422,9 @@ public class UnixConnector extends AbstractFlatFileConnector<UnixConfiguration> 
 				row.set(getConfiguration().getPasswordFieldIndex(), password);
 				getPasswordFile().writeRows();
 			}
-			if (passwordsInShadow) {
+			if (inShadow) {
 				shadowRow.set(DAYS_SINCE_ACCOUNT_WAS_DISABLED_INDEX, "");
-				shadowFlatFile.writeRows();
+				shadow.writeRows();
 			}
 			identity.getAccountStatus().unlock();
 		} catch (IOException e) {
@@ -429,18 +435,20 @@ public class UnixConnector extends AbstractFlatFileConnector<UnixConfiguration> 
 	@Override
 	protected void onSetPassword(AbstractFlatFile passwordFile, int passwordFieldIndex, int keyFieldIndex,
 			Identity identity, char[] password, PasswordResetType type) {
-		
+		// CWE-821: capture volatile snapshots once to prevent TOCTOU races
+		boolean inShadow = passwordsInShadow;
+		LocalDelimitedFlatFile shadow = shadowFlatFile;
 		List<String> row = passwordFile.getRowByKeyField(keyFieldIndex, identity.getPrincipalName());
-		if (passwordsInShadow) {
+		if (inShadow) {
 			// Move the encoded password from passwd to shadow
 			String encpw = row.set(getConfiguration().getPasswordFieldIndex(), "x");
-			row = shadowFlatFile.getRowByKeyField(keyFieldIndex, identity.getPrincipalName());
+			row = shadow.getRowByKeyField(keyFieldIndex, identity.getPrincipalName());
 			row.set(getConfiguration().getPasswordFieldIndex(), encpw);
 			final long now = System.currentTimeMillis();
 			row.set(DAYS_SINCE_LAST_PASSWORD_CHANGE_INDEX, String.valueOf(now / 1000 / 60 / 60 / 24));
 			identity.setPasswordStatus(createPasswordStatusFromShadowRow(row));
 			try {
-				shadowFlatFile.writeRows();
+				shadow.writeRows();
 			} catch (IOException e) {
 				throw new ConnectorException("Write failure", e);
 			}
@@ -507,8 +515,11 @@ public class UnixConnector extends AbstractFlatFileConnector<UnixConfiguration> 
 		row.set(GID_FIELD_INDEX, primaryGroup.getGuid());
 		row.set(HOME_FIELD_INDEX, identity.getAttributeOrDefault(ATTR_HOME, ""));
 		row.set(SHELL_FIELD_INDEX, identity.getAttributeOrDefault(ATTR_SHELL, ""));
-		if (passwordsInShadow) {
-			List<String> shadowRow = shadowFlatFile.getRowByKeyField(0, identity.getPrincipalName());
+		// CWE-821: capture volatile snapshots once to prevent TOCTOU races
+		boolean inShadow = passwordsInShadow;
+		LocalDelimitedFlatFile shadow = shadowFlatFile;
+		if (inShadow) {
+			List<String> shadowRow = shadow.getRowByKeyField(0, identity.getPrincipalName());
 			maybeSet(DAYS_BEFORE_PASSWORD_MAY_BE_CHANGED_INDEX, ATTR_DAYS_BEFORE_PASSWORD_MAY_BE_CHANGED, identity,
 					shadowRow);
 			maybeSet(DAYS_AFTER_WHICH_PASSWORD_MUST_BE_CHANGED_INDEX_INDEX,
@@ -519,7 +530,7 @@ public class UnixConnector extends AbstractFlatFileConnector<UnixConfiguration> 
 					ATTR_DAYS_AFTER_PASSWORD_EXPIRES_THAT_ACCOUNT_IS_DISABLED, identity, shadowRow);
 			maybeSet(DAYS_SINCE_ACCOUNT_WAS_DISABLED_INDEX, ATTR_DAYS_SINCE_ACCOUNT_WAS_DISABLED, identity, shadowRow);
 			try {
-				shadowFlatFile.writeRows();
+				shadow.writeRows();
 			} catch (IOException e) {
 				throw new ConnectorException("Write failure", e);
 			}
@@ -737,10 +748,12 @@ public class UnixConnector extends AbstractFlatFileConnector<UnixConfiguration> 
 
 		// If there is a shadow file we have access to last password change
 		// info
-		if (shadowFlatFile != null) {
-			List<String> shadowRow = shadowFlatFile.getRowByKeyField(0, identity.getPrincipalName());
+		// CWE-821: capture volatile snapshot once to avoid TOCTOU race
+		LocalDelimitedFlatFile shadow = shadowFlatFile;
+		if (shadow != null) {
+			List<String> shadowRow = shadow.getRowByKeyField(0, identity.getPrincipalName());
 			if (shadowRow == null) {
-				LOG.warn("No entry in " + shadowFlatFile.getFile() + " for " + identity.getPrincipalName());
+				LOG.warn("No entry in " + shadow.getFile() + " for " + identity.getPrincipalName());
 			} else {
 				identity.setPasswordStatus(createPasswordStatusFromShadowRow(shadowRow));
 				Date now = new Date();
@@ -872,8 +885,11 @@ public class UnixConnector extends AbstractFlatFileConnector<UnixConfiguration> 
 	}
 
 	private LocalDelimitedFlatFile getPasswordFile() {
-		if (passwordsInShadow) {
-			return shadowFlatFile;
+		// CWE-821: capture volatile snapshots once to prevent TOCTOU races
+		boolean inShadow = passwordsInShadow;
+		LocalDelimitedFlatFile shadow = shadowFlatFile;
+		if (inShadow && shadow != null) {
+			return shadow;
 		}
 		return (LocalDelimitedFlatFile) super.getFlatFile();
 	}
