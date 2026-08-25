@@ -176,12 +176,12 @@ public class PasswordGenerator {
 				break;
 			} catch (PasswordPolicyException pe) {
 				if (pe.getType().equals(PasswordPolicyException.Type.tooLong)) {
-					pw.deleteCharAt((int) Math.random() * pw.length());
+					pw.deleteCharAt((int)(Math.random() * pw.length()));
 				} else if (pe.getType().equals(PasswordPolicyException.Type.tooShort)) {
 					prevChar = appendChar(pw, prevChar);
 				} else {
 					if (pw.length() > characteristics.getMaximumSize()) {
-						pw.deleteCharAt((int) Math.random() * pw.length());
+						pw.deleteCharAt((int)(Math.random() * pw.length()));
 					}
 					prevChar = appendChar(pw, prevChar);
 				}

@@ -30,6 +30,9 @@ import java.util.Map;
 
 import javax.net.SocketFactory;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.identity4j.connector.exception.ConnectorException;
 import com.identity4j.connector.exception.InvalidLoginCredentialsException;
 import com.identity4j.connector.exception.PasswordChangeRequiredException;
@@ -41,6 +44,9 @@ import com.identity4j.util.passwords.PasswordCharacteristics;
 import com.identity4j.util.validator.ValidationContext;
 
 public abstract class AbstractConnector<P extends ConnectorConfigurationParameters> implements Connector<P>, ValidationContext {
+
+	// CWE-778: security event log for logon and credential check outcomes
+	private static final Log securityLog = LogFactory.getLog("security." + AbstractConnector.class.getName());
 
 	private P parameters;
 	private Map<String,Object> attributes = new HashMap<String,Object>();
@@ -86,9 +92,16 @@ public abstract class AbstractConnector<P extends ConnectorConfigurationParamete
 			InvalidLoginCredentialsException, ConnectorException {
 		Identity identity = getIdentityByName(username);
 		if (identity == null) {
+			securityLog.warn("LOGON_FAILED: user not found [" + username + "]");
 			throw new InvalidLoginCredentialsException("Invalid username or password: '" + username + "'");
 		}
-		assertValidCredentials(identity, password);
+		try {
+			assertValidCredentials(identity, password);
+		} catch (InvalidLoginCredentialsException e) {
+			securityLog.warn("LOGON_FAILED: invalid credentials [" + username + "]");
+			throw e;
+		}
+		securityLog.info("LOGON_SUCCESS [" + username + "]");
 		return identity;
 	}
 	
@@ -124,12 +137,16 @@ public abstract class AbstractConnector<P extends ConnectorConfigurationParamete
 			Identity identity = getIdentityByName(username);
 			boolean valid = areCredentialsValid(identity, password);
 			if(valid) {
+				securityLog.info("CREDENTIAL_CHECK_SUCCESS [" + username + "]");
 				for(IdentityProcessor processor : processors) {
 					processor.processIdentity(identity, this);
 				}
+			} else {
+				securityLog.warn("CREDENTIAL_CHECK_FAILED [" + username + "]");
 			}
 			return valid;
 		} catch (PrincipalNotFoundException e) {
+			securityLog.warn("CREDENTIAL_CHECK_FAILED: user not found [" + username + "]");
 			return false;
 		}
 	}

@@ -83,7 +83,8 @@ public class IdentityImpl extends AbstractPrincipal implements Identity {
 		return false;
 	}
 
-	public final Role[] getRoles() {
+	// CWE-667: synchronized to match setRoles; prevents concurrent modification
+	public final synchronized Role[] getRoles() {
 		return roles.toArray(new Role[roles.size()]);
 	}
 
@@ -100,7 +101,7 @@ public class IdentityImpl extends AbstractPrincipal implements Identity {
 	/**
 	 * @param role
 	 */
-	public final void addRole(Role role) {
+	public final synchronized void addRole(Role role) {
 		if (role == null) {
 			throw new IllegalArgumentException("May not add null role");
 		}
@@ -110,7 +111,7 @@ public class IdentityImpl extends AbstractPrincipal implements Identity {
 	/**
 	 * @param role
 	 */
-	public final void removeRole(Role role) {
+	public final synchronized void removeRole(Role role) {
 		if (role == null) {
 			throw new IllegalArgumentException("May not remove null role");
 		}
@@ -122,7 +123,7 @@ public class IdentityImpl extends AbstractPrincipal implements Identity {
 	 * 
 	 * @param roles roles
 	 */
-	public final void setRoles(Collection<? extends Role> roles) {
+	public final synchronized void setRoles(Collection<? extends Role> roles) {
 		for (Role role : roles) {
 			if (role == null) {
 				throw new IllegalArgumentException("Role array may not contain null roles");

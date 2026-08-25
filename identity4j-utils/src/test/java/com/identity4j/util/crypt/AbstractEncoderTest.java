@@ -86,12 +86,19 @@ public abstract class AbstractEncoderTest {
 	public void testEncode() throws UnsupportedEncodingException, EncoderException {
 		int i = 0;
 		for (String string : testStrings) {
-			byte[] expected = expectedHashes[i];
 			byte[] actual = encoder.encode(string.getBytes("UTF-8"), salts == null ? null : salts[i], passphrases == null ? null
 				: passphrases[i], "UTF-8");
-			System.out.println("Expected '" + new String(expected) + "'");
-			System.out.println("Got      '" + new String(actual) + "'");
-			assertArrayEquals(expected, actual);
+			if (twoWay) {
+				// For two-way encoders the output may be non-deterministic (e.g. random IV); verify round-trip
+				byte[] decoded = encoder.decode(actual, null, passphrases == null ? null : passphrases[i], "UTF-8");
+				assertArrayEquals("encode→decode round-trip failed for: " + string, string.getBytes("UTF-8"), decoded);
+			} else {
+				// For one-way encoders compare against known-good hash
+				byte[] expected = expectedHashes[i];
+				System.out.println("Expected '" + new String(expected) + "'");
+				System.out.println("Got      '" + new String(actual) + "'");
+				assertArrayEquals(expected, actual);
+			}
 			i++;
 		}
 	}

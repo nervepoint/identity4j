@@ -2011,6 +2011,11 @@ public class WindowsLiveLogin {
             }
 
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            // CWE-611: disable external entity resolution to prevent XXE
+            factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+            factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+            factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+            factory.setExpandEntityReferences(false);
             DocumentBuilder builder = factory.newDocumentBuilder();
             Document document = builder.parse(settingsStream);
 
@@ -2130,15 +2135,17 @@ public class WindowsLiveLogin {
         StringBuilder body = new StringBuilder();
 
         try {
+            // CWE-775: close stream in finally to prevent handle leak
             BufferedReader in = 
               new BufferedReader(new InputStreamReader(url.openStream()));
-
-            String inputLine;
-            while ((inputLine = in.readLine()) != null) {
-                body.append(inputLine);
+            try {
+                String inputLine;
+                while ((inputLine = in.readLine()) != null) {
+                    body.append(inputLine);
+                }
+            } finally {
+                in.close();
             }
-
-            in.close();
             return body.toString();
         } catch (Exception e) {
             debug("Error: fetch: Exception reading URL: " + e);

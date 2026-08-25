@@ -594,11 +594,21 @@ public final class Util {
 	public static int unzip(File zipfile, File directory) throws IOException {
 		ZipFile zfile = new ZipFile(zipfile);
 		try {
+			String canonicalDest = directory.getCanonicalPath();
 			int files = 0;
 			Enumeration<? extends ZipEntry> entries = zfile.entries();
 			while (entries.hasMoreElements()) {
 				ZipEntry entry = entries.nextElement();
-				File file = new File(directory, entry.getName());
+				// CWE-22/CWE-23: reject absolute paths and path traversal before File construction
+				String name = entry.getName();
+				if (name.startsWith("/") || name.startsWith("\\") || name.matches("^[A-Za-z]:[/\\\\].*")) {
+					throw new IOException("Zip Slip detected: absolute entry path rejected: " + name);
+				}
+				File file = new File(directory, name);
+				if (!file.getCanonicalPath().startsWith(canonicalDest + File.separator)
+						&& !file.getCanonicalPath().equals(canonicalDest)) {
+					throw new IOException("Zip Slip detected: entry escapes target directory: " + name);
+				}
 				if (entry.isDirectory()) {
 					file.mkdirs();
 				} else {

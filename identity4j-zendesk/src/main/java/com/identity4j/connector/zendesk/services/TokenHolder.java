@@ -37,7 +37,8 @@ import com.identity4j.connector.zendesk.services.token.handler.ZendeskAuthorizat
  */
 class TokenHolder{
 	
-	private Token token;
+	// CWE-820: volatile ensures cross-thread visibility for unsynchronized readers
+	private volatile Token token;
 	
 	private TokenHolder(){}
 

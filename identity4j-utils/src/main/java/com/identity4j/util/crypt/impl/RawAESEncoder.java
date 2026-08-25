@@ -95,6 +95,21 @@ public class RawAESEncoder extends AbstractEncoder {
         }
     }
 
+    // CWE-665: allows callers to supply an explicit IV for verification/match after upgrade
+    protected byte[] encodeWithIV(byte[] toEncode, byte[] salt, byte[] passphrase, String charset, int keyLength, int iterations, byte[] iv) throws EncoderException {
+        try {
+            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+            if(salt == null)
+                throw new IllegalArgumentException("Salt is required for " + getId());
+            salt = checkSaltLength(salt, cipher);
+            SecretKey secret = getSecretKey(new String(passphrase, charset).toCharArray(), salt, keyLength, iterations);
+            cipher.init(Cipher.ENCRYPT_MODE, secret, new IvParameterSpec(iv));
+            return cipher.doFinal(toEncode);
+        } catch (Exception e) {
+            throw new EncoderException(e);
+        }
+    }
+
     protected byte[] checkSaltLength(byte[] salt, Cipher cipher) {
         if(salt.length == 0)
             salt = new byte[cipher.getBlockSize()];

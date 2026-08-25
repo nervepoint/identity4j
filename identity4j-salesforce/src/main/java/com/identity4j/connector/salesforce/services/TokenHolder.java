@@ -37,7 +37,8 @@ import com.identity4j.connector.salesforce.services.token.handler.Token;
  */
 class TokenHolder{
 	
-	private Token token;
+	// CWE-820: volatile ensures cross-thread visibility for unsynchronized readers
+	private volatile Token token;
 	
 	private TokenHolder(){}
 

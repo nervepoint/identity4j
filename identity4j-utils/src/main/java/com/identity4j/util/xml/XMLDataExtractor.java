@@ -68,7 +68,15 @@ import javax.xml.stream.events.XMLEvent;
  */
 public class XMLDataExtractor {
 
-	 private final XMLInputFactory inputFactory = XMLInputFactory.newInstance();
+	 private final XMLInputFactory inputFactory = createSecureXmlInputFactory();
+
+	 private static XMLInputFactory createSecureXmlInputFactory() {
+		 XMLInputFactory f = XMLInputFactory.newInstance();
+		 // CWE-611: disable external entity resolution to prevent XXE
+		 f.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, Boolean.FALSE);
+		 f.setProperty(XMLInputFactory.SUPPORT_DTD, Boolean.FALSE);
+		 return f;
+	 }
 	 
 	 private XMLDataExtractor(){}
 	 

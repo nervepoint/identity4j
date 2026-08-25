@@ -61,7 +61,8 @@ import org.apache.commons.logging.LogFactory;
 
 public class NssTokenDatabase {
 
-	private static NssTokenDatabase instance;
+	// CWE-543: volatile ensures visibility of the singleton across threads
+	private static volatile NssTokenDatabase instance;
 
 	public enum Mode {
 		SQL, DBM, AUTO;

@@ -28,13 +28,6 @@
 			<artifactId>google-api-services-oauth2</artifactId>
     		<version>v2-rev157-1.25.0</version>
 		</dependency>
-
-		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<version>4.7</version>
-			<scope>test</scope>
-		</dependency>
 		<dependency>
 			<groupId>com.nervepoint</groupId>
 			<artifactId>identity4j-connector</artifactId>

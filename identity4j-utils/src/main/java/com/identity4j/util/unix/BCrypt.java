@@ -840,31 +840,6 @@ public class BCrypt {
 	}
 	
 	
-	public static void main(String[] args) throws Exception {
-		byte[] key = "AAAAA".getBytes("ASCII");
-		byte[] key2 = "abcdefghijklmnopqrstuvwxyz".getBytes("ASCII");
-		int[] data = new int[10];
-		int[] data2 = {0x424c4f57, 0x46495348};
-
-		// First test 	-
-		for (int i = 0; i < 10; i++)
-			data[i] = i;
-		
-		BCrypt b = new BCrypt();
-		b.blf_key(key, 5);
-		b.blf_enc(data, 5);
-		b.blf_dec(data, 1);
-		b.blf_dec(data, 2, 4);
-		System.out.println("Should read as 0 - 9.");
-		report(data, 10);
-		
-		// Works so far
-		b.blf_key(key2);
-		b.blf_enc(data2, 1);
-		System.out.println("Should read as: 0x324ed0fe 0xf413a203.");
-		report(data2, 2);
-		b.blf_dec(data2, 1);
-		report(data2, 2);
-		System.out.println("Should read as: 0x424c4f57 0x46495348.");
-	}
+	// CWE-321: main() removed — it contained hard-coded Blowfish keys for manual testing only
 }
+

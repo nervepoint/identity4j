@@ -70,20 +70,24 @@ public class AESEncoder extends RawAESEncoder {
                 salt = randomBytes(cipher.getBlockSize());
             }
             salt = checkSaltLength(salt, cipher);
-            return write(keyLength, iterations, salt, super.encode(toEncode, salt, passphrase, charset, keyLength, iterations));
+            // CWE-665: use random IV per encryption; format version 2 stores IV after salt
+            byte[] iv = randomBytes(cipher.getBlockSize());
+            byte[] ciphertext = encodeWithIV(toEncode, salt, passphrase, charset, keyLength, iterations, iv);
+            return writeWithIV(keyLength, iterations, salt, iv, ciphertext);
         } catch (Exception e) {
             throw new EncoderException(e);
         }
     }
 
-    private byte[] write(int keyLength, int iterations, byte[] salt, byte[] data) throws IOException {
+    private byte[] writeWithIV(int keyLength, int iterations, byte[] salt, byte[] iv, byte[] data) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         DataOutputStream dos = new DataOutputStream(baos);
         dos.writeShort(keyLength);
-        dos.writeShort(0); // Old 2 byte iterations count
+        dos.writeShort(2); // format version 2: random IV stored after salt
         dos.writeInt(iterations);
         dos.writeShort(salt.length);
         dos.write(salt);
+        dos.write(iv);
         dos.write(data);
         return baos.toByteArray();
     }
@@ -98,20 +102,35 @@ public class AESEncoder extends RawAESEncoder {
             DataInputStream din = new DataInputStream(bain);
             int keyLength = din.readShort();
             int offset = 6;
-            int iterations = din.readShort();
-            if(iterations == 0) {
+            int formatVersion = din.readShort();
+            int iterations;
+            if (formatVersion == 0) {
+                // old format: zero IV, read 4-byte actual iterations
                 iterations = din.readInt();
                 offset += 4;
+            } else if (formatVersion == 2) {
+                // new format: random IV stored after salt
+                iterations = din.readInt();
+                offset += 4;
+            } else {
+                throw new EncoderException("Unsupported AES encoding format version: " + formatVersion);
             }
             int saltLen = din.readShort();
             if (saltLen < 0 || toDecode.length - offset - saltLen < 0)
                 throw new EncoderException("Malformed encoded data: invalid salt length");
             salt = new byte[saltLen];
             din.readFully(salt);
+            byte[] iv;
+            if (formatVersion == 2) {
+                iv = new byte[cipher.getBlockSize()];
+                din.readFully(iv);
+                offset += cipher.getBlockSize();
+            } else {
+                iv = new byte[cipher.getBlockSize()]; // zero IV (backward compat)
+            }
             byte[] data = new byte[toDecode.length - offset - saltLen];
             din.readFully(data);
             SecretKey secret = getSecretKey(new String(passphrase, charset).toCharArray(), salt, keyLength, iterations);
-            byte[] iv = new byte[cipher.getBlockSize()];
             cipher.init(Cipher.DECRYPT_MODE, secret, new IvParameterSpec(iv));
             return cipher.doFinal(data);
         } catch (Exception e) {
@@ -126,24 +145,41 @@ public class AESEncoder extends RawAESEncoder {
             ByteArrayInputStream bain = new ByteArrayInputStream(encodedData);
             DataInputStream din = new DataInputStream(bain);
             int keyLength = din.readShort();
-            int iterations = din.readShort();
+            int formatVersion = din.readShort();
             int offset = 6;
-            if(iterations == 0) {
+            int iterations;
+            if (formatVersion == 0) {
                 iterations = din.readInt();
                 offset += 4;
+            } else if (formatVersion == 2) {
+                iterations = din.readInt();
+                offset += 4;
+            } else {
+                return false;
             }
             int saltLen = din.readShort();
             if (saltLen < 0 || encodedData.length - offset - saltLen < 0)
                 return false;
             byte[] salt = new byte[saltLen];
             din.readFully(salt);
-            byte[] data = new byte[encodedData.length - offset - saltLen];
-            din.readFully(data);
-            byte[] newEncoded = super.encode(unencodedData, salt, passphrase, charset, keyLength, iterations);
-            return Arrays.equals(data, newEncoded);
-        } catch (IOException ioe) {
+            if (formatVersion == 2) {
+                // read stored IV; re-encrypt plaintext with same salt+IV and compare ciphertexts
+                int blockSize = Cipher.getInstance("AES/CBC/PKCS5Padding").getBlockSize();
+                byte[] iv = new byte[blockSize];
+                din.readFully(iv);
+                offset += blockSize;
+                byte[] data = new byte[encodedData.length - offset - saltLen];
+                din.readFully(data);
+                byte[] reEncoded = encodeWithIV(unencodedData, salt, passphrase, charset, keyLength, iterations, iv);
+                return Arrays.equals(data, reEncoded);
+            } else {
+                byte[] data = new byte[encodedData.length - offset - saltLen];
+                din.readFully(data);
+                byte[] newEncoded = super.encode(unencodedData, salt, passphrase, charset, keyLength, iterations);
+                return Arrays.equals(data, newEncoded);
+            }
+        } catch (Exception e) {
             return false;
         }
     }
-
 }

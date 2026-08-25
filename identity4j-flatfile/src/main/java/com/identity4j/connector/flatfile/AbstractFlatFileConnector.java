@@ -200,16 +200,18 @@ public class AbstractFlatFileConnector<P extends AbstractFlatFileConfiguration> 
 	@Override
 	public Identity getIdentityByName(String keyFieldValue, boolean withGroups) {
 		checkLoaded();
-		Identity identity = identityMap.get(keyFieldValue);
-		if (identity == null) {
-			final List<String> row = flatFile.getRowByKeyField(getConfiguration().getKeyFieldIndex(), keyFieldValue);
-			if (row == null) {
-				throw new PrincipalNotFoundException("Principal " + keyFieldValue + " could not be found");
+		synchronized (identityMap) {
+			Identity identity = identityMap.get(keyFieldValue);
+			if (identity == null) {
+				final List<String> row = flatFile.getRowByKeyField(getConfiguration().getKeyFieldIndex(), keyFieldValue);
+				if (row == null) {
+					throw new PrincipalNotFoundException("Principal " + keyFieldValue + " could not be found");
+				}
+				identity = createIdentity(row);
+				identityMap.put(keyFieldValue, identity);
 			}
-			identity = createIdentity(row);
-			identityMap.put(keyFieldValue, identity);
+			return identity;
 		}
-		return identity;
 	}
 
 	@Override
@@ -412,14 +414,15 @@ public class AbstractFlatFileConnector<P extends AbstractFlatFileConfiguration> 
 		} catch (Exception fse) {
 			throw new ConnectorException("Could not find flat file.", fse);
 		}
-		if (flatFile == null) {
-			flatFile = new LocalDelimitedFlatFile(file, getConfiguration().getCharset());
-			flatFile.addIndex(getConfiguration().getKeyFieldIndex());
-			flatFile.setFieldSeparator(getConfiguration().getFieldSeparator());
-			flatFile.setEscapeCharacter(getConfiguration().getEscapeCharacter());
-			configureFlatFile(flatFile);
-		}
+		// CWE-662/821: synchronize both the null-check/creation and all identityMap accesses
 		synchronized (identityMap) {
+			if (flatFile == null) {
+				flatFile = new LocalDelimitedFlatFile(file, getConfiguration().getCharset());
+				flatFile.addIndex(getConfiguration().getKeyFieldIndex());
+				flatFile.setFieldSeparator(getConfiguration().getFieldSeparator());
+				flatFile.setEscapeCharacter(getConfiguration().getEscapeCharacter());
+				configureFlatFile(flatFile);
+			}
 			if (flatFile.isStale()) {
 				identityMap.clear();
 				try {

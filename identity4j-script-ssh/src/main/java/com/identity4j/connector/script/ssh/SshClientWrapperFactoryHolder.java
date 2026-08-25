@@ -24,28 +24,36 @@ package com.identity4j.connector.script.ssh;
 
 public class SshClientWrapperFactoryHolder {
 
-	static SshClientWrapperFactory clientFactory;
+	// CWE-567: volatile ensures cross-thread visibility; getClientFactory uses DCL
+	static volatile SshClientWrapperFactory clientFactory;
 	
-	public static void setClientFactory(SshClientWrapperFactory clientFactory) {
+	public static synchronized void setClientFactory(SshClientWrapperFactory clientFactory) {
 		SshClientWrapperFactoryHolder.clientFactory = clientFactory;
 	}
 	
 	public static SshClientWrapperFactory getClientFactory() {
-		if(!hasClientFactory()) {
-			try {
-				clientFactory = (SshClientWrapperFactory) 
-						Class.forName(System.getProperty(
-								"identity4j.ssh.clientFactory", 
-								"com.identity4j.connector.script.ssh.j2ssh.DefaultSshClientWrapperFactory")).newInstance();
-			} catch (Throwable e) {
-				throw new IllegalStateException(e.getMessage(), e);
+		SshClientWrapperFactory f = clientFactory;
+		if (f == null) {
+			synchronized (SshClientWrapperFactoryHolder.class) {
+				f = clientFactory;
+				if (f == null) {
+					try {
+						f = (SshClientWrapperFactory) 
+								Class.forName(System.getProperty(
+										"identity4j.ssh.clientFactory", 
+										"com.identity4j.connector.script.ssh.j2ssh.DefaultSshClientWrapperFactory")).newInstance();
+						clientFactory = f;
+					} catch (Throwable e) {
+						throw new IllegalStateException(e.getMessage(), e);
+					}
+				}
 			}
 		}
-		return clientFactory;
+		return f;
 	}
 	
 	public static boolean hasClientFactory() {
-		return clientFactory!=null;
+		return clientFactory != null;
 	}
 	
 }
