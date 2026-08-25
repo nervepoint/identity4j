@@ -94,15 +94,11 @@ public class LocalFixedWidthFlatFile extends FixedWidthFlatFile {
             throw new FileNotFoundException(file.getAbsolutePath());
         }
 
-        OutputStream output = new FileOutputStream(file, append);
-        try {
-
+        try (OutputStream output = new FileOutputStream(file, append)) {
             for (List<String> row : rows) {
                 write(output, row, charsetName);
             }
             lastModified = file.lastModified();
-        } finally {
-            output.close();
         }
     }
 

@@ -24,6 +24,7 @@ package com.identity4j.connector.flatfile;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.List;
 
@@ -60,7 +61,9 @@ public class LocalDelimitedFlatFile extends DelimitedFlatFile {
         if (!file.exists()) {
             throw new FileNotFoundException(file.getName().getURI());
         }
-        load(file.getContent().getInputStream(), charsetName);
+        try (InputStream in = file.getContent().getInputStream()) {
+            load(in, charsetName);
+        }
         lastModified = file.getContent().getLastModifiedTime();
     }
 

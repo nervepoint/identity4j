@@ -138,9 +138,8 @@ public class SshConnector extends AbstractScriptConnector<SshConfiguration> {
 
 	private String getHashFromPasswdStream(Identity identity, InputStream in) throws IOException {
 		String hash = null;
-		BufferedReader r = new BufferedReader(new InputStreamReader(in));
-		String line = null;
-		try {
+		try (BufferedReader r = new BufferedReader(new InputStreamReader(in))) {
+			String line = null;
 			while ((line = r.readLine()) != null) {
 				line = line.trim();
 				if (line.startsWith(identity.getPrincipalName() + ":")) {
@@ -151,8 +150,6 @@ public class SshConnector extends AbstractScriptConnector<SshConfiguration> {
 					}
 				}
 			}
-		} finally {
-			in.close();
 		}
 		return hash;
 	}

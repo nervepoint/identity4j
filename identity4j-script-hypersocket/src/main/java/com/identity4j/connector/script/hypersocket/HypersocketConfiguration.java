@@ -43,15 +43,11 @@ public class HypersocketConfiguration extends HttpConfiguration {
 			if(file == null || file.length() == 0)
 				throw new IllegalStateException(String.format("If %s is set, then either %s or %s must be set too.",HTTP_USE_LOCAL_API, HTTP_LOCAL_API_COOKIE, HTTP_LOCAL_API_COOKIE_FILE));
 			try {
-				BufferedReader reader = new BufferedReader(new FileReader(file));
-				try {
+				try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
 					String line = reader.readLine().trim();
 					if(line == null || line.length() == 0)
 						throw new IllegalStateException(String.format("ocal api cookie file %s exists, but contains no content. ", file));
 					return line;
-				}
-				finally {
-					reader.close();
 				}
 			}
 			catch(IOException ioe) {

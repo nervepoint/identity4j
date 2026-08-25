@@ -36,16 +36,9 @@ public class Lib {
 				File tf = new File(tmpdir, ao.substring(ao.lastIndexOf('/') + 1));
 					
 				tf.deleteOnExit();
-				FileOutputStream out = new FileOutputStream(tf);
-				try {
-					InputStream in = resource.openStream();
-					try {
-						IOUtils.copy(in, out);
-					} finally {
-						in.close();
-					}
-				} finally {
-					out.close();
+				try (FileOutputStream out = new FileOutputStream(tf);
+				     InputStream in = resource.openStream()) {
+					IOUtils.copy(in, out);
 				}
 				return tf.getAbsolutePath();
 			}

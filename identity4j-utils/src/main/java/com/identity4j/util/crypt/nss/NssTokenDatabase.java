@@ -408,8 +408,7 @@ public class NssTokenDatabase {
 					+ "example, on Debian this would be the libnss3-tools package.");
 		}
 
-		FileOutputStream o = new FileOutputStream(keyFile);
-		try {
+		try (FileOutputStream o = new FileOutputStream(keyFile)) {
 			if (passphrase == null) {
 				String password = new BigInteger(130, new SecureRandom()).toString(32);
 				o.write(password.getBytes("US-ASCII"));
@@ -417,8 +416,6 @@ public class NssTokenDatabase {
 				o.write(passphrase);
 			}
 			o.flush();
-		} finally {
-			o.close();
 		}
 
 		File noiseFile = File.createTempFile("id4jnoise", ".dat");
@@ -433,24 +430,18 @@ public class NssTokenDatabase {
 
 		try {
 
-			FileOutputStream out = new FileOutputStream(noiseFile);
-			try {
+			try (FileOutputStream out = new FileOutputStream(noiseFile)) {
 				if (noise == null) {
 					File random = new File("/dev/urandom");
-					FileInputStream in = new FileInputStream(random);
-					try {
+					try (FileInputStream in = new FileInputStream(random)) {
 						for (int i = 0; i < 128; i++) {
 							out.write(in.read());
 						}
-					} finally {
-						in.close();
 					}
 				} else {
 					out.write(noise);
 				}
 				out.flush();
-			} finally {
-				out.close();
 			}
 
 			String db = privateDir.getAbsolutePath();

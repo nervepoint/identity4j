@@ -58,39 +58,47 @@ public class SshCommandImpl extends Expect implements SshCommand {
         LOG.debug("Opening session channel");
         // session = ssh.openSessionChannel(10000);
         session = ssh.openSessionChannel();
-        LOG.debug("Requesting terminal");
-        PseudoTerminalModes pty = new PseudoTerminalModes(ssh);
-        if (!session.requestPseudoTerminal("dumb", 0, 0, 0, 0, pty)) {
-            throw new IOException("Could not start pseudo tty");
-        }
+        boolean sessionInitialized = false;
+        try {
+            LOG.debug("Requesting terminal");
+            PseudoTerminalModes pty = new PseudoTerminalModes(ssh);
+            if (!session.requestPseudoTerminal("dumb", 0, 0, 0, 0, pty)) {
+                throw new IOException("Could not start pseudo tty");
+            }
 
-        boolean useSudo = false;
+            boolean useSudo = false;
 
-        // If not running as root, we will need to sudo
-        if (!ssh.getUsername().equals("root") && sudoCommand != null) {
-            command = sudoCommand + " " + command;
-            useSudo = true;
-        }
+            // If not running as root, we will need to sudo
+            if (!ssh.getUsername().equals("root") && sudoCommand != null) {
+                command = sudoCommand + " " + command;
+                useSudo = true;
+            }
 
-        LOG.debug("Executing command " + command);
+            LOG.debug("Executing command " + command);
 
-        ok = session.executeCommand(command);
+            ok = session.executeCommand(command);
 
-        LOG.debug("Gettings streams");
-        setIn(session.getInputStream());
-        setOut(session.getOutputStream());
+            LOG.debug("Gettings streams");
+            setIn(session.getInputStream());
+            setOut(session.getOutputStream());
 
-        if (useSudo && sudoPassword != null) {
-            try {
-                String actualPrompt = sudoPrompt.replaceAll("\\$\\{username\\}", ssh.getUsername());
-                LOG.debug("Expecting sudo password prompt: " + actualPrompt);
-                if (maybeExpect(actualPrompt, 5000)) {
-                    typeAndReturn(sudoPassword);
-                } else {
-                    LOG.debug("Expect did not match");
+            if (useSudo && sudoPassword != null) {
+                try {
+                    String actualPrompt = sudoPrompt.replaceAll("\\$\\{username\\}", ssh.getUsername());
+                    LOG.debug("Expecting sudo password prompt: " + actualPrompt);
+                    if (maybeExpect(actualPrompt, 5000)) {
+                        typeAndReturn(sudoPassword);
+                    } else {
+                        LOG.debug("Expect did not match");
+                    }
+                } catch (ExpectTimeoutException e) {
+                    LOG.debug("Waiting for sudo password prompt timed out");
                 }
-            } catch (ExpectTimeoutException e) {
-                LOG.debug("Waiting for sudo password prompt timed out");
+            }
+            sessionInitialized = true;
+        } finally {
+            if (!sessionInitialized) {
+                try { session.close(); } catch (Exception ignore) { }
             }
         }
     }

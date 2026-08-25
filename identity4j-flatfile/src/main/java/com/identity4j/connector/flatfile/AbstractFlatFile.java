@@ -344,12 +344,8 @@ public abstract class AbstractFlatFile {
     public void load(File file, String charsetName) throws IOException {
         LOG.info("Loading flat file " + file);
 
-        InputStream in = new FileInputStream(file);
-        try {
+        try (InputStream in = new FileInputStream(file)) {
             load(in, charsetName);
-
-        } finally {
-            in.close();
         }
     }
 }

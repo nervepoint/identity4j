@@ -24,13 +24,11 @@ package com.identity4j.util;
  */
 
 
-import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.Method;
@@ -593,8 +591,7 @@ public final class Util {
 	}
 
 	public static int unzip(File zipfile, File directory) throws IOException {
-		ZipFile zfile = new ZipFile(zipfile);
-		try {
+		try (ZipFile zfile = new ZipFile(zipfile)) {
 			String canonicalDest = directory.getCanonicalPath();
 			int files = 0;
 			Enumeration<? extends ZipEntry> entries = zfile.entries();
@@ -614,24 +611,15 @@ public final class Util {
 					file.mkdirs();
 				} else {
 					file.getParentFile().mkdirs();
-					InputStream in = zfile.getInputStream(entry);
-					try {
-						FileOutputStream fos = new FileOutputStream(file);
-						try {
-							IOUtils.copy(in, fos);
-							LOG.info("Extracted " + file);
-							files++;
-						} finally {
-							fos.close();
-						}
-					} finally {
-						in.close();
+					try (InputStream in = zfile.getInputStream(entry);
+						 FileOutputStream fos = new FileOutputStream(file)) {
+						IOUtils.copy(in, fos);
+						LOG.info("Extracted " + file);
+						files++;
 					}
 				}
 			}
 			return files;
-		} finally {
-			zfile.close();
 		}
 	}
 
@@ -639,11 +627,8 @@ public final class Util {
 		URI base = directory.toURI();
 		Deque<File> queue = new LinkedList<File>();
 		queue.push(directory);
-		OutputStream out = new FileOutputStream(zipfile);
-		Closeable res = null;
-		try {
-			ZipOutputStream zout = new ZipOutputStream(out);
-			res = zout;
+		try (FileOutputStream out = new FileOutputStream(zipfile);
+			 ZipOutputStream zout = new ZipOutputStream(out)) {
 			while (!queue.isEmpty()) {
 				directory = queue.pop();
 				for (File kid : directory.listFiles()) {
@@ -654,21 +639,13 @@ public final class Util {
 						zout.putNextEntry(new ZipEntry(name));
 					} else {
 						zout.putNextEntry(new ZipEntry(name));
-						FileInputStream fin = new FileInputStream(kid);
-						try {
+						try (FileInputStream fin = new FileInputStream(kid)) {
 							IOUtils.copy(fin, zout);
-						} finally {
-							fin.close();
 						}
 						zout.closeEntry();
 					}
 				}
 			}
-		} finally {
-			if(res!=null) {
-				res.close();
-			}
-			out.close();
 		}
 	}
 

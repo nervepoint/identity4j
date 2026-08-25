@@ -64,8 +64,7 @@ public abstract class Extender implements Serializable {
 			}
 			for (Enumeration<URL> urle = cl.getResources("META-INF/services/" + service); urle.hasMoreElements();) {
 				URL serviceUrl = urle.nextElement();
-				BufferedReader reader = new BufferedReader(new InputStreamReader(serviceUrl.openStream()));
-				try {
+				try (BufferedReader reader = new BufferedReader(new InputStreamReader(serviceUrl.openStream()))) {
 					String line;
 					while ((line = reader.readLine()) != null) {
 						line = line.trim();
@@ -91,8 +90,6 @@ public abstract class Extender implements Serializable {
 							extensions.add(new Extender.Extension(name, param, order, serviceUrl));
 						}
 					}
-				} finally {
-					reader.close();
 				}
 			}
 			Collections.sort(extensions);

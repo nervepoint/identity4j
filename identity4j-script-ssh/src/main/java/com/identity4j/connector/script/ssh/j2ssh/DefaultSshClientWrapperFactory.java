@@ -66,6 +66,7 @@ public class DefaultSshClientWrapperFactory implements SshClientWrapperFactory {
 	public SshClientWrapper createInstance(final SshConfiguration config) {
 
 		SshClient client = null;
+		Socket socket = new Socket();
 		try {
 			SshConnector con = SshConnector.createInstance();
 			if (config.getVerifier() != null)
@@ -85,7 +86,6 @@ public class DefaultSshClientWrapperFactory implements SshClientWrapperFactory {
 				});
 			LOG.info("Making SSH connection to " + config.getHost() + ":" + config.getPort() + " for user "
 					+ config.getServiceAccountUsername());
-			Socket socket = new Socket();
 			final SshTransport socketTransport = new SocketWrapper(socket);
 
 			socket.connect(new InetSocketAddress(config.getHost(), config.getPort()), config.getConnectTimeout());
@@ -132,6 +132,11 @@ public class DefaultSshClientWrapperFactory implements SshClientWrapperFactory {
 		} catch (InvalidPassphraseException e) {
 			disconnect(client);
 			throw new ConnectorException("Failed to open SSH connection.", e);
+		} finally {
+			// Close the socket if the SSH client never took ownership of it
+			if (client == null) {
+				try { socket.close(); } catch (IOException ignore) { }
+			}
 		}
 	}
 
