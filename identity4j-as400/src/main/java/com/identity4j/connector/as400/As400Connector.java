@@ -77,8 +77,9 @@ public class As400Connector extends AbstractConnector<As400Configuration> {
 					ConnectorCapability.identityAttributes, 
 					ConnectorCapability.caseInsensitivePrincipalNames })));
 
-	private AS400 as400;
-	private PasswordCharacteristics policy;
+	// CWE-820: volatile ensures cross-thread visibility of lifecycle state
+	private volatile AS400 as400;
+	private volatile PasswordCharacteristics policy;
 
 	@Override
 	public boolean isOpen() {

@@ -107,7 +107,8 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 	private static final Collection<String> CORE_IDENTITY_ATTRIBUTES = Collections.unmodifiableList(
 			Arrays.asList(new String[] { COMMON_NAME_ATTRIBUTE, OBJECT_CLASS_ATTRIBUTE }));
 
-	protected LdapService ldapService;
+	// CWE-820: volatile ensures cross-thread visibility of lifecycle state
+	protected volatile LdapService ldapService;
 	protected SocketFactory socketFactory;
 
 	protected static final Set<ConnectorCapability> capabilities = Collections.unmodifiableSet(new HashSet<ConnectorCapability>(Arrays

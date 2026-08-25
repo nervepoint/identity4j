@@ -120,13 +120,15 @@ public class GoogleConnector extends AbstractConnector<GoogleConfiguration> {
 	private static final int RESOURCE_CONFLICT = 409;
 	private static final int RESOURCE_NOT_FOUND = 404;
 
-	private Directory directory = null;
+	// CWE-820: volatile ensures cross-thread visibility of lifecycle state
+	private volatile Directory directory;
 
 	private static final JsonFactory JSON_FACTORY = JacksonFactory.getDefaultInstance();
 
 	private static final Log log = LogFactory.getLog(GoogleConnector.class);
 
-	private long lastRequestTime = 0L;
+	// CWE-820: volatile prevents stale read on lastRequestTime across threads
+	private volatile long lastRequestTime = 0L;
 
 	static final Set<ConnectorCapability> capabilities = Collections.unmodifiableSet(new HashSet<ConnectorCapability>(
 			Arrays.asList(new ConnectorCapability[] { ConnectorCapability.passwordChange,
@@ -147,7 +149,8 @@ public class GoogleConnector extends AbstractConnector<GoogleConfiguration> {
 		return capabilities;
 	}
 
-	protected void checkRequestInterval() {
+	// CWE-820: synchronized prevents check-then-act race on lastRequestTime
+	protected synchronized void checkRequestInterval() {
 		if (lastRequestTime > 0) {
 			long sinceLastRequest = System.currentTimeMillis() - lastRequestTime;
 			if (sinceLastRequest > 0 && sinceLastRequest < getConfiguration().getRequestInterval()) {

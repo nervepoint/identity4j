@@ -75,7 +75,8 @@ import com.identity4j.util.passwords.PasswordCharacteristics;
 public class ZendeskConnector extends AbstractConnector<ZendeskConfiguration> {
 
 
-	private Directory directory;
+	// CWE-820: volatile ensures cross-thread visibility of lifecycle state
+	private volatile Directory directory;
 	private static final Log log = LogFactory.getLog(ZendeskConnector.class);
 	
 	static final Set<ConnectorCapability> capabilities = Collections.unmodifiableSet(new HashSet<ConnectorCapability>(Arrays.asList(new ConnectorCapability[] { 

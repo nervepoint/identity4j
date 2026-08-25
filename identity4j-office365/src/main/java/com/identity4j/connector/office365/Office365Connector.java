@@ -517,7 +517,8 @@ public class Office365Connector extends AbstractConnector<Office365Configuration
 	}
 
 
-	private Directory directory;
+	// CWE-820: volatile ensures cross-thread visibility of lifecycle state
+	private volatile Directory directory;
 	private static final Log log = LogFactory.getLog(Office365Connector.class);
 	private boolean isDeletePrivilege = true;
 

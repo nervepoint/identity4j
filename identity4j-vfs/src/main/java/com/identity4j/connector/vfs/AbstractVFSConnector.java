@@ -33,8 +33,9 @@ import com.identity4j.connector.AbstractConnector;
 import com.identity4j.connector.exception.ConnectorException;
 
 public abstract class AbstractVFSConnector<P extends AbstractVFSConfiguration> extends AbstractConnector<P> {
-    private FileSystemManager fsManager;
-    private FileObject file;
+    // CWE-820: volatile ensures cross-thread visibility of lifecycle state
+    private volatile FileSystemManager fsManager;
+    private volatile FileObject file;
 
     @Override
     public boolean isOpen() {

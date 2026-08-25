@@ -96,14 +96,15 @@ public class UnixConnector extends AbstractFlatFileConnector<UnixConfiguration> 
 
 	private final static Log LOG = LogFactory.getLog(UnixConnector.class);
 
-	private LocalDelimitedFlatFile groupFlatFile;
-	private LocalDelimitedFlatFile shadowFlatFile;
+	// CWE-820: volatile ensures cross-thread visibility of lazily-initialized file handles
+	private volatile LocalDelimitedFlatFile groupFlatFile;
+	private volatile LocalDelimitedFlatFile shadowFlatFile;
 	private boolean passwordsInShadow = true;
 	private final Map<String, Role> roleMap = new HashMap<String, Role>();
 	private final Map<String, List<String>> additionalGroups = new HashMap<String, List<String>>();
-	private long lastLogLastLoaded = -1;
+	private volatile long lastLogLastLoaded = -1;
 
-	private LocalFixedWidthFlatFile lastLogFlatFile;
+	private volatile LocalFixedWidthFlatFile lastLogFlatFile;
 
 	public UnixConnector() {
 		super(UnixDESEncoder.ID, UnixMD5Encoder.ID, UnixBlowfishEncoder.ID, UnixSHA256Encoder.ID, UnixSHA512Encoder.ID);

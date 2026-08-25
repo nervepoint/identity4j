@@ -178,7 +178,8 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 	public static final String DOMAIN_LOCAL = "-2147483644";
 	public static final String UNIVERSAL = "-2147483640";
 
-	private ActiveDirectorySchemaVersion cachedVersion;
+	// CWE-820: volatile ensures cross-thread visibility for cached schema version
+	private volatile ActiveDirectorySchemaVersion cachedVersion;
 
 	@Override
 	public Set<ConnectorCapability> getCapabilities() {
@@ -249,22 +250,27 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 	final byte[] controlData = { 48, (byte) 132, 0, 0, 0, 3, 2, 1, 1 };
 	final String LDAP_SERVER_POLICY_HINTS_OID = "1.2.840.113556.1.4.2066";
 
-	private PasswordCharacteristics passwordCharacteristics = null;
+	// CWE-820: volatile enables safe double-checked locking in getPasswordCharacteristics
+	private volatile PasswordCharacteristics passwordCharacteristics;
 	
 	@Override
 	public PasswordCharacteristics getPasswordCharacteristics() {
-		
-		if(passwordCharacteristics==null) {
-			boolean complex = false;
-			String value = getAttributeValue(getRootDn(), PWD_PROPERTIES_ATTRIBUTE);
-			if (!StringUtil.isNullOrEmpty(value)) {
-				int val = Integer.parseInt(value);
-				complex = (val & DOMAIN_PASSWORD_COMPLEX) != 0;
+		if (passwordCharacteristics == null) {
+			// CWE-820: double-checked locking prevents concurrent redundant computation
+			synchronized (this) {
+				if (passwordCharacteristics == null) {
+					boolean complex = false;
+					String value = getAttributeValue(getRootDn(), PWD_PROPERTIES_ATTRIBUTE);
+					if (!StringUtil.isNullOrEmpty(value)) {
+						int val = Integer.parseInt(value);
+						complex = (val & DOMAIN_PASSWORD_COMPLEX) != 0;
+					}
+					String minPwdLengthField = getAttributeValue(getRootDn(), "minPwdLength");
+					passwordCharacteristics = new ADPasswordCharacteristics(complex,
+							minPwdLengthField == null ? 6 : Integer.parseInt(minPwdLengthField), getPasswordHistoryLength(),
+							getMaximumPasswordAge(), getMinimumPasswordAge(), 0, "Default Group Policy", null);
+				}
 			}
-			String minPwdLengthField = getAttributeValue(getRootDn(), "minPwdLength");
-			passwordCharacteristics = new ADPasswordCharacteristics(complex,
-					minPwdLengthField == null ? 6 : Integer.parseInt(minPwdLengthField), getPasswordHistoryLength(),
-					getMaximumPasswordAge(), getMinimumPasswordAge(), 0, "Default Group Policy", null);
 		}
 		return passwordCharacteristics;
 	}
@@ -1061,10 +1067,16 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 			return cfgSchema;
 		}
 
+		// CWE-820: volatile fast-path read, synchronized block prevents concurrent computation
 		if (cachedVersion != null) {
 			return cachedVersion;
 		}
 		
+		synchronized (this) {
+			if (cachedVersion != null) {
+				return cachedVersion;
+			}
+
 		Throwable firstException = null;
 		Name rootDn = getRootDn();
 
@@ -1149,6 +1161,8 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 		}
 
 		return cachedVersion;
+
+		} // end synchronized
 
 	}
 

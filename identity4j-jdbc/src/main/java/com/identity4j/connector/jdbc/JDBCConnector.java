@@ -70,8 +70,9 @@ public abstract class JDBCConnector<P extends ConnectorConfigurationParameters> 
 
 	protected final static EncoderManager encoderManager = DefaultEncoderManager.getInstance();
 
-	protected Connection connect = null;
-	protected JDBCConfiguration configuration = null;
+	// CWE-820: volatile ensures cross-thread visibility of lifecycle state
+	protected volatile Connection connect;
+	protected volatile JDBCConfiguration configuration;
 
 	static Log log = LogFactory.getLog(JDBCConnector.class);
 
