@@ -50,9 +50,10 @@ public class DummySSLSocketFactory extends SSLSocketFactory {
 	private SSLSocketFactory factory;
 	final static Log LOG = LogFactory.getLog(DummySSLSocketFactory.class);
 
-	private static String[] includeCipherSuites;
-	private static String[] excludeCipherSuites;
-	private static boolean enableSSLv2ClientHello;
+	// CWE-665: volatile ensures cross-thread visibility of static setter/getter pairs
+	private static volatile String[] includeCipherSuites;
+	private static volatile String[] excludeCipherSuites;
+	private static volatile boolean enableSSLv2ClientHello;
 
 	public DummySSLSocketFactory() {
 		try {

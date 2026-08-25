@@ -186,8 +186,9 @@ public class HttpClientImpl implements HttpProviderClient {
 
 	private String url;
 	//private HttpClientBuilder cl;
-	private CloseableHttpClient httpClient;
-	private HttpClientContext context;
+	// CWE-665: volatile + synchronized checkClient() prevents double-init across threads
+	private volatile CloseableHttpClient httpClient;
+	private volatile HttpClientContext context;
 	private int connectionRequestTimeout = -1;
 	private int connectTimeout = -1;
 	private int soTimeout = -1;
@@ -430,7 +431,7 @@ public class HttpClientImpl implements HttpProviderClient {
 		}
 	}
 
-	private void checkClient() {
+	private synchronized void checkClient() {
 		if (httpClient == null) {
 			try {
 				 createHttpClient();

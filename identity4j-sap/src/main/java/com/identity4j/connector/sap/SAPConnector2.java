@@ -33,7 +33,8 @@ import com.sap.conn.jco.JCoTable;
  */
 public class SAPConnector2 extends AbstractConnector {
 
-	private static SAPDataProviderManager provider;
+	// CWE-665: final guarantees provider is fully initialized before use
+	private static final SAPDataProviderManager provider;
 
 	static {
 		/* Extract and load native library */
@@ -49,7 +50,8 @@ public class SAPConnector2 extends AbstractConnector {
 		}
 
 		/* Load manager that deals with destination configuration */
-		com.sap.conn.jco.ext.Environment.registerDestinationDataProvider(provider = new SAPDataProviderManager());
+		provider = new SAPDataProviderManager();
+		com.sap.conn.jco.ext.Environment.registerDestinationDataProvider(provider);
 	}
 
 	private String dest;

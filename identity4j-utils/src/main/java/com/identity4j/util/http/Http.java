@@ -27,7 +27,8 @@ import java.util.ServiceLoader;
 
 public class Http {
 	
-	private static HttpProvider defaultProvider;
+	// CWE-665: volatile ensures cross-thread visibility of defaultProvider writes
+	private static volatile HttpProvider defaultProvider;
 	private static ThreadLocal<HttpProvider> threadProvider = new ThreadLocal<HttpProvider>();
 	
 	public static void setProvider(HttpProvider provider) {
