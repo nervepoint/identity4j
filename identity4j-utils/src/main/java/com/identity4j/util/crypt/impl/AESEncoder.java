@@ -39,6 +39,11 @@ public class AESEncoder extends RawAESEncoder {
 
     public final static String ID = RawAESEncoder.ID + "string";
 
+    // CWE-789: upper bounds for fields read from untrusted encoded data
+    private static final int MAX_SALT_LEN   = 256;
+    private static final int MAX_ITERATIONS = 1_000_000;
+    private static final int MAX_KEY_BITS   = 512;
+
     private int iterations = 1024;
 
     public AESEncoder() {
@@ -115,8 +120,13 @@ public class AESEncoder extends RawAESEncoder {
             } else {
                 throw new EncoderException("Unsupported AES encoding format version: " + formatVersion);
             }
+            // CWE-789: reject excessive field values before any allocation
+            if (keyLength <= 0 || keyLength > MAX_KEY_BITS)
+                throw new EncoderException("Malformed encoded data: invalid keyLength");
+            if (iterations <= 0 || iterations > MAX_ITERATIONS)
+                throw new EncoderException("Malformed encoded data: invalid iterations");
             int saltLen = din.readShort();
-            if (saltLen < 0 || toDecode.length - offset - saltLen < 0)
+            if (saltLen < 0 || saltLen > MAX_SALT_LEN || toDecode.length - offset - saltLen < 0)
                 throw new EncoderException("Malformed encoded data: invalid salt length");
             salt = new byte[saltLen];
             din.readFully(salt);
@@ -160,8 +170,13 @@ public class AESEncoder extends RawAESEncoder {
             } else {
                 return false;
             }
+            // CWE-789: reject excessive field values before any allocation
+            if (keyLength <= 0 || keyLength > MAX_KEY_BITS)
+                return false;
+            if (iterations <= 0 || iterations > MAX_ITERATIONS)
+                return false;
             int saltLen = din.readShort();
-            if (saltLen < 0 || encodedData.length - offset - saltLen < 0)
+            if (saltLen < 0 || saltLen > MAX_SALT_LEN || encodedData.length - offset - saltLen < 0)
                 return false;
             byte[] salt = new byte[saltLen];
             din.readFully(salt);
