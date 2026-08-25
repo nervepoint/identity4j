@@ -128,7 +128,10 @@ public class AESEncoder extends RawAESEncoder {
             } else {
                 iv = new byte[cipher.getBlockSize()]; // zero IV (backward compat)
             }
-            byte[] data = new byte[toDecode.length - offset - saltLen];
+            int dataLen = toDecode.length - offset - saltLen;
+            if (dataLen < 0)
+                throw new EncoderException("Malformed encoded data: payload too short for ciphertext");
+            byte[] data = new byte[dataLen];
             din.readFully(data);
             SecretKey secret = getSecretKey(new String(passphrase, charset).toCharArray(), salt, keyLength, iterations);
             cipher.init(Cipher.DECRYPT_MODE, secret, new IvParameterSpec(iv));
@@ -168,7 +171,10 @@ public class AESEncoder extends RawAESEncoder {
                 byte[] iv = new byte[blockSize];
                 din.readFully(iv);
                 offset += blockSize;
-                byte[] data = new byte[encodedData.length - offset - saltLen];
+                int dataLen = encodedData.length - offset - saltLen;
+                if (dataLen < 0)
+                    return false;
+                byte[] data = new byte[dataLen];
                 din.readFully(data);
                 byte[] reEncoded = encodeWithIV(unencodedData, salt, passphrase, charset, keyLength, iterations, iv);
                 return Arrays.equals(data, reEncoded);
