@@ -23,8 +23,8 @@ package com.identity4j.connector.google;
  */
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 import com.google.api.client.auth.oauth2.AuthorizationCodeTokenRequest;
@@ -119,11 +119,7 @@ public class GoogleOAuth extends AbstractOAuth2 {
 
     @Override
     protected String getAdditionalAuthorizedParameters() {
-        try {
-            return String.format("state=%s", URLEncoder.encode(state, "UTF-8"));
-        } catch (UnsupportedEncodingException uee) {
-            throw new IllegalStateException();
-        }
+        return String.format("state=%s", URLEncoder.encode(state, StandardCharsets.UTF_8));
     }
 
     public static Credential createCredentialWithAccessTokenOnly(HttpTransport transport, JsonFactory jsonFactory,

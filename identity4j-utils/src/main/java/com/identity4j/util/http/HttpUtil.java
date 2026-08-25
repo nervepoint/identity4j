@@ -1,8 +1,8 @@
 package com.identity4j.util.http;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 /*
  * #%L
@@ -29,19 +29,11 @@ import java.net.URLEncoder;
 public class HttpUtil {
 
 	public static String encode(String part) {
-		try {
-			return URLEncoder.encode(part, "UTF-8");
-		} catch (UnsupportedEncodingException uo) {
-			throw new RuntimeException("No encoding.", uo);
-		}
+		return URLEncoder.encode(part, StandardCharsets.UTF_8);
 	}
 
 	public static String decode(String part) {
-		try {
-			return URLDecoder.decode(part, "UTF-8");
-		} catch (UnsupportedEncodingException uo) {
-			throw new RuntimeException("No encoding.", uo);
-		}
+		return URLDecoder.decode(part, StandardCharsets.UTF_8);
 	}
 
 	public static String concatenateUriParts(String part1, String part2) {

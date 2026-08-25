@@ -22,8 +22,8 @@ package com.identity4j.util.http;
  * #L%
  */
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 public class HttpPair {
 	private String name;
@@ -52,10 +52,6 @@ public class HttpPair {
 	}
 
 	public String toString() {
-		try {
-			return URLEncoder.encode(name, "UTF-8") + ( value == null? "" : "=" + URLEncoder.encode(value, "UTF-8"));
-		} catch (UnsupportedEncodingException e) {
-			throw new RuntimeException(e);
-		}
+		return URLEncoder.encode(name, StandardCharsets.UTF_8) + ( value == null? "" : "=" + URLEncoder.encode(value, StandardCharsets.UTF_8));
 	}
 }

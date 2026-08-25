@@ -7,6 +7,7 @@ import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -72,9 +73,9 @@ public static AADJWTToken getOAuthAccessTokenFromACS(String tenantName,String gr
 			String data = null;
 			
 			 data = "grant_type=client_credentials";             
-			 data += "&resource=" +  URLEncoder.encode(graphPrincipalId,"UTF-8"); 
-			 data += "&client_id=" + URLEncoder.encode(principalId,"UTF-8"); 
-			 data += "&client_secret=" +URLEncoder.encode(clientKey,"UTF-8");
+			 data += "&resource=" +  URLEncoder.encode(graphPrincipalId, StandardCharsets.UTF_8); 
+			 data += "&client_id=" + URLEncoder.encode(principalId, StandardCharsets.UTF_8); 
+			 data += "&client_secret=" +URLEncoder.encode(clientKey, StandardCharsets.UTF_8);
 	            
 	            
 			url = new URL(stsUrl);
@@ -166,7 +167,7 @@ public static AADJWTToken getOAuthAccessTokenFromACS(String tenantName,String gr
 	        webClient.getOptions().setThrowExceptionOnScriptError(false);
 	        webClient.setAjaxController(new NicelyResynchronizingAjaxController()); 
 
-			String url = String.format(oAuthUrl, URLEncoder.encode(principalId,"UTF-8"),oAuthUrlRedirectUri,graphPrincipalId);
+			String url = String.format(oAuthUrl, URLEncoder.encode(principalId, StandardCharsets.UTF_8),oAuthUrlRedirectUri,graphPrincipalId);
 			
 			System.out.println("\n--------- Getting page -------------\n");
 			

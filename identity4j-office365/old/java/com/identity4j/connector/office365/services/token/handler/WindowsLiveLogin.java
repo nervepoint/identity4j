@@ -2174,7 +2174,7 @@ public class WindowsLiveLogin {
         }
 
         try {
-            return URLEncoder.encode(s, "UTF-8");
+            return URLEncoder.encode(s, java.nio.charset.StandardCharsets.UTF_8);
         } catch (Exception e) {
               debug("Error: escape: Unable to URL-encode string: " + e);
         }
@@ -2191,7 +2191,7 @@ public class WindowsLiveLogin {
         }
 
         try {
-            return URLDecoder.decode(s, "UTF-8");
+            return URLDecoder.decode(s, java.nio.charset.StandardCharsets.UTF_8);
         } catch (Exception e) {
             debug("Error: unescape: Unable to URL-decode string: " + e);
         }

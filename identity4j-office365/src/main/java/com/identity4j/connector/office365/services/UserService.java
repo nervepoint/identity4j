@@ -70,7 +70,7 @@ public class UserService extends AbstractRestAPIService {
 		HttpResponse response = retryIfTokenFails(new Callable<HttpResponse>() {
 			@Override
 			public HttpResponse call() throws Exception {
-				URI uri = constructURI(String.format("/users/%s", URLEncoder.encode(objectId, "UTF-8")), selectList());
+				URI uri = constructURI(String.format("/users/%s", URLEncoder.encode(objectId, StandardCharsets.UTF_8)), selectList());
 				return httpRequestHandler.handleRequestGet(
 						uri, getHeaders().toArray(new HttpPair[0]));
 			}

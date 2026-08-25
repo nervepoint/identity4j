@@ -23,9 +23,9 @@ package com.identity4j.connector;
  */
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Map;
 
@@ -70,25 +70,21 @@ public abstract class AbstractOAuth2
 		if (authorizeUrl == null) {
 			throw new IllegalStateException("Authorize URL has not been set.");
 		}
-		try {
-			String url = String.format(authorizeUrl);
-			url += String.format("?response_type=%s", responseType);
-			url += String.format("&client_id=%s",
-					URLEncoder.encode(clientId, "UTF-8"));
-			url += String.format("&redirect_uri=%s",
-					URLEncoder.encode(returnTo, "UTF-8"));
-			if(scope != null) {
-				url += String.format("&scope=%s", URLEncoder.encode(scope, "UTF-8"));
-			}
-			String extra = getAdditionalAuthorizedParameters();
-			if (extra != null && extra.length() > 0) {
-				url += "&" + extra;
-			}
-			status = Status.OPENED;
-			return url;
-		} catch (UnsupportedEncodingException e) {
-			throw new RuntimeException(e);
+		String url = String.format(authorizeUrl);
+		url += String.format("?response_type=%s", responseType);
+		url += String.format("&client_id=%s",
+				URLEncoder.encode(clientId, StandardCharsets.UTF_8));
+		url += String.format("&redirect_uri=%s",
+				URLEncoder.encode(returnTo, StandardCharsets.UTF_8));
+		if(scope != null) {
+			url += String.format("&scope=%s", URLEncoder.encode(scope, StandardCharsets.UTF_8));
 		}
+		String extra = getAdditionalAuthorizedParameters();
+		if (extra != null && extra.length() > 0) {
+			url += "&" + extra;
+		}
+		status = Status.OPENED;
+		return url;
 	}
 
 	@Override

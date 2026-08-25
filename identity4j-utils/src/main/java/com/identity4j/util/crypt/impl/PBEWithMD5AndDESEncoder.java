@@ -22,6 +22,7 @@ package com.identity4j.util.crypt.impl;
  * #L%
  */
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 import javax.crypto.Cipher;
@@ -55,7 +56,7 @@ public class PBEWithMD5AndDESEncoder extends AbstractEncoder {
 	@Override
 	public byte[] encode(byte[] toEncode, byte[] salt, byte[] passphrase, String charset) throws EncoderException {
 		try {
-			Crypt c = new Crypt(new String(passphrase, "UTF-8").toCharArray(), salt);
+			Crypt c = new Crypt(new String(passphrase, StandardCharsets.UTF_8).toCharArray(), salt);
 			byte[] crypted = c.encrypt(toEncode);
 			byte[] finalData = new byte[c.salt.length + crypted.length + 1];
 			finalData[0] = (byte) c.salt.length;
@@ -79,7 +80,7 @@ public class PBEWithMD5AndDESEncoder extends AbstractEncoder {
 			byte[] crypted = new byte[toDecode.length - 1 - saltLen];
 			System.arraycopy(toDecode, 1, salt, 0, saltLen);
 			System.arraycopy(toDecode, 1 + saltLen, crypted, 0, crypted.length);
-			return new Crypt(new String(passphrase, "UTF-8").toCharArray(), salt).decrypt(crypted);
+			return new Crypt(new String(passphrase, StandardCharsets.UTF_8).toCharArray(), salt).decrypt(crypted);
 		} catch (Exception e) {
 			throw new EncoderException(e);
 		}
