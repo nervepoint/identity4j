@@ -178,11 +178,9 @@ public class ADToken {
 		target.add(Calendar.MINUTE, minutes);
 		Long targetMillis = target.getTimeInMillis();
 
-		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-		cal.set(1970, 00, 01);
-		Long epochMillis = cal.getTimeInMillis();
-
-		return ((targetMillis - epochMillis) / 1000) > expiresOn;
+		// CWE-682: epochMillis subtracted a non-zero time-of-day value, making expiry
+		// check off by up to 24 h. targetMillis is already ms-from-epoch; divide by 1000.
+		return (targetMillis / 1000) > expiresOn;
 	}
 
 	@Override

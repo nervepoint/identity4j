@@ -103,7 +103,8 @@ public class Token {
 		Calendar now = Calendar.getInstance();
 		now.add(Calendar.MINUTE, minutes);
 		long diff = now.getTime().getTime() - issuedAt.getTime();
-		long diffSeconds = diff / 1000 % 60;
+		// CWE-682: % 60 gave seconds-within-minute (0-59) instead of total elapsed seconds
+		long diffSeconds = diff / 1000;
 		return diffSeconds > validSeconds;
 	}
 	

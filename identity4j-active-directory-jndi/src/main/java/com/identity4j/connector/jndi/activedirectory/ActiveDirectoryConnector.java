@@ -874,7 +874,8 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 					
 					LOG.info(String.format("The account with DN %s has password not required flag set.", userDn));
 					
-					int valueWithoutPassNoReq = value & (UserAccountControl.PASSWD_NOTREQD_FLAG ^ Integer.MAX_VALUE);
+// CWE-682: XOR with Integer.MAX_VALUE also cleared the sign bit; use bitwise NOT
+							int valueWithoutPassNoReq = value & ~UserAccountControl.PASSWD_NOTREQD_FLAG;
 					
 					Collection<ModificationItem> items = new ArrayList<ModificationItem>();
 					items.add(new ModificationItem(DirContext.REPLACE_ATTRIBUTE, new BasicAttribute(
@@ -1536,7 +1537,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 					// Now if looked, calculate when unlocked
 					if (accountStatus.getType().equals(AccountStatusType.locked)) {
 						accountStatus.setUnlocked(
-								trimDate(new Date(accountStatus.getLocked().getTime() - (lockoutDuration / 1000))));
+								trimDate(new Date(accountStatus.getLocked().getTime() - (lockoutDuration / 10000L))));
 					}
 
 					if (opContext.isGroups() && config.isEnableRoles()) {

@@ -107,7 +107,8 @@ public class Token {
 	public boolean hasPassed(int minutes){
 		Date now = new Date();
 		long diff = now.getTime() - issuedAt.getTime();
-		long diffMinutes = (diff / 1000 % 60)/60;
+		// CWE-682: (diff/1000 % 60)/60 was always 0; compute total elapsed minutes directly
+		long diffMinutes = diff / 60_000L;
 		return diffMinutes > minutes;
 	}
 }
