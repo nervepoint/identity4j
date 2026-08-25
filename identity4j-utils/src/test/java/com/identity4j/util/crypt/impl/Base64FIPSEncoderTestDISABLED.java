@@ -22,6 +22,8 @@ package com.identity4j.util.crypt.impl;
  * #L%
  */
 
+import java.security.SecureRandom;
+
 import com.identity4j.util.crypt.AbstractEncoderTest;
 import com.identity4j.util.crypt.nss.NssTokenDatabase;
 
@@ -31,13 +33,14 @@ public class Base64FIPSEncoderTestDISABLED extends AbstractEncoderTest {
         try {
 
             /*
-             * We want repeatable results, so must initialize the token database
-             * with a fixed passphrase and salt
-             * 
-             * TODO this does not work :( something else must add some randomness?
+             * CWE-321: passphrase is now randomly generated at runtime rather
+             * than hard-coded so it cannot be discovered from the source tree.
+             * NOTE: this test is permanently DISABLED (suffix on class name);
+             * expected hashes below are therefore never verified at build time.
              */
             byte[] noise = new byte[128];
-            byte[] passphrase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456".getBytes("US-ASCII");
+            byte[] passphrase = new byte[32];
+            new SecureRandom().nextBytes(passphrase);
             new NssTokenDatabase(noise, passphrase).start();;
         } catch (Exception e) {
             System.err.println("Failed to initialize token database correctly");

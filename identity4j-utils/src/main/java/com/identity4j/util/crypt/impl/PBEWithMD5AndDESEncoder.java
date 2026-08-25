@@ -23,6 +23,7 @@ package com.identity4j.util.crypt.impl;
  */
 
 import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
 import java.util.Arrays;
 
 import javax.crypto.Cipher;
@@ -44,10 +45,6 @@ public class PBEWithMD5AndDESEncoder extends AbstractEncoder {
 	private static final String CRYPT_METHOD = "PBEWithMD5AndDES";
 
 	public final static String ID = "pbe-with-md5-and-des";
-
-	/** Salt */
-	private final static byte[] DEFAULT_SALT = { (byte)0x15, (byte)0x8c, (byte)0xa3, (byte)0x4a,
-			(byte)0x66, (byte)0x51, (byte)0x2a, (byte)0xbc };
 
 	public PBEWithMD5AndDESEncoder() {
 		super(ID);
@@ -90,22 +87,15 @@ public class PBEWithMD5AndDESEncoder extends AbstractEncoder {
 		}
 	}
 
-	public static void main(String[] args) throws Exception {
-		Crypt c = new Crypt("A passphrase".toCharArray(), null);
-
-		String result = "This is the result!";
-		byte[] bytes = result.getBytes();
-		byte[] enc = c.encrypt(bytes);
-
-		c = new Crypt("A passphrase".toCharArray(), null);
-		byte[] dec = c.decrypt(enc);
-
-		if (Arrays.equals(bytes, dec)) {
-			System.out.println("OK!");
-		} else {
-			System.out.println("Different");
+	@Override
+	public boolean match(byte[] encodedData, byte[] unencodedData, byte[] passphrase, String charset) {
+		try {
+			// CWE-321: encode() now uses a random salt, so re-encoding produces a
+			// different ciphertext every time; decode and compare instead.
+			return Arrays.equals(decode(encodedData, null, passphrase, charset), unencodedData);
+		} catch (EncoderException e) {
+			return false;
 		}
-
 	}
 
 	public static class Crypt {
@@ -115,7 +105,9 @@ public class PBEWithMD5AndDESEncoder extends AbstractEncoder {
 
 		public Crypt(char[] pass, byte[] salt) throws SecurityException {
 			if (salt == null) {
-				salt = DEFAULT_SALT;
+				// CWE-321: generate a random salt instead of using a hardcoded value
+				salt = new byte[8];
+				new SecureRandom().nextBytes(salt);
 			}
 			init(pass, salt, COUNT);
 		}
