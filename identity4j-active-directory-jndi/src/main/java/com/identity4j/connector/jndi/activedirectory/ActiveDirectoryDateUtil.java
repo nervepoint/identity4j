@@ -57,7 +57,8 @@ public final class ActiveDirectoryDateUtil {
      * @return days representing the long
      */
     public static int adTimeToJavaDays(long timeStamp) {
-        return (int) timeStamp == -9223372036854775808L ? 0 : (int) (timeStamp / -86400L / 10000000L);
+        // CWE-570 fix: compare the full long, not a truncated (int) cast
+        return timeStamp == Long.MIN_VALUE ? 0 : (int) (timeStamp / -86400L / 10000000L);
     }
 
 	public static long javaDateToADTime(Date date) {
