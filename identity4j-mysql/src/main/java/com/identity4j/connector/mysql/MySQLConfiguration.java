@@ -62,7 +62,7 @@ public class MySQLConfiguration extends JDBCConfiguration {
 
 	@Override
 	public Integer getDefaultPort() {
-		return new Integer(3306);
+		return Integer.valueOf(3306);
 	}
 
 	@Override

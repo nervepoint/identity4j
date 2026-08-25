@@ -137,7 +137,7 @@ public abstract class Extender implements Serializable {
 
 		@Override
 		public int compareTo(Extension other) {
-			int o = new Integer(order).compareTo(new Integer(other.order));
+			int o = Integer.compare(order, other.order);
 			return o == 0 ? name.compareTo(other.name) : o;
 		}
 	}

@@ -1,8 +1,8 @@
 package com.identity4j.connector.office365.services;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -142,11 +142,7 @@ public class UserService extends AbstractRestAPIService {
 		if(filter != null) {
 			q.append("&$filter=");
 			q.append(filter.encode());
-			try {
-				q.append(URLEncoder.encode(filter.encode(), "UTF-8"));
-			} catch (UnsupportedEncodingException e) {
-				throw new IllegalArgumentException("Filter cannot be UTF-8 encoded.");
-			}
+			q.append(URLEncoder.encode(filter.encode(), StandardCharsets.UTF_8));
 		}
 		if (nextLink != null) {
 			q.append("&$skiptoken=");

@@ -117,7 +117,7 @@ public class NamedParameterStatement {
 						indexList = new LinkedList<Integer>();
 						paramMap.put(name, indexList);
 					}
-					indexList.add(new Integer(index));
+					indexList.add(Integer.valueOf(index));
 
 					index++;
 				}

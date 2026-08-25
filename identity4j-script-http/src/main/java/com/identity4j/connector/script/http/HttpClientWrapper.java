@@ -23,7 +23,7 @@ package com.identity4j.connector.script.http;
  */
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -185,20 +185,16 @@ public class HttpClientWrapper {
 			this.resp = resp;
 		}
 
-		public JsonObject toJSON() throws JsonSyntaxException, UnsupportedEncodingException {
+		public JsonObject toJSON() throws JsonSyntaxException {
 			String str = toString();
-			JsonElement parse = new JsonParser().parse(str);
+			JsonElement parse = JsonParser.parseString(str);
 			JsonObject obj = parse.getAsJsonObject();
 			return obj;
 		}
 
 		@Override
 		public String toString() {
-			try {
-				return new String(resp.content(), "UTF-8");
-			} catch (UnsupportedEncodingException e) {
-				throw new IllegalStateException(e);
-			}
+			return new String(resp.content(), StandardCharsets.UTF_8);
 		}
 		
 		public void content() {

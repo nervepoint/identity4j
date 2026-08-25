@@ -1,8 +1,8 @@
 package com.identity4j.connector.aws;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -60,11 +60,7 @@ public class NameValuePair {
 	public static String getNamePairValue(String element) {	
 		int idx = element.indexOf('=');
 		if(idx > -1) {
-			try {
-				return URLDecoder.decode(element.substring(idx+1), "UTF-8");
-			} catch (UnsupportedEncodingException e) {
-				throw new IllegalStateException("Unsupported UTF-8 encoding?!?!");
-			}
+			return URLDecoder.decode(element.substring(idx+1), StandardCharsets.UTF_8);
 		}
 		return "";
 	}
@@ -111,10 +107,6 @@ public class NameValuePair {
 	}
 	
 	public static String urlEncode(String message) {
-		try {
-			return URLEncoder.encode(message, "UTF-8");
-		} catch (UnsupportedEncodingException e) {
-			throw new IllegalStateException("System does not appear to support UTF-8!", e);
-		}
+		return URLEncoder.encode(message, StandardCharsets.UTF_8);
 	}
 }

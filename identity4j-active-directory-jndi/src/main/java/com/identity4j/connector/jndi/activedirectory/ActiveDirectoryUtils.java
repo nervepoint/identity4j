@@ -72,7 +72,7 @@ public class ActiveDirectoryUtils {
 		for (int j = 11; j > 7; j--) {
 			rid += byteToHex(sid[j + 4 * 4]);
 		}
-		return new Long(Long.parseLong(rid, 16));
+		return Long.valueOf(Long.parseLong(rid, 16));
 	}
 
 	private static String byteToHex(byte b) {

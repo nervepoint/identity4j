@@ -17,17 +17,17 @@
 ## Progress
 
 - [✅] Pre-condition check passed (Java project confirmed)
-- [✅] Migration Plan Generation — CWE-130 vulnerabilities identified and scoped
-- [✅] Code Migration (CWE-130 fixes)
+- [✅] Migration Plan Generation — CWE-130 scope: AESEncoder format-v2 path gap
+- [✅] Code Migration (CWE-130 format-v2 hardening)
   - [✅] identity4j-utils/src/main/java/com/identity4j/util/crypt/impl/AESEncoder.java
   - [✅] identity4j-utils/src/test/java/com/identity4j/util/crypt/impl/AESEncoderCWE130Test.java
 - [✅] Validation & Fix
-  - [✅] Build and Fix — BUILD SUCCESS
-  - [✅] Test Fix — all tests pass (305 total)
+  - [✅] Build — BUILD SUCCESS (Java 21, Maven 3.9.9)
+  - [✅] Tests — 305/305 passed (inc. 6 new format-v2 CWE-130 tests)
   - [✅] Build Validation — final BUILD SUCCESS
 - [✅] Final Summary
   - [✅] Final Code Commit (6bbb464)
-  - [✅] Migration Summary Generation
+  - [✅] Migration Summary — updated .github/modernize/code-migration/cwe-130-security-fix-20260824/summary.md
 
 ---
 

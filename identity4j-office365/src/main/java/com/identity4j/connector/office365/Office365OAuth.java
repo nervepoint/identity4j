@@ -23,8 +23,8 @@ package com.identity4j.connector.office365;
  */
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Map;
 
@@ -133,12 +133,8 @@ public class Office365OAuth extends AbstractOAuth2 {
 
 	@Override
 	protected String getAdditionalAuthorizedParameters() {
-		try {
-			return String.format("resource=%s&state=%s",
-					URLEncoder.encode(configuration.getGraphPrincipalId(), "UTF-8"), URLEncoder.encode(state, "UTF-8"));
-		} catch (UnsupportedEncodingException uee) {
-			throw new IllegalStateException();
-		}
+		return String.format("resource=%s&state=%s",
+				URLEncoder.encode(configuration.getGraphPrincipalId(), StandardCharsets.UTF_8), URLEncoder.encode(state, StandardCharsets.UTF_8));
 	}
 
 	@Override
