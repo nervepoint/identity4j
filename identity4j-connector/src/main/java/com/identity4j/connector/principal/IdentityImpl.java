@@ -44,7 +44,7 @@ public class IdentityImpl extends AbstractPrincipal implements Identity {
 	private PasswordStatus passwordStatus = new PasswordStatus();
 	private AccountStatus accountStatus = new AccountStatus();
 	private String otherName;
-	private Map<Media, String> contactDetails = new HashMap<Media, String>();
+	private final Map<Media, String> contactDetails = new HashMap<Media, String>();
 
 	public IdentityImpl(String principalName) {
 		this(null, principalName);
@@ -70,7 +70,7 @@ public class IdentityImpl extends AbstractPrincipal implements Identity {
 		this.lastSignOnDate = lastSignOnDate;
 	}
 
-	public final boolean memberOf(Role role) {
+	public final synchronized boolean memberOf(Role role) {
 		if (roles.isEmpty()) {
 			return false;
 		}
@@ -165,7 +165,7 @@ public class IdentityImpl extends AbstractPrincipal implements Identity {
 	}
 
 	@Override
-	public String toString() {
+	public synchronized String toString() {
 		StringBuilder builder = new StringBuilder(super.toString());
 		builder.append("[passwordStatus='").append(getPasswordStatus() == null ? "" : getPasswordStatus().toString());
 		builder.append("', lastSignOnDate='").append(getLastSignOnDate() == null ? "" : getLastSignOnDate().toString());
@@ -182,11 +182,11 @@ public class IdentityImpl extends AbstractPrincipal implements Identity {
 	}
 
 	@Override
-	public String getAddress(Media media) {
+	public synchronized String getAddress(Media media) {
 		return contactDetails.get(media);
 	}
 
-	public void setAddress(Media media, String value) {
+	public synchronized void setAddress(Media media, String value) {
 		if (value == null) {
 			contactDetails.remove(media);
 		} else {

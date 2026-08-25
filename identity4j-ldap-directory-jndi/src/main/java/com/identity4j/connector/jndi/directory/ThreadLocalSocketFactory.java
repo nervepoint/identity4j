@@ -26,7 +26,7 @@ import javax.net.SocketFactory;
 
 public abstract class ThreadLocalSocketFactory extends SocketFactory {
 
-	static ThreadLocal<SocketFactory> local = new ThreadLocal<SocketFactory>();
+	static final ThreadLocal<SocketFactory> local = new ThreadLocal<SocketFactory>();
 
 	public static SocketFactory getDefault() {
 		SocketFactory result = local.get();

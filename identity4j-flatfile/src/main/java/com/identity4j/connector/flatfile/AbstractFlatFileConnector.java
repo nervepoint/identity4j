@@ -60,7 +60,7 @@ public class AbstractFlatFileConnector<P extends AbstractFlatFileConfiguration> 
 
 	private LocalDelimitedFlatFile flatFile;
 	private final Map<String, Identity> identityMap = new HashMap<String, Identity>();
-	private boolean open;
+	private volatile boolean open;
 	private final Collection<String> supportedEncoderTypes;
 
 	static final Set<ConnectorCapability> capabilities = Collections.unmodifiableSet(new HashSet<ConnectorCapability>(Arrays.asList(new ConnectorCapability[] { 

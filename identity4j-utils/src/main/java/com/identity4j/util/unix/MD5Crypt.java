@@ -100,13 +100,13 @@ public class MD5Crypt {
      * $FreeBSD: src/lib/libcrypt/crypt-md5.c,v 1.5 1999/12/17 20:21:45 peter
      * Exp $
      */
-    private static String DEFAULT_MAGIC = "$1$"; /*
+    private static final String DEFAULT_MAGIC = "$1$"; /*
                                                   * This string is magic for
                                                   * this algorithm. Having it
                                                   * this way, we can get get
                                                   * better later on
                                                   */
-    private static int MD5_SIZE = 16;
+    private static final int MD5_SIZE = 16;
 
     private static void memset(byte[] array) {
         for (int i = 0; i < array.length; i++) {

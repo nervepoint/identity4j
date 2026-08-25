@@ -28,9 +28,9 @@ Occurs when code accesses or modifies shared data (static or instance fields) fr
     - [✅] Test Fix — all tests pass
     - [✅] Completeness Check — 4 files fixed (2 found in initial scan + 2 found in completeness pass); 0 remaining
     - [✅] Build Validation (final) — PASSED
-- [⌛️] Final Summary
-  - [⌛️] Final Code Commit
-  - [⌛️] Migration Summary Generation
+- [✅] Final Summary ([summary.md](.github/modernize/cwe567/summary.md))
+  - [✅] Final Code Commit — all changes on `modernize/java-20260824144329`
+  - [✅] Migration Summary Generation
 - Final Summary
 
 ## Progress

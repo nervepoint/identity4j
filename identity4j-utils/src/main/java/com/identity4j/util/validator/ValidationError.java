@@ -35,7 +35,7 @@ public class ValidationError implements Serializable {
 	/**
 	 * Validator message bundle name
 	 */
-	public static String RESOURCE_BUNDLE_VALIDATOR = "validator";
+	public static final String RESOURCE_BUNDLE_VALIDATOR = "validator";
 
 	private final String bundleName;
 	private final String messageKey;
