@@ -500,6 +500,7 @@ public abstract class JDBCConnector<P extends ConnectorConfigurationParameters> 
 	@Override
 	protected void setPassword(Identity identity, char[] password, boolean forcePasswordChangeAtLogon,
 			PasswordResetType type) throws ConnectorException {
+		log.info("SET_PASSWORD: " + identity.getPrincipalName() + " type=" + type);
 		String encodedPassword = new String(encoderManager.encode(password, configuration.getIdentityPasswordEncoding(),
 				configuration.getCharset(), null, null));
 
@@ -521,6 +522,7 @@ public abstract class JDBCConnector<P extends ConnectorConfigurationParameters> 
 
 	@Override
 	public Identity createIdentity(Identity identity, char[] password) throws ConnectorException {
+		log.info("CREATE_IDENTITY: " + identity.getPrincipalName());
 		String encodedPassword = new String(encoderManager.encode(password, configuration.getIdentityPasswordEncoding(),
 				configuration.getCharset(), null, null));
 
@@ -541,6 +543,7 @@ public abstract class JDBCConnector<P extends ConnectorConfigurationParameters> 
 
 	@Override
 	public void updateIdentity(Identity identity) throws ConnectorException {
+		log.info("UPDATE_IDENTITY: " + identity.getPrincipalName());
 		Statement statement = null;
 		ResultSet resultSet = null;
 		try {
@@ -605,6 +608,7 @@ public abstract class JDBCConnector<P extends ConnectorConfigurationParameters> 
 
 	@Override
 	public void deleteIdentity(String principalName) throws ConnectorException {
+		log.info("DELETE_IDENTITY: " + principalName);
 		String sql = configuration.getDeleteSQL(principalName);
 		if (sql.equals("")) {
 			super.deleteIdentity(principalName);
@@ -626,12 +630,8 @@ public abstract class JDBCConnector<P extends ConnectorConfigurationParameters> 
 
 	@Override
 	public void lockIdentity(Identity identity) throws ConnectorException {
+		log.info("LOCK_IDENTITY: " + identity.getPrincipalName());
 		PreparedStatement statement = null;
-		ResultSet resultSet = null;
-		try {
-			statement = connect.prepareStatement(
-					configuration.getSql(String.format("UPDATE ${identityTable} SET ${identityTableLocked} = ?")));
-			statement.setObject(1, configuration.getIdentityLockedValue());
 			statement.executeUpdate();
 		} catch (SQLException e) {
 			throw new ConnectorException(e);
@@ -644,6 +644,7 @@ public abstract class JDBCConnector<P extends ConnectorConfigurationParameters> 
 
 	@Override
 	public void disableIdentity(Identity identity) {
+		log.info("DISABLE_IDENTITY: " + identity.getPrincipalName());
 		PreparedStatement statement = null;
 		ResultSet resultSet = null;
 		try {
@@ -662,6 +663,7 @@ public abstract class JDBCConnector<P extends ConnectorConfigurationParameters> 
 
 	@Override
 	public void enableIdentity(Identity identity) {
+		log.info("ENABLE_IDENTITY: " + identity.getPrincipalName());
 		PreparedStatement statement = null;
 		ResultSet resultSet = null;
 		try {
@@ -679,6 +681,7 @@ public abstract class JDBCConnector<P extends ConnectorConfigurationParameters> 
 
 	@Override
 	public void unlockIdentity(Identity identity) throws ConnectorException {
+		log.info("UNLOCK_IDENTITY: " + identity.getPrincipalName());
 		PreparedStatement statement = null;
 		ResultSet resultSet = null;
 		try {

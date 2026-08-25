@@ -24,6 +24,9 @@ package com.identity4j.connector.htpasswd;
 
 import java.io.UnsupportedEncodingException;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.identity4j.connector.flatfile.AbstractFlatFileConnector;
 import com.identity4j.connector.flatfile.FlatFileConfiguration;
 import com.identity4j.connector.unix.UnixConnector;
@@ -34,14 +37,17 @@ import com.identity4j.util.crypt.impl.SHAStringEncoder;
 import com.identity4j.util.crypt.impl.UnixDESEncoder;
 
 public class HTPasswdConnector extends AbstractFlatFileConnector<FlatFileConfiguration> {
-    
+
+    private static final Log log = LogFactory.getLog(HTPasswdConnector.class);
+
     static {
         // Load the UNIX encoders
         try {
             Class.forName(UnixConnector.class.getName());
             DefaultEncoderManager.getInstance().addEncoder(new HTPasswdMD5Encoder());
         }
-        catch(ClassNotFoundException cnfe) {            
+        catch(ClassNotFoundException cnfe) {
+            log.warn("HTPasswdConnector: failed to load encoder classes; password hashing may be unavailable", cnfe);
         }
     }
     

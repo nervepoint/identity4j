@@ -40,6 +40,9 @@ import java.util.Set;
 import org.apache.commons.vfs2.Capability;
 import org.apache.commons.vfs2.FileObject;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.identity4j.connector.ConnectorCapability;
 import com.identity4j.connector.OperationContext;
 import com.identity4j.connector.ResultIterator;
@@ -57,6 +60,8 @@ import com.identity4j.util.crypt.impl.DefaultEncoderManager;
 
 public class AbstractFlatFileConnector<P extends AbstractFlatFileConfiguration> extends AbstractVFSConnector<P> {
 	private final static EncoderManager encoderManager = DefaultEncoderManager.getInstance();
+
+	private static final Log log = LogFactory.getLog(AbstractFlatFileConnector.class);
 
 	// CWE-820: volatile ensures reads outside synchronized(identityMap) see the initialized value
 	private volatile LocalDelimitedFlatFile flatFile;
@@ -238,6 +243,7 @@ public class AbstractFlatFileConnector<P extends AbstractFlatFileConfiguration> 
 
 	@Override
 	public Identity createIdentity(Identity identity, char[] password) throws ConnectorException {
+		log.info("CREATE_IDENTITY: " + identity.getPrincipalName());
 		checkLoaded();
 
 		// must have a principal name
@@ -326,6 +332,7 @@ public class AbstractFlatFileConnector<P extends AbstractFlatFileConfiguration> 
 
 	@Override
 	public void updateIdentity(Identity identity) throws ConnectorException {
+		log.info("UPDATE_IDENTITY: " + identity.getPrincipalName());
 		checkLoaded();
 
 		// must have a principal name
@@ -371,6 +378,7 @@ public class AbstractFlatFileConnector<P extends AbstractFlatFileConfiguration> 
 
 	@Override
 	public void deleteIdentity(String principalName) throws ConnectorException {
+		log.info("DELETE_IDENTITY: " + principalName);
 		checkLoaded();
 		flatFile.remove(principalName);
 		try {

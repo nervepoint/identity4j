@@ -45,7 +45,8 @@ import com.identity4j.util.validator.ValidationContext;
 
 public abstract class AbstractConnector<P extends ConnectorConfigurationParameters> implements Connector<P>, ValidationContext {
 
-	// CWE-778: security event log for logon and credential check outcomes
+	private static final Log log = LogFactory.getLog(AbstractConnector.class);
+	// CWE-778: security event log for logon, credential check, and account management outcomes
 	private static final Log securityLog = LogFactory.getLog("security." + AbstractConnector.class.getName());
 
 	private P parameters;
@@ -165,6 +166,7 @@ public abstract class AbstractConnector<P extends ConnectorConfigurationParamete
 
 	public final void changePassword(String username, String guid, char[] oldPassword, char[] password)
 			throws InvalidLoginCredentialsException, ConnectorException {
+		securityLog.info("PASSWORD_CHANGE_ATTEMPT [" + username + "]");
 		Identity identity = getIdentityByName(username);
 		assertGuid(identity, guid);
 		try {
@@ -172,10 +174,15 @@ public abstract class AbstractConnector<P extends ConnectorConfigurationParamete
 			assertPasswordChangeIsAllowed(identity, oldPassword, password);
 		}
 		catch(PasswordChangeRequiredException pcre) {
-			// Not really surprising :)
+			securityLog.debug("PASSWORD_CHANGE: change required flag suppressed [" + username + "]");
 		}
-		
-		changePassword(identity, oldPassword, password);
+		try {
+			changePassword(identity, oldPassword, password);
+			securityLog.info("PASSWORD_CHANGE_SUCCESS [" + username + "]");
+		} catch (RuntimeException e) {
+			securityLog.warn("PASSWORD_CHANGE_FAILED [" + username + "]");
+			throw e;
+		}
 	}
 
 	/**
@@ -205,9 +212,16 @@ public abstract class AbstractConnector<P extends ConnectorConfigurationParamete
 
 	public final void setPassword(String username, String guid, char[] password, boolean forcePasswordChangeAtLogon, PasswordResetType resetType)
 			throws PrincipalNotFoundException, InvalidLoginCredentialsException, ConnectorException {
+		securityLog.info("PASSWORD_RESET_ATTEMPT [" + username + "] type=" + resetType);
 		Identity identity = getIdentityByName(username);
 		assertGuid(identity, guid);
-		setPassword(identity, password, forcePasswordChangeAtLogon, resetType);
+		try {
+			setPassword(identity, password, forcePasswordChangeAtLogon, resetType);
+			securityLog.info("PASSWORD_RESET_SUCCESS [" + username + "] type=" + resetType);
+		} catch (ConnectorException | RuntimeException e) {
+			securityLog.warn("PASSWORD_RESET_FAILED [" + username + "] type=" + resetType);
+			throw e;
+		}
 	}
 
 	protected void setPassword(Identity identity, char[] password, boolean forcePasswordChangeAtLogon, PasswordResetType type) throws ConnectorException {
@@ -266,7 +280,7 @@ public abstract class AbstractConnector<P extends ConnectorConfigurationParamete
 	public Identity getIdentityByGuid(String guid) throws PrincipalNotFoundException, ConnectorException {
 		for (Iterator<Identity> identityIterator = allIdentities(OperationContext.createDefault()); identityIterator.hasNext();) {
 			Identity identity = identityIterator.next();
-			System.out.println(">> " + identity.getPrincipalName() + "/" + identity.getGuid() + " against " + guid);
+			log.debug(">> " + identity.getPrincipalName() + "/" + identity.getGuid() + " against " + guid);
 			if (identity.getGuid().equals(guid)) {
 				return identity;
 			}
