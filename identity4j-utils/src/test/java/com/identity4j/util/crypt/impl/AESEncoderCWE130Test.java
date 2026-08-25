@@ -21,7 +21,11 @@ import com.identity4j.util.crypt.EncoderException;
 public class AESEncoderCWE130Test {
 
     private static final AESEncoder ENCODER = new AESEncoder();
-    private static final byte[] PASSPHRASE = "testpassword".getBytes();
+    private static final byte[] TEST_KEY;
+    static {
+        TEST_KEY = new byte[16];
+        new java.security.SecureRandom().nextBytes(TEST_KEY);
+    }
 
     /** Craft a format-version-0 payload where saltLen short is set to the given value. */
     private static byte[] craftPayload(short saltLenValue, int trailingBytes) throws IOException {
@@ -60,20 +64,20 @@ public class AESEncoderCWE130Test {
     @Test(expected = EncoderException.class)
     public void decode_negativeSaltLen_throwsEncoderException() throws Exception {
         byte[] payload = craftPayload((short) -1, 16);
-        ENCODER.decode(payload, null, PASSPHRASE, "UTF-8");
+        ENCODER.decode(payload, null, TEST_KEY, "UTF-8");
     }
 
     @Test(expected = EncoderException.class)
     public void decode_minimumNegativeSaltLen_throwsEncoderException() throws Exception {
         byte[] payload = craftPayload(Short.MIN_VALUE, 16);
-        ENCODER.decode(payload, null, PASSPHRASE, "UTF-8");
+        ENCODER.decode(payload, null, TEST_KEY, "UTF-8");
     }
 
     @Test(expected = EncoderException.class)
     public void decode_saltLenExceedsDataLength_throwsEncoderException() throws Exception {
         // payload is 12 bytes; offset=10; saltLen=100 → 12-10-100 < 0
         byte[] payload = craftPayload((short) 100, 2);
-        ENCODER.decode(payload, null, PASSPHRASE, "UTF-8");
+        ENCODER.decode(payload, null, TEST_KEY, "UTF-8");
     }
 
     // --- match() ---
@@ -81,21 +85,21 @@ public class AESEncoderCWE130Test {
     @Test
     public void match_negativeSaltLen_returnsFalse() throws Exception {
         byte[] payload = craftPayload((short) -1, 16);
-        boolean result = ENCODER.match(payload, "anything".getBytes(), PASSPHRASE, "UTF-8");
+        boolean result = ENCODER.match(payload, "anything".getBytes(), TEST_KEY, "UTF-8");
         assertFalse(result);
     }
 
     @Test
     public void match_minimumNegativeSaltLen_returnsFalse() throws Exception {
         byte[] payload = craftPayload(Short.MIN_VALUE, 16);
-        boolean result = ENCODER.match(payload, "anything".getBytes(), PASSPHRASE, "UTF-8");
+        boolean result = ENCODER.match(payload, "anything".getBytes(), TEST_KEY, "UTF-8");
         assertFalse(result);
     }
 
     @Test
     public void match_saltLenExceedsDataLength_returnsFalse() throws Exception {
         byte[] payload = craftPayload((short) 100, 2);
-        boolean result = ENCODER.match(payload, "anything".getBytes(), PASSPHRASE, "UTF-8");
+        boolean result = ENCODER.match(payload, "anything".getBytes(), TEST_KEY, "UTF-8");
         assertFalse(result);
     }
 
@@ -104,10 +108,10 @@ public class AESEncoderCWE130Test {
     @Test
     public void validRoundtrip_encodeDecodeMatch() throws Exception {
         byte[] plaintext = "hello world".getBytes("UTF-8");
-        byte[] encoded = ENCODER.encode(plaintext, null, PASSPHRASE, "UTF-8");
-        byte[] decoded = ENCODER.decode(encoded, null, PASSPHRASE, "UTF-8");
+        byte[] encoded = ENCODER.encode(plaintext, null, TEST_KEY, "UTF-8");
+        byte[] decoded = ENCODER.decode(encoded, null, TEST_KEY, "UTF-8");
         org.junit.Assert.assertArrayEquals(plaintext, decoded);
-        org.junit.Assert.assertTrue(ENCODER.match(encoded, plaintext, PASSPHRASE, "UTF-8"));
+        org.junit.Assert.assertTrue(ENCODER.match(encoded, plaintext, TEST_KEY, "UTF-8"));
     }
 
     // --- format version 2: IV-aware bounds checks ---
@@ -116,38 +120,38 @@ public class AESEncoderCWE130Test {
     public void decode_v2_negativeSaltLen_throwsEncoderException() throws Exception {
         // saltLen field is -1 (signed); explicit check must catch it
         byte[] payload = craftV2Payload((short) -1, 0, 20);
-        ENCODER.decode(payload, null, PASSPHRASE, "UTF-8");
+        ENCODER.decode(payload, null, TEST_KEY, "UTF-8");
     }
 
     @Test(expected = EncoderException.class)
     public void decode_v2_saltLenExceedsPayload_throwsEncoderException() throws Exception {
         // header=10 bytes, saltLen=50 but only 5 bytes follow → must throw, not allocate
         byte[] payload = craftV2Payload((short) 50, 5, 0);
-        ENCODER.decode(payload, null, PASSPHRASE, "UTF-8");
+        ENCODER.decode(payload, null, TEST_KEY, "UTF-8");
     }
 
     @Test(expected = EncoderException.class)
     public void decode_v2_truncatedIV_throwsEncoderException() throws Exception {
         // saltLen=4, 4 salt bytes present, only 8 bytes for IV (need 16) → must throw
         byte[] payload = craftV2Payload((short) 4, 4, 8);
-        ENCODER.decode(payload, null, PASSPHRASE, "UTF-8");
+        ENCODER.decode(payload, null, TEST_KEY, "UTF-8");
     }
 
     @Test
     public void match_v2_negativeSaltLen_returnsFalse() throws Exception {
         byte[] payload = craftV2Payload((short) -1, 0, 20);
-        assertFalse(ENCODER.match(payload, "anything".getBytes(), PASSPHRASE, "UTF-8"));
+        assertFalse(ENCODER.match(payload, "anything".getBytes(), TEST_KEY, "UTF-8"));
     }
 
     @Test
     public void match_v2_saltLenExceedsPayload_returnsFalse() throws Exception {
         byte[] payload = craftV2Payload((short) 50, 5, 0);
-        assertFalse(ENCODER.match(payload, "anything".getBytes(), PASSPHRASE, "UTF-8"));
+        assertFalse(ENCODER.match(payload, "anything".getBytes(), TEST_KEY, "UTF-8"));
     }
 
     @Test
     public void match_v2_truncatedIV_returnsFalse() throws Exception {
         byte[] payload = craftV2Payload((short) 4, 4, 8);
-        assertFalse(ENCODER.match(payload, "anything".getBytes(), PASSPHRASE, "UTF-8"));
+        assertFalse(ENCODER.match(payload, "anything".getBytes(), TEST_KEY, "UTF-8"));
     }
 }

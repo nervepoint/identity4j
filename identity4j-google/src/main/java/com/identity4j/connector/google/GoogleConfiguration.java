@@ -101,7 +101,7 @@ public class GoogleConfiguration extends AbstractConnectorConfiguration{
 	 * Service id private key passphrase 
 	 */
 	public String getGooglePrivatePassphrase(){
-		return configurationParameters.getStringOrDefault(GOOGLE_PRIVATE_KEY_PASSPHRASE, "notasecret");
+		return configurationParameters.getString(GOOGLE_PRIVATE_KEY_PASSPHRASE);
 	}
 	
 	/**

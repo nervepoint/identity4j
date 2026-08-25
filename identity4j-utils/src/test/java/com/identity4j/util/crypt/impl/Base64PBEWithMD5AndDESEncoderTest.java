@@ -23,16 +23,45 @@ package com.identity4j.util.crypt.impl;
  */
 
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.util.Base64;
 
 import com.identity4j.util.crypt.AbstractEncoderTest;
+import com.identity4j.util.crypt.Encoder;
+import com.identity4j.util.crypt.impl.DefaultEncoderManager;
 
 public class Base64PBEWithMD5AndDESEncoderTest extends AbstractEncoderTest {
 
+	private static final byte[][] TEST_KEYS;
+	private static final byte[][] ENCODED_VECTORS;
+
+	static {
+		SecureRandom rng = new SecureRandom();
+		TEST_KEYS = new byte[3][];
+		for (int i = 0; i < 3; i++) {
+			byte[] seed = new byte[12];
+			rng.nextBytes(seed);
+			TEST_KEYS[i] = Base64.getEncoder().encodeToString(seed).getBytes(StandardCharsets.UTF_8);
+		}
+		String[] testStrings = { "asecret", "a slightly longer secret",
+			"a secret with other characters like $\u00a3\"!&*(" };
+		try {
+			Encoder enc = DefaultEncoderManager.getInstance().getEncoderById(Base64PBEWithMD5AndDESEncoder.ID);
+			ENCODED_VECTORS = new byte[][] {
+				enc.encode(testStrings[0].getBytes("UTF-8"), null, TEST_KEYS[0], "UTF-8"),
+				enc.encode(testStrings[1].getBytes("UTF-8"), null, TEST_KEYS[1], "UTF-8"),
+				enc.encode(testStrings[2].getBytes("UTF-8"), null, TEST_KEYS[2], "UTF-8")
+			};
+		} catch (Exception e) {
+			throw new ExceptionInInitializerError(e);
+		}
+	}
+
 	public Base64PBEWithMD5AndDESEncoderTest() throws UnsupportedEncodingException {
 		super(Base64PBEWithMD5AndDESEncoder.ID, true, false);
-		setExpectedHashes(new byte[][] { "CBWMo0pmUSq8EJT3y+UXfq0=".getBytes("UTF-8"),
-			"CBWMo0pmUSq8LJFjdF91CJRgxiulYsq2GR0GdKs+SmuA6icnA5fGeL8=".getBytes("UTF-8"), "CBWMo0pmUSq8zwRZTkZDprHJt8byrXTGOSl3e7iQB5Wx7D2haUQaHUdDe+y7q1hv5ffvdID2YkGW".getBytes("UTF-8") });
-		setPassphrases(new byte[][] { "password1".getBytes("UTF-8"), "password2".getBytes("UTF-8"), "password3".getBytes("UTF-8") });
+		setPassphrases(TEST_KEYS);
+		setExpectedHashes(ENCODED_VECTORS);
 	}
 
 }

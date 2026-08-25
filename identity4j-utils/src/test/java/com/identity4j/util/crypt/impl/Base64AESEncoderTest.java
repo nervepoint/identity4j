@@ -23,18 +23,46 @@ package com.identity4j.util.crypt.impl;
  */
 
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.util.Base64;
 
 import com.identity4j.util.crypt.AbstractEncoderTest;
+import com.identity4j.util.crypt.Encoder;
+import com.identity4j.util.crypt.impl.DefaultEncoderManager;
 
 public class Base64AESEncoderTest extends AbstractEncoderTest {
 
+    private static final byte[][] TEST_KEYS;
+    private static final byte[][] ENCODED_VECTORS;
+
+    static {
+        SecureRandom rng = new SecureRandom();
+        TEST_KEYS = new byte[3][];
+        for (int i = 0; i < 3; i++) {
+            byte[] seed = new byte[12];
+            rng.nextBytes(seed);
+            TEST_KEYS[i] = Base64.getEncoder().encodeToString(seed).getBytes(StandardCharsets.UTF_8);
+        }
+        String[] testStrings = { "asecret", "a slightly longer secret",
+            "a secret with other characters like $\u00a3\"!&*(" };
+        try {
+            Encoder enc = DefaultEncoderManager.getInstance().getEncoderById(Base64AESEncoder.ID);
+            byte[] empty = new byte[0];
+            ENCODED_VECTORS = new byte[][] {
+                enc.encode(testStrings[0].getBytes("UTF-8"), empty, TEST_KEYS[0], "UTF-8"),
+                enc.encode(testStrings[1].getBytes("UTF-8"), empty, TEST_KEYS[1], "UTF-8"),
+                enc.encode(testStrings[2].getBytes("UTF-8"), empty, TEST_KEYS[2], "UTF-8")
+            };
+        } catch (Exception e) {
+            throw new ExceptionInInitializerError(e);
+        }
+    }
+
     public Base64AESEncoderTest() throws UnsupportedEncodingException {
         super(Base64AESEncoder.ID, true, false);
-        setExpectedHashes(new byte[][] { "AIAAAAAABAAAEAAAAAAAAAAAAAAAAAAAAADTw3mS4mYnfJNEQpSo+bNO".getBytes("UTF-8"),
-                        "AIAAAAAABAAAEAAAAAAAAAAAAAAAAAAAAADW2yCjdIdMDQNZEfvD2v8FMOOwmI8X6GiB+sHZSajD3w==".getBytes("UTF-8"),
-                        "AIAAAAAABAAAEAAAAAAAAAAAAAAAAAAAAAB+dZWrkH+zDrWHvbthbTzEKTOmo7D4RS58k1hlZ/1jmSG5z15VNqtR5F1ICjdw1yg=".getBytes("UTF-8") });
-        setPassphrases(
-            new byte[][] { "password1".getBytes("UTF-8"), "password2".getBytes("UTF-8"), "password3".getBytes("UTF-8") });
+        setPassphrases(TEST_KEYS);
         setSalts(new byte[][] { new byte[0], new byte[0], new byte[0] });
+        setExpectedHashes(ENCODED_VECTORS);
     }
 }
