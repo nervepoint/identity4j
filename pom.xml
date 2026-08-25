@@ -23,7 +23,7 @@
 		<mysqlArtifactId>mysql-connector-java</mysqlArtifactId>
 		<mysqlVersion>8.0.28</mysqlVersion>
 		
-		<jackson.version>2.21.5</jackson.version>
+		<jackson.version>2.19.4</jackson.version>
 		
         <build.projectProperties>${basedir}/nervepoint.build.properties</build.projectProperties>
         <build.userProperties>${user.home}/.nervepoint.build.properties</build.userProperties>
