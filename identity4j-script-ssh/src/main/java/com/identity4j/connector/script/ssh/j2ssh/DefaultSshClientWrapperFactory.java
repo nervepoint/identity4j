@@ -151,10 +151,9 @@ public class DefaultSshClientWrapperFactory implements SshClientWrapperFactory {
 		}
 	}
 
-	private synchronized void disconnect(SshClient client) {
+	private void disconnect(SshClient client) {
 		if (client != null && client.isConnected()) {
 			client.disconnect();
-			client = null;
 		}
 	}
 

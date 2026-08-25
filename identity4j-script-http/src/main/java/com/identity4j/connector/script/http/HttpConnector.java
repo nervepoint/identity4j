@@ -41,7 +41,7 @@ public class HttpConnector extends AbstractScriptConnector<HttpConfiguration> {
 
 	private final static Log LOG = LogFactory.getLog(HttpConnector.class);
 
-	private HttpProviderClient client;
+	private volatile HttpProviderClient client;
 
 	public HttpConnector() {
 		super();

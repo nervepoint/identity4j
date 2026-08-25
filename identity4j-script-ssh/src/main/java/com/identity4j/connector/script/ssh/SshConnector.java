@@ -50,7 +50,7 @@ public class SshConnector extends AbstractScriptConnector<SshConfiguration> {
 
 	private final static Log LOG = LogFactory.getLog(SshConnector.class);
 
-	private SshClientWrapper client;
+	private volatile SshClientWrapper client;
 
 	public static final String FULL_NAME = "fullName";
 	public static final String HOME_DIR = "home";

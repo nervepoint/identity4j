@@ -35,11 +35,11 @@ import org.apache.commons.logging.LogFactory;
 
 public class Expect {
 
-	protected List<ExpectMatcher> matchers = new ArrayList<ExpectMatcher>();
-	protected BufferedInputStream in;
-	private OutputStream out;
-	private String eol;
-	private boolean open = true;
+	protected volatile List<ExpectMatcher> matchers = new ArrayList<ExpectMatcher>();
+	protected volatile BufferedInputStream in;
+	private volatile OutputStream out;
+	private volatile String eol;
+	private volatile boolean open = true;
 	
 	static Log log = LogFactory.getLog(Expect.class);
 

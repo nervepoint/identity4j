@@ -42,6 +42,7 @@ public abstract class AbstractFlatFile {
     static final Log LOG = LogFactory.getLog(AbstractFlatFile.class);
 
     // Internal representation of file content
+    private final Object writeLock = new Object();
     private final List<List<String>> contents = new ArrayList<List<String>>();
     private final Map<Integer, Map<String, List<String>>> index = new HashMap<Integer, Map<String, List<String>>>();
     private boolean firstRowIsHeading;
@@ -203,7 +204,7 @@ public abstract class AbstractFlatFile {
      * @throws IOException
      */
     protected void write(OutputStream out, List<String> row, String encoding) throws IOException {
-        synchronized (out) {
+        synchronized (writeLock) {
             IOUtils.writeLines(Collections.singletonList(rowToString(row)), null, out, encoding);
         }
     }
