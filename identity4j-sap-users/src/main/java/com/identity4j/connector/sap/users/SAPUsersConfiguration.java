@@ -236,6 +236,6 @@ public class SAPUsersConfiguration extends JDBCConfiguration {
 	}
 
     protected String getProcessedPrincipalName(Principal identity) {
-        return identity.getPrincipalName().toUpperCase();
+        return identity.getPrincipalName().toUpperCase(java.util.Locale.ROOT);
     }
 }

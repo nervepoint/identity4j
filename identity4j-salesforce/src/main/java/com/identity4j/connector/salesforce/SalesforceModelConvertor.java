@@ -129,7 +129,7 @@ public class SalesforceModelConvertor {
 		user.setIsActive(!salesforceIdentity.getAccountStatus().isDisabled());
 		
 		//alias cannot be more than 8 chars
-		user.setAlias(names[0].length() > 8 ? names[0].substring(0, 8).trim().toLowerCase() : names[0]);
+		user.setAlias(names[0].length() > 8 ? names[0].substring(0, 8).trim().toLowerCase(java.util.Locale.ROOT) : names[0]);
 		
 		
 		if(StringUtil.isNullOrEmpty(salesforceIdentity.getAttribute(TIMEZONE_SID_KEY))){

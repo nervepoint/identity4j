@@ -49,19 +49,19 @@ public class Version implements Comparable<Version> {
             if (idx == 3) {
                 if (string.equalsIgnoreCase("base")) {
                     element = 0;
-                } else if (string.toLowerCase().startsWith("ga")) {
+                } else if (string.toLowerCase(java.util.Locale.ROOT).startsWith("ga")) {
                     String substring = string.substring(2);
                     element = -199 + ( substring.equals("") ? 0 : Integer.parseInt(substring) );
-                } else if (string.toLowerCase().startsWith("rc")) {
+                } else if (string.toLowerCase(java.util.Locale.ROOT).startsWith("rc")) {
                     String substring = string.substring(2);
                     element = -299 + ( substring.equals("") ? 0 : Integer.parseInt(substring) );
-                } else if (string.toLowerCase().startsWith("beta")) {
+                } else if (string.toLowerCase(java.util.Locale.ROOT).startsWith("beta")) {
                     String substring = string.substring(4);
                     element = -399 + ( substring.equals("") ? 0 : Integer.parseInt(substring) );
-                } else if (string.toLowerCase().startsWith("alpha")) {
+                } else if (string.toLowerCase(java.util.Locale.ROOT).startsWith("alpha")) {
                     String substring = string.substring(5);
                     element = -499 + ( substring.equals("") ? 0 : Integer.parseInt(substring) );
-                } else if (string.toLowerCase().startsWith("r")) {
+                } else if (string.toLowerCase(java.util.Locale.ROOT).startsWith("r")) {
                     String substring = string.substring(1);
                     element = ( substring.equals("") ? 0 : Integer.parseInt(substring) );
                 }else {

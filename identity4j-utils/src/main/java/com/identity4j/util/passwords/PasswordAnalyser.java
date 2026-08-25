@@ -106,7 +106,7 @@ public class PasswordAnalyser {
 
 		// Check the password doesn't contain the username
 		if (username != null && !characteristics.isContainUsername()) {
-			if (new String(password).toLowerCase().contains(username.toLowerCase())) {
+			if (new String(password).toLowerCase(java.util.Locale.ROOT).contains(username.toLowerCase(java.util.Locale.ROOT))) {
 				throw new PasswordPolicyException(PasswordPolicyException.Type.containsUsername, analysis);
 			}
 		}

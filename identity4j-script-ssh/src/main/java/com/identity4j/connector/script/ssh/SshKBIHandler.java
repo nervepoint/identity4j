@@ -69,11 +69,11 @@ public class SshKBIHandler implements KBIRequestHandler {
 	public boolean showPrompts(String name, String instruction, KBIPrompt[] prompts) {
 		boolean foundPassword = prompts.length == 0;
 		for (int i = 0; i < prompts.length; i++) {
-			if (prompts[i].getPrompt().toLowerCase().matches(passwordPattern)) {
+			if (prompts[i].getPrompt().toLowerCase(java.util.Locale.ROOT).matches(passwordPattern)) {
 				prompts[i].setResponse(new String(password));
 				foundPassword = true;
 			}
-			if (prompts[i].getPrompt().toLowerCase().matches(newPasswordPattern)) {
+			if (prompts[i].getPrompt().toLowerCase(java.util.Locale.ROOT).matches(newPasswordPattern)) {
 				requiresPasswordChange = true;
 			}
 		}

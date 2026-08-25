@@ -629,7 +629,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 			roleDn.add("CN=" + role.getPrincipalName());
 
 			Name baseDn = getConfiguration().getBaseDn();
-			if (!roleDn.toString().toLowerCase().endsWith(baseDn.toString().toLowerCase())) {
+			if (!roleDn.toString().toLowerCase(java.util.Locale.ROOT).endsWith(baseDn.toString().toLowerCase(java.util.Locale.ROOT))) {
 				throw new ConnectorException("The Role DN (" + roleDn + ") must be a child of the Base DN (" + baseDn
 						+ " configured for the Active Directory connector.");
 			}
@@ -1291,7 +1291,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 
 	protected String getRootDomainDN() {
 		String objectCategory = getAttributeValue(getRootDn(), "objectCategory");
-		if (!objectCategory.toLowerCase().endsWith(getRootDn().toString().toLowerCase())) {
+		if (!objectCategory.toLowerCase(java.util.Locale.ROOT).endsWith(getRootDn().toString().toLowerCase(java.util.Locale.ROOT))) {
 			return objectCategory.substring("CN=Domain-DNS,CN=Schema,CN=Configuration,".length());
 		}
 		return null;
@@ -1749,7 +1749,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 		// https://jira.springsource.org/browse/LDAP-109
 //		dn = dn.replace("\\\\", "\\\\\\");
 //		dn = dn.replace("/", "\\/");
-		return dn.toLowerCase();
+		return dn.toLowerCase(java.util.Locale.ROOT);
 	}
 	
 	private boolean containsGroupName(String name, Set<String> groups) {
@@ -1795,7 +1795,7 @@ public class ActiveDirectoryConnector extends AbstractDirectoryConnector<ActiveD
 		String domain = "";
 		while (e.hasMoreElements()) {
 			String el = e.nextElement();
-			if (el.toLowerCase().startsWith("dc=")) {
+			if (el.toLowerCase(java.util.Locale.ROOT).startsWith("dc=")) {
 				domain = el.substring(3) + (domain.equals("") ? "" : "." + domain);
 			}
 		}

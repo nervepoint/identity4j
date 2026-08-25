@@ -164,9 +164,9 @@ public class ActiveDirectoryConfiguration extends AbstractDirectoryConfiguration
 
 	protected static String buildUsername(String baseDn, String domain,
 			String username) {
-		if (username.toUpperCase().startsWith(COMMON_NAME)) {
-			boolean containsBaseDn = username.toUpperCase().endsWith(
-					baseDn.toUpperCase());
+		if (username.toUpperCase(java.util.Locale.ROOT).startsWith(COMMON_NAME)) {
+			boolean containsBaseDn = username.toUpperCase(java.util.Locale.ROOT).endsWith(
+					baseDn.toUpperCase(java.util.Locale.ROOT));
 			if (containsBaseDn) {
 				return username;
 			}
@@ -174,10 +174,10 @@ public class ActiveDirectoryConfiguration extends AbstractDirectoryConfiguration
 					+ baseDn;
 		}
 		if (StringUtil.isNullOrEmpty(domain)
-				|| username.toUpperCase().endsWith(domain.toUpperCase())) {
+				|| username.toUpperCase(java.util.Locale.ROOT).endsWith(domain.toUpperCase(java.util.Locale.ROOT))) {
 			return username;
 		}
-		return username + "@" + domain.toLowerCase();
+		return username + "@" + domain.toLowerCase(java.util.Locale.ROOT);
 	}
 
 	public final int getMaxPasswordAgeDays() {

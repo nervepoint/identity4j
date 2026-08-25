@@ -182,7 +182,7 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 	protected Name getRootDn() {
 		final Name baseDn = getConfiguration().getBaseDn();
 		for (int i = 0; i < baseDn.size(); i++) {
-			if (!baseDn.get(i).toLowerCase().startsWith("dc=")) {
+			if (!baseDn.get(i).toLowerCase(java.util.Locale.ROOT).startsWith("dc=")) {
 				final Name suffix = baseDn.getPrefix(i);
 				return suffix;
 			}
@@ -256,7 +256,7 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 			}
 
 			Name baseDn = getConfiguration().getBaseDn();
-			if (!userDn.toString().toLowerCase().endsWith(baseDn.toString().toLowerCase())) {
+			if (!userDn.toString().toLowerCase(java.util.Locale.ROOT).endsWith(baseDn.toString().toLowerCase(java.util.Locale.ROOT))) {
 				throw new ConnectorException("The User DN (" + userDn + ") must be a child of the Base DN (" + baseDn
 						+ " configured for the Active Directory connector.");
 			}
@@ -472,7 +472,7 @@ public class AbstractDirectoryConnector<P extends AbstractDirectoryConfiguration
 
 	protected boolean isIncluded(Name dn) {
 		Name baseDn = getConfiguration().getBaseDn();
-		if (!dn.toString().toLowerCase().endsWith(baseDn.toString().toLowerCase())) {
+		if (!dn.toString().toLowerCase(java.util.Locale.ROOT).endsWith(baseDn.toString().toLowerCase(java.util.Locale.ROOT))) {
 			return false;
 		}
 
