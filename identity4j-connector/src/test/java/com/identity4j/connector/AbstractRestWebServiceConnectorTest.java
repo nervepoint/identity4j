@@ -76,7 +76,6 @@ public abstract class AbstractRestWebServiceConnectorTest {
         try {
             InputStream resourceAsStream = AbstractRestWebServiceConnectorTest.class.getResourceAsStream(propertiesFile);
             if (resourceAsStream == null) {
-
                 File externalResource = new File("conf" + propertiesFile);
                 if (externalResource.exists()) {
                     resourceAsStream = new FileInputStream(externalResource);
@@ -85,9 +84,11 @@ public abstract class AbstractRestWebServiceConnectorTest {
                                     + " not found. Check it is on your classpath");
                 }
             }
-            Properties properties = new Properties();
-            properties.load(resourceAsStream);
-            return MultiMap.toMultiMap(properties);
+            try (InputStream stream = resourceAsStream) {
+                Properties properties = new Properties();
+                properties.load(stream);
+                return MultiMap.toMultiMap(properties);
+            }
         } catch (IOException ioe) {
             throw new RuntimeException("Failed to load configuration parameters", ioe);
         }
