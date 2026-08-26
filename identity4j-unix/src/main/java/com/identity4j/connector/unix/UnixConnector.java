@@ -651,9 +651,11 @@ public class UnixConnector extends AbstractFlatFileConnector<UnixConfiguration> 
 	protected void onCreateUser(Identity identity, List<String> row, char[] password) throws ConnectorException {
 		row.set(HOME_FIELD_INDEX, identity.getAttributeOrDefault(ATTR_HOME, ""));
 		row.set(SHELL_FIELD_INDEX, identity.getAttributeOrDefault(ATTR_SHELL, ""));
-
-		if (passwordsInShadow) {
-			final LocalDelimitedFlatFile passwordFile = getPasswordFile();
+		// CWE-821: capture volatile snapshots once to prevent TOCTOU races with reset()/checkShadowLoaded()
+		boolean inShadow = passwordsInShadow;
+		LocalDelimitedFlatFile shadow = shadowFlatFile;
+		if (inShadow && shadow != null) {
+			final LocalDelimitedFlatFile passwordFile = shadow;
 			List<String> passwordRow = passwordFile.getRowByKeyField(0, identity.getPrincipalName());
 			if (passwordRow == null) {
 				passwordRow = new ArrayList<String>();
