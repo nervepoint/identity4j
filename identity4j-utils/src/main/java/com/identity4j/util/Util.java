@@ -603,18 +603,23 @@ public final class Util {
 					throw new IOException("Zip Slip detected: absolute entry path rejected: " + name);
 				}
 				File file = new File(directory, name);
-				if (!file.getCanonicalPath().startsWith(canonicalDest + File.separator)
-						&& !file.getCanonicalPath().equals(canonicalDest)) {
+				// CWE-23: resolve to canonical path so that relative segments (e.g. a/../b) are
+				// normalised before use — this both validates containment and ensures that
+				// FileOutputStream receives a path whose intermediate directories all exist.
+				File canonFile = file.getCanonicalFile();
+				String canonFilePath = canonFile.getPath();
+				if (!canonFilePath.startsWith(canonicalDest + File.separator)
+						&& !canonFilePath.equals(canonicalDest)) {
 					throw new IOException("Zip Slip detected: entry escapes target directory: " + name);
 				}
 				if (entry.isDirectory()) {
-					file.mkdirs();
+					canonFile.mkdirs();
 				} else {
-					file.getParentFile().mkdirs();
+					canonFile.getParentFile().mkdirs();
 					try (InputStream in = zfile.getInputStream(entry);
-						 FileOutputStream fos = new FileOutputStream(file)) {
+						 FileOutputStream fos = new FileOutputStream(canonFile)) {
 						IOUtils.copy(in, fos);
-						LOG.info("Extracted " + file);
+						LOG.info("Extracted " + canonFile);
 						files++;
 					}
 				}
