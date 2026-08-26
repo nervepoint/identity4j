@@ -25,18 +25,18 @@
 - [✅] `identity4j-utils/src/main/java/com/identity4j/util/Util.java`
   — CWE-23 fix already in place (CWE-22 session): absolute-path fast-fail + canonical-path
     guard in `unzip()` covers all relative traversal patterns
-- [⌛️] `identity4j-utils/src/test/java/com/identity4j/util/UtilCwe23Test.java`
+- [✅] `identity4j-utils/src/test/java/com/identity4j/util/UtilCwe23Test.java`
   — New regression tests for CWE-23 specific relative-path patterns
 
 ### Validation & Fixing
 
-- [✅] Build Environment Setup (OpenJDK 21, Maven)
-- [⌛️] Build and Fix
-- [⌛️] CVE Check
-- [⌛️] Consistency Check
-- [⌛️] Test Fix
-- [⌛️] Completeness Check
-- [⌛️] Build Validation
+- [✅] Build Environment Setup (OpenJDK 21 — `/usr/lib/jvm/java-21-openjdk-amd64`)
+- [✅] Build and Fix (all modules — SUCCESS)
+- [✅] CVE Check (no new dependencies introduced)
+- [✅] Consistency Check (canonical-path change is strictly safer)
+- [✅] Test Fix (all 5 new UtilCwe23Test tests pass)
+- [✅] Completeness Check (full source scan — no additional CWE-23 sites found)
+- [✅] Build Validation (full multi-module build — SUCCESS)
 
 ---
 
@@ -50,6 +50,6 @@ No additional CWE-23 vulnerabilities found in production code after full scan.
 
 ---
 
-- [⌛️] Final Summary ([summary.md](.github/modernize/cwe23/summary.md))
-  - [⌛️] Final Code Commit
-  - [⌛️] Migration Summary Generation
+- [✅] Final Summary ([summary.md](.github/modernize/cwe23/summary.md))
+  - [✅] Final Code Commit (`b49e802`)
+  - [✅] Migration Summary Generation
