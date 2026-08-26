@@ -23,7 +23,7 @@
 		<mysqlArtifactId>mysql-connector-java</mysqlArtifactId>
 		<mysqlVersion>8.0.28</mysqlVersion>
 		
-		<jackson.version>2.19.4</jackson.version>
+		<jackson.version>2.21.5</jackson.version>
 		
         <build.projectProperties>${basedir}/nervepoint.build.properties</build.projectProperties>
         <build.userProperties>${user.home}/.nervepoint.build.properties</build.userProperties>
@@ -116,6 +116,197 @@
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
+	<dependencyManagement>
+		<dependencies>
+			<!-- CVE remediation: force patched Netty version across all modules -->
+			<dependency>
+				<groupId>io.netty</groupId>
+				<artifactId>netty-handler</artifactId>
+				<version>4.1.137.Final</version>
+			</dependency>
+			<dependency>
+				<groupId>io.netty</groupId>
+				<artifactId>netty-codec-http</artifactId>
+				<version>4.1.137.Final</version>
+			</dependency>
+			<dependency>
+				<groupId>io.netty</groupId>
+				<artifactId>netty-codec-http2</artifactId>
+				<version>4.1.137.Final</version>
+			</dependency>
+			<dependency>
+				<groupId>io.netty</groupId>
+				<artifactId>netty-codec</artifactId>
+				<version>4.1.137.Final</version>
+			</dependency>
+			<dependency>
+				<groupId>io.netty</groupId>
+				<artifactId>netty-codec-socks</artifactId>
+				<version>4.1.137.Final</version>
+			</dependency>
+			<dependency>
+				<groupId>io.netty</groupId>
+				<artifactId>netty-common</artifactId>
+				<version>4.1.137.Final</version>
+			</dependency>
+			<dependency>
+				<groupId>io.netty</groupId>
+				<artifactId>netty-buffer</artifactId>
+				<version>4.1.137.Final</version>
+			</dependency>
+			<dependency>
+				<groupId>io.netty</groupId>
+				<artifactId>netty-transport</artifactId>
+				<version>4.1.137.Final</version>
+			</dependency>
+			<dependency>
+				<groupId>io.netty</groupId>
+				<artifactId>netty-resolver</artifactId>
+				<version>4.1.137.Final</version>
+			</dependency>
+			<dependency>
+				<groupId>io.netty</groupId>
+				<artifactId>netty-handler-proxy</artifactId>
+				<version>4.1.137.Final</version>
+			</dependency>
+			<dependency>
+				<groupId>io.netty</groupId>
+				<artifactId>netty-transport-native-epoll</artifactId>
+				<version>4.1.137.Final</version>
+			</dependency>
+			<dependency>
+				<groupId>io.netty</groupId>
+				<artifactId>netty-transport-native-unix-common</artifactId>
+				<version>4.1.137.Final</version>
+			</dependency>
+			<dependency>
+				<groupId>io.netty</groupId>
+				<artifactId>netty-transport-classes-epoll</artifactId>
+				<version>4.1.137.Final</version>
+			</dependency>
+			<dependency>
+				<groupId>io.netty</groupId>
+				<artifactId>netty-resolver-dns</artifactId>
+				<version>4.1.137.Final</version>
+			</dependency>
+			<dependency>
+				<groupId>io.netty</groupId>
+				<artifactId>netty-codec-dns</artifactId>
+				<version>4.1.137.Final</version>
+			</dependency>
+			<!-- CVE remediation: force patched reactor-netty (CVE-2025-22227) -->
+			<dependency>
+				<groupId>io.projectreactor.netty</groupId>
+				<artifactId>reactor-netty-http</artifactId>
+				<version>1.2.8</version>
+			</dependency>
+			<dependency>
+				<groupId>io.projectreactor.netty</groupId>
+				<artifactId>reactor-netty-core</artifactId>
+				<version>1.2.8</version>
+			</dependency>
+			<!-- CVE remediation: nimbus-jose-jwt (CVE-2025-53864) -->
+			<dependency>
+				<groupId>com.nimbusds</groupId>
+				<artifactId>nimbus-jose-jwt</artifactId>
+				<version>9.37.4</version>
+			</dependency>
+			<!-- CVE remediation: json-smart (CVE-2024-57699) -->
+			<dependency>
+				<groupId>net.minidev</groupId>
+				<artifactId>json-smart</artifactId>
+				<version>2.5.2</version>
+			</dependency>
+			<dependency>
+				<groupId>net.minidev</groupId>
+				<artifactId>accessors-smart</artifactId>
+				<version>2.5.2</version>
+			</dependency>
+			<!-- CVE remediation: protobuf-java (CVE-2021-22569, CVE-2022-3171, CVE-2022-3509, CVE-2022-3510, CVE-2024-7254) -->
+			<dependency>
+				<groupId>com.google.protobuf</groupId>
+				<artifactId>protobuf-java</artifactId>
+				<version>3.25.5</version>
+			</dependency>
+			<!-- CVE remediation: opentelemetry (CVE-2026-45292) -->
+			<dependency>
+				<groupId>io.opentelemetry</groupId>
+				<artifactId>opentelemetry-api</artifactId>
+				<version>1.62.0</version>
+			</dependency>
+			<dependency>
+				<groupId>io.opentelemetry</groupId>
+				<artifactId>opentelemetry-context</artifactId>
+				<version>1.62.0</version>
+			</dependency>
+			<!-- CVE remediation: microsoft-kiota (CVE-2026-44503) -->
+			<dependency>
+				<groupId>com.microsoft.kiota</groupId>
+				<artifactId>microsoft-kiota-abstractions</artifactId>
+				<version>1.9.1</version>
+			</dependency>
+			<dependency>
+				<groupId>com.microsoft.kiota</groupId>
+				<artifactId>microsoft-kiota-authentication-azure</artifactId>
+				<version>1.9.1</version>
+			</dependency>
+			<dependency>
+				<groupId>com.microsoft.kiota</groupId>
+				<artifactId>microsoft-kiota-http-okHttp</artifactId>
+				<version>1.9.1</version>
+			</dependency>
+			<dependency>
+				<groupId>com.microsoft.kiota</groupId>
+				<artifactId>microsoft-kiota-serialization-json</artifactId>
+				<version>1.9.1</version>
+			</dependency>
+			<dependency>
+				<groupId>com.microsoft.kiota</groupId>
+				<artifactId>microsoft-kiota-serialization-text</artifactId>
+				<version>1.9.1</version>
+			</dependency>
+			<dependency>
+				<groupId>com.microsoft.kiota</groupId>
+				<artifactId>microsoft-kiota-serialization-form</artifactId>
+				<version>1.9.1</version>
+			</dependency>
+			<dependency>
+				<groupId>com.microsoft.kiota</groupId>
+				<artifactId>microsoft-kiota-serialization-multipart</artifactId>
+				<version>1.9.1</version>
+			</dependency>
+			<!-- CVE remediation: guava (CVE-2018-10237, CVE-2020-8908, CVE-2023-2976) -->
+			<dependency>
+				<groupId>com.google.guava</groupId>
+				<artifactId>guava</artifactId>
+				<version>32.0.0-android</version>
+			</dependency>
+			<!-- CVE remediation: google-oauth-client (CVE-2020-7692, CVE-2021-22573) -->
+			<dependency>
+				<groupId>com.google.oauth-client</groupId>
+				<artifactId>google-oauth-client</artifactId>
+				<version>1.33.3</version>
+			</dependency>
+			<!-- CVE remediation: httpclient (CVE-2020-13956) from AWS SDK transitive -->
+			<dependency>
+				<groupId>org.apache.httpcomponents</groupId>
+				<artifactId>httpclient</artifactId>
+				<version>4.5.13</version>
+			</dependency>
+			<!-- Align remaining Netty transport/resolver platform artifacts -->
+			<dependency>
+				<groupId>io.netty</groupId>
+				<artifactId>netty-transport-classes-kqueue</artifactId>
+				<version>4.1.137.Final</version>
+			</dependency>
+			<dependency>
+				<groupId>io.netty</groupId>
+				<artifactId>netty-resolver-dns-classes-macos</artifactId>
+				<version>4.1.137.Final</version>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+
 	<reporting>
 		<plugins>
 			<plugin>

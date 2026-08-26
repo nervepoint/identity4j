@@ -63,16 +63,7 @@
 			<groupId>com.fasterxml.jackson.core</groupId>
 		    <version>${jackson.version}</version>
 		</dependency>
-		<dependency>
-			<artifactId>jackson-core</artifactId>
-			<groupId>com.fasterxml.jackson.core</groupId>
-		    <version>${jackson.version}</version>
-		</dependency>
-		<dependency>
-			<artifactId>jackson-annotations</artifactId>
-			<groupId>com.fasterxml.jackson.core</groupId>
-		    <version>${jackson.version}</version>
-		</dependency>
+		<!-- jackson-core and jackson-annotations come transitively from jackson-databind at the correct versions -->
 		<dependency>
 			<artifactId>jackson-datatype-jsr310</artifactId>
 			<groupId>com.fasterxml.jackson.datatype</groupId>

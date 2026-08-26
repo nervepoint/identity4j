@@ -26,6 +26,12 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<!-- override transitive commons-lang3:3.17.0 from commons-vfs2 (CVE-2025-48924) -->
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-lang3</artifactId>
+			<version>3.18.0</version>
+		</dependency>
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-vfs2</artifactId>
