@@ -14,6 +14,13 @@
         "passBuild": "true",
         "generateNewUnitTests": "false",
         "passUnitTests": "true"
+      },
+      "status": "success",
+      "taskSummary": "Upgraded the 24-module Maven reactor from Java 8 to Java 21 LTS. Compiler source/target set to 21 in root pom.xml. maven-surefire-plugin upgraded 2.19→3.2.5. All 271 tests passed at task completion (session 20260824144409). Build confirmed by javac [debug target 21] in final validation run.",
+      "successCriteriaStatus": {
+        "passBuild": true,
+        "passUnitTests": true,
+        "generateNewUnitTests": false
       }
     },
     {
@@ -30,6 +37,13 @@
         "passBuild": "true",
         "generateNewUnitTests": "false",
         "passUnitTests": "true"
+      },
+      "status": "success",
+      "taskSummary": "Migrated javax.mail→angus-mail:2.0.3, Jetty 9→12 EE10, woodstox-core-asl (Codehaus EOL)→com.fasterxml.woodstox:woodstox-core:6.6.2, commons-vfs2 2.1→2.9.0. All 25 Jakarta EE incidents resolved. Build and all tests passed (session 20260824144409, confirmed session 20260825113414).",
+      "successCriteriaStatus": {
+        "passBuild": true,
+        "passUnitTests": true,
+        "generateNewUnitTests": false
       }
     },
     {
@@ -46,6 +60,13 @@
         "passBuild": "true",
         "generateNewUnitTests": "false",
         "passUnitTests": "true"
+      },
+      "status": "success",
+      "taskSummary": "Replaced all deprecated new Locale() constructors (22 sites, 8 files) with Locale.of()/Locale.ROOT, new URL(String) with URI.create().toURL(), and removed dead insertProvider.{name} SecurityPermission code (SecurityManager removed in Java 17). All 12 deprecated API incidents resolved. 293 tests passed (session 20260825113414).",
+      "successCriteriaStatus": {
+        "passBuild": true,
+        "passUnitTests": true,
+        "generateNewUnitTests": false
       }
     },
     {
@@ -69,6 +90,13 @@
         "passBuild": "true",
         "generateNewUnitTests": "false",
         "passUnitTests": "true"
+      },
+      "status": "success",
+      "taskSummary": "Removed Eclipse-derived explicit source-directory, output-directory, and resource declarations from identity4j-script-ssh, identity4j-script-http, identity4j-script-hypersocket; replaced with Maven conventions. Added standard Maven entries to root .gitignore. Fixed parent-version mismatches (sessions eclipse-project-to-maven-project-20260824165934, eclipse-project-to-maven-project-20260825125847). All 49 .project and .classpath files remain byte-for-byte unchanged (verified git diff develop HEAD: 0 diffs).",
+      "successCriteriaStatus": {
+        "passBuild": true,
+        "passUnitTests": true,
+        "generateNewUnitTests": false
       }
     },
     {
@@ -84,6 +112,13 @@
         "passBuild": "true",
         "generateNewUnitTests": "true",
         "passUnitTests": "true"
+      },
+      "status": "success",
+      "taskSummary": "All 22 selected CWEs remediated across dedicated sessions: CWE-130 (length validation in AESEncoder/PBEWithMD5AndDESEncoder, 18 regression tests), CWE-477 (obsolete function removal), CWE-570 (always-false guards removed), CWE-665/CWE-681/CWE-682 (arithmetic/initialization fixes), CWE-775 (12 files, try-with-resources), CWE-783 (operator precedence parentheses), CWE-789 (AES key bounds guards), CWE-543/CWE-567/CWE-662/CWE-667/CWE-820/CWE-821 (synchronization hardening with volatile/synchronized/double-checked-locking), CWE-259/CWE-321/CWE-798 (credential and key externalization), CWE-778 (security logging added to 7 files), CWE-22/CWE-23 (zip-slip and path-traversal fixes with canonical path enforcement), CWE-611 (XXE suppression in two XML factories). Regression tests added for all CWE fixes. CWE-89 and CWE-502 excluded per plan scope. Build and all tests passed after each remediation.",
+      "successCriteriaStatus": {
+        "passBuild": true,
+        "passUnitTests": true,
+        "generateNewUnitTests": true
       }
     },
     {
@@ -99,6 +134,13 @@
         "passBuild": "true",
         "generateNewUnitTests": "false",
         "passUnitTests": "true"
+      },
+      "status": "success",
+      "taskSummary": "Scanned 606 dependency entries (including transitive). 60 unique CVE-dependency pairs fixed across 14 upgrades: jackson-databind 2.19.4→2.21.5, jackson-core 2.19.4→2.21.5, netty (all components) →4.1.137.Final, reactor-netty-http 1.0.45→1.2.8, nimbus-jose-jwt 9.37.3→9.37.4, json-smart 2.5.0→2.5.2, protobuf-java 3.11.4→3.25.5, google-oauth-client 1.25.0→1.33.3, guava 20.0→32.0.0-android, commons-io 2.13.0→2.14.0, commons-lang3 3.17.0→3.18.0, dnsjava 2.1.8→3.6.0, microsoft-kiota-abstractions 1.1.7→1.9.1, opentelemetry-api 1.37.0→1.62.0, httpclient 4.5.9→4.5.13. 6 log4j 1.x CVEs accepted as exceptions (test-scope only; no safe remediation path; documented rationale in session 20260826133753/summary.md). Build passed on Java 21 (commit 4856ca4).",
+      "successCriteriaStatus": {
+        "passBuild": true,
+        "passUnitTests": true,
+        "generateNewUnitTests": false
       }
     }
   ],

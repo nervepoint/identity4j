@@ -1,0 +1,81 @@
+{
+  "$schema": "../../../../../../.vscode/extensions/vscjava.migrate-java-to-azure-1.23.0-linux-x64/skills/create-modernization-plan/summary-schema.json",
+  "version": "1.0",
+  "taskSummaries": [
+    {
+      "id": "001-upgrade-java-version",
+      "type": "upgrade",
+      "goalStatus": {
+        "fromVersion": "Java 8 (1.8 compiler target)",
+        "targetVersion": "OpenJDK 21 LTS (Temurin 21+35-LTS, javac target 21)"
+      },
+      "risks": [],
+      "followUps": [
+        "Periodically update to the next Java 21 patch release as LTS patches ship."
+      ]
+    },
+    {
+      "id": "002-upgrade-jakarta-ee-version",
+      "type": "upgrade",
+      "goalStatus": {
+        "fromVersion": "javax.* (Java EE 7/8 artifacts, EOL dependencies)",
+        "targetVersion": "Jakarta EE 10 (angus-mail 2.0.3, Jetty 12 EE10, woodstox-core 6.6.2, commons-vfs2 2.9.0)"
+      },
+      "risks": [
+        "Jetty 12 EE10 integration tests require live servlet container; automated test coverage is limited to unit tests only."
+      ],
+      "followUps": []
+    },
+    {
+      "id": "003-upgrade-deprecated-apis",
+      "type": "upgrade",
+      "goalStatus": {
+        "fromVersion": "Deprecated Locale constructors, new URL(String), insertProvider.{name} SecurityPermission (12 incidents)",
+        "targetVersion": "Locale.of() / Locale.ROOT, URI.create().toURL(), dead SecurityManager code removed (0 incidents)"
+      },
+      "risks": [],
+      "followUps": []
+    },
+    {
+      "id": "004-transform-eclipse-project-to-maven",
+      "type": "transform",
+      "goalStatus": {
+        "migrationFrom": "Eclipse project with redundant explicit build config in script modules",
+        "migrationTo": "Pure Maven conventions; all 49 .project and .classpath files byte-for-byte unchanged (git diff develop HEAD: 0 diffs)"
+      },
+      "risks": [],
+      "followUps": []
+    },
+    {
+      "id": "005-security-remediate-selected-cwes",
+      "type": "security",
+      "goalStatus": {
+        "cvesFixed": 0,
+        "cvesRemaining": 0
+      },
+      "risks": [
+        "log4j 1.x test-scope CVEs deferred to task 006 exception; 6 accepted exceptions remain.",
+        "CWE-259/CWE-798 integration-test credential placeholders (REPLACE_WITH_ACTUAL) require manual provisioning before live integration tests can run."
+      ],
+      "followUps": [
+        "Replace REPLACE_WITH_ACTUAL credential placeholders in test resources with vault-managed secrets before enabling live integration tests."
+      ]
+    },
+    {
+      "id": "006-security-remediate-cves",
+      "type": "security",
+      "goalStatus": {
+        "cvesFixed": 60,
+        "cvesRemaining": 6
+      },
+      "risks": [
+        "6 log4j 1.x CVEs accepted as exceptions: test-scope only (no production exposure), no upstream patch available for 5 of 6, CVE-2023-26464 inert on JRE 21. Documented in .github/modernize/java-upgrade/20260826133753/summary.md.",
+        "jackson 2.21.5 is a minor-version jump from 2.19.4; downstream connectors using reflection-based deserialization should be regression-tested against live systems."
+      ],
+      "followUps": [
+        "Re-scan dependencies when log4j 2.x migration is feasible to close the 6 accepted exceptions.",
+        "Run connector integration tests against live systems to validate jackson 2.21.5 and netty 4.1.137.Final compatibility."
+      ]
+    }
+  ]
+}
