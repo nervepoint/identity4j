@@ -99,6 +99,8 @@
 		<module>identity4j-sap-users</module>
 		<!-- <module>identity4j-webauth-test</module> -->
 		<module>identity4j-aws</module>
+        <module>identity4j-remote</module>
+		<module>identity4j-remote-client</module>
 	</modules>
 
 	<dependencies>

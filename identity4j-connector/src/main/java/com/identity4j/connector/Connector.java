@@ -121,10 +121,7 @@ public interface Connector<P extends ConnectorConfigurationParameters> extends C
 	/**
 	 * Start authenticating a user using an authentication API.
 	 * 
-	 * @param username
-	 * @param password
-	 * @return <tt>true</tt> is returned on success and <tt>false</tt> on
-	 *         failure.
+	 * @return web authentication session.
 	 * @throws ConnectorException
 	 */
 	WebAuthenticationAPI startAuthentication() throws ConnectorException;
@@ -144,6 +141,7 @@ public interface Connector<P extends ConnectorConfigurationParameters> extends C
 	 * Change your password. This method is used by an identity to change their
 	 * own password. The boolean property checkCurrent if true old password will be verified.
 	 * 
+	 * @param username
 	 * @param guid
 	 * @param oldPassword
 	 * @param password
@@ -157,6 +155,7 @@ public interface Connector<P extends ConnectorConfigurationParameters> extends C
 	/**
 	 * Set a {@link Identity}s password. This is used by an administrator.
 	 * 
+	 * @param username
 	 * @param guid
 	 * @param password
 	 * @param forcePasswordChangeAtLogon
@@ -170,6 +169,7 @@ public interface Connector<P extends ConnectorConfigurationParameters> extends C
 	/**
 	 * Set a {@link Identity}s password. This is used by an administrator.
 	 * 
+	 * @param username
 	 * @param guid
 	 * @param password
 	 * @param forcePasswordChangeAtLogon
